@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Users, FolderOpen, Calendar, BarChart3, Clock, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import DepartmentManagement from '@/components/DepartmentManagement';
+import DepartmentSelectionDialog from '@/components/DepartmentSelectionDialog';
 
 interface Project {
   id: string;
@@ -27,7 +29,7 @@ interface DashboardStats {
 }
 
 const Dashboard = () => {
-  const { userRole } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -37,13 +39,42 @@ const Dashboard = () => {
     totalUsers: 0
   });
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
 
   useEffect(() => {
-    fetchProjects();
-    if (userRole === 'admin') {
-      fetchStats();
+    if (user) {
+      fetchUserProfile();
+      fetchProjects();
+      if (userRole === 'admin') {
+        fetchStats();
+      }
     }
-  }, [userRole]);
+  }, [user, userRole]);
+
+  useEffect(() => {
+    // Check if project coordinator needs department assignment
+    if (userRole === "project_coordinator" && userProfile && !userProfile.department_id) {
+      setShowDepartmentDialog(true);
+    }
+  }, [userRole, userProfile]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*, departments(name)")
+        .eq("id", user.id)
+        .single();
+      
+      if (error && error.code !== "PGRST116") throw error;
+      setUserProfile(data);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -128,6 +159,28 @@ const Dashboard = () => {
     }
   };
 
+  const handleCreateProject = () => {
+    if (userRole === "project_coordinator" && (!userProfile?.department_id)) {
+      toast({
+        title: "Department Required",
+        description: "You must select a department before creating projects",
+        variant: "destructive",
+      });
+      setShowDepartmentDialog(true);
+      return;
+    }
+    // Add your project creation logic here
+    toast({
+      title: "Feature Coming Soon",
+      description: "Project creation will be implemented next",
+    });
+  };
+
+  const handleDepartmentAssigned = () => {
+    fetchUserProfile();
+    setShowDepartmentDialog(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
@@ -147,8 +200,15 @@ const Dashboard = () => {
           {userRole === 'admin' 
             ? 'Manage all projects and users across the organization' 
             : 'Coordinate and track your assigned projects'}
+          {userProfile?.departments && (
+            <span className="block mt-1">
+              Department: <Badge variant="outline" className="bg-white/20 text-white border-white/30">
+                {userProfile.departments.name}
+              </Badge>
+            </span>
+          )}
         </p>
-        <Button variant="hero" size="lg">
+        <Button variant="hero" size="lg" onClick={handleCreateProject}>
           <Plus className="h-5 w-5 mr-2" />
           Create New Project
         </Button>
@@ -211,6 +271,11 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Department Management - Only for Admins */}
+      {userRole === 'admin' && (
+        <DepartmentManagement />
+      )}
+
       {/* Recent Projects */}
       <Card>
         <CardHeader>
@@ -265,6 +330,14 @@ const Dashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Department Selection Dialog */}
+      <DepartmentSelectionDialog
+        isOpen={showDepartmentDialog}
+        onClose={() => setShowDepartmentDialog(false)}
+        userId={user?.id || ""}
+        onDepartmentAssigned={handleDepartmentAssigned}
+      />
     </div>
   );
 };
