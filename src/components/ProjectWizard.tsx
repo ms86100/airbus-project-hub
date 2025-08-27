@@ -19,9 +19,11 @@ import ConfirmationStep from './wizard/ConfirmationStep';
 export interface Task {
   id: string;
   title: string;
-  ownerId?: string;
+  description?: string;
   dueDate?: string;
-  status: string;
+  status?: string;
+  priority?: string;
+  ownerId?: string;
   sourceTag?: string;
 }
 
@@ -29,6 +31,7 @@ export interface Milestone {
   id: string;
   name: string;
   dueDate: string;
+  status?: string;
   tasks: Task[];
 }
 
@@ -131,6 +134,7 @@ const ProjectWizard = () => {
       const milestonesWithProjectId = projectData.milestones.map(milestone => ({
         name: milestone.name,
         due_date: milestone.dueDate,
+        status: milestone.status || 'planning',
         project_id: project.id,
         created_by: user.id
       }));
@@ -150,11 +154,12 @@ const ProjectWizard = () => {
           for (const task of milestone.tasks) {
             tasksToCreate.push({
               title: task.title,
-              project_id: project.id,
+              description: task.description,
+              due_date: task.dueDate,
+              status: task.status || 'todo',
+              priority: task.priority || 'medium',
               milestone_id: createdMilestone.id,
-              status: task.status,
-              due_date: task.dueDate || projectData.endDate,
-              owner_id: task.ownerId || user.id,
+              project_id: project.id,
               created_by: user.id
             });
           }

@@ -264,6 +264,21 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                     className="w-full"
                   />
                 </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Status</label>
+                  <SimpleSelect
+                    value={milestone.status || 'planning'}
+                    onValueChange={(value) => updateMilestone(milestone.id, { status: value })}
+                    placeholder="Select status"
+                    className="w-full"
+                  >
+                    <SimpleSelectItem value="planning">Planning</SimpleSelectItem>
+                    <SimpleSelectItem value="in_progress">In Progress</SimpleSelectItem>
+                    <SimpleSelectItem value="on_hold">On Hold</SimpleSelectItem>
+                    <SimpleSelectItem value="completed">Completed</SimpleSelectItem>
+                    <SimpleSelectItem value="cancelled">Cancelled</SimpleSelectItem>
+                  </SimpleSelect>
+                </div>
                  <div className="flex items-center justify-between">
                    <Badge variant="outline" className="w-fit">
                      {milestone.tasks.length} task{milestone.tasks.length !== 1 ? 's' : ''}
@@ -314,19 +329,46 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                         </Button>
                       </div>
                       
-                       <div className="flex items-center gap-2">
-                        <DatePicker
-                          date={task.dueDate ? new Date(task.dueDate) : undefined}
-                          onDateChange={(date) => 
-                            updateTask(task.id, { 
-                              dueDate: date?.toISOString().split('T')[0] || milestone.dueDate 
-                            })
-                          }
-                          placeholder="Task due date"
-                          minDate={projectData.startDate ? new Date(projectData.startDate) : undefined}
-                          maxDate={milestone.dueDate ? new Date(milestone.dueDate) : undefined}
-                          className="w-full text-xs"
-                        />
+                       <div className="space-y-2">
+                         <div className="flex items-center gap-2">
+                           <DatePicker
+                             date={task.dueDate ? new Date(task.dueDate) : undefined}
+                             onDateChange={(date) => 
+                               updateTask(task.id, { 
+                                 dueDate: date?.toISOString().split('T')[0] || milestone.dueDate 
+                               })
+                             }
+                             placeholder="Task due date"
+                             minDate={projectData.startDate ? new Date(projectData.startDate) : undefined}
+                             maxDate={milestone.dueDate ? new Date(milestone.dueDate) : undefined}
+                             className="flex-1 text-xs"
+                           />
+                         </div>
+                         <div className="flex items-center gap-2">
+                           <SimpleSelect
+                             value={task.status || 'todo'}
+                             onValueChange={(value) => updateTask(task.id, { status: value })}
+                             placeholder="Status"
+                             className="flex-1"
+                           >
+                             <SimpleSelectItem value="todo">To Do</SimpleSelectItem>
+                             <SimpleSelectItem value="in_progress">In Progress</SimpleSelectItem>
+                             <SimpleSelectItem value="review">Review</SimpleSelectItem>
+                             <SimpleSelectItem value="completed">Completed</SimpleSelectItem>
+                             <SimpleSelectItem value="blocked">Blocked</SimpleSelectItem>
+                           </SimpleSelect>
+                           <SimpleSelect
+                             value={task.priority || 'medium'}
+                             onValueChange={(value) => updateTask(task.id, { priority: value })}
+                             placeholder="Priority"
+                             className="flex-1"
+                           >
+                             <SimpleSelectItem value="low">Low</SimpleSelectItem>
+                             <SimpleSelectItem value="medium">Medium</SimpleSelectItem>
+                             <SimpleSelectItem value="high">High</SimpleSelectItem>
+                             <SimpleSelectItem value="urgent">Urgent</SimpleSelectItem>
+                           </SimpleSelect>
+                         </div>
                        </div>
                     </div>
                   </Card>
