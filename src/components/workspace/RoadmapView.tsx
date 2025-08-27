@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Calendar, Clock, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, Calendar, Clock, User, ChevronLeft, ChevronRight, Filter, Download, Settings, ZoomIn, ZoomOut } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, addWeeks, addMonths, addYears, subWeeks, subMonths, subYears, isWithinInterval, parseISO, differenceInDays, addDays } from 'date-fns';
 
 interface Task {
@@ -51,16 +51,26 @@ export function RoadmapView() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('weekly');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [filteredStatus, setFilteredStatus] = useState<string>('all');
+  const [filteredPriority, setFilteredPriority] = useState<string>('all');
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
 
   const taskColors = [
-    'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500'
+    'bg-brand-primary', 'bg-status-success', 'bg-accent', 'bg-status-warning', 'bg-primary-light'
   ];
 
   const priorityColors = {
-    low: 'bg-green-500',
-    medium: 'bg-yellow-500', 
-    high: 'bg-orange-500',
-    critical: 'bg-red-500'
+    low: 'bg-status-success',
+    medium: 'bg-status-warning', 
+    high: 'bg-destructive',
+    critical: 'bg-destructive'
+  };
+
+  const statusColors = {
+    'not_started': 'bg-muted',
+    'in_progress': 'bg-brand-accent',
+    'completed': 'bg-status-success',
+    'on_hold': 'bg-status-warning'
   };
 
   useEffect(() => {
@@ -275,18 +285,54 @@ export function RoadmapView() {
     );
   }
 
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(task => {
+      const statusMatch = filteredStatus === 'all' || task.status === filteredStatus;
+      const priorityMatch = filteredPriority === 'all' || task.priority === filteredPriority;
+      return statusMatch && priorityMatch;
+    });
+  }, [tasks, filteredStatus, filteredPriority]);
+
   return (
-    <div className="space-y-6">
-      {/* Header Controls */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-6">
+      {/* Enhanced Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Project Roadmap</h2>
-          <p className="text-muted-foreground">Interactive timeline view of milestones and tasks</p>
+          <h1 className="text-3xl font-bold text-foreground">Project Roadmap</h1>
+          <p className="text-text-muted mt-1">Strategic timeline view of milestones and deliverables</p>
         </div>
         
-        <div className="flex items-center gap-4">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Filters */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Filter className="h-4 w-4" />
+              Filters
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          </div>
+
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-1 bg-surface-alt rounded-lg p-1">
+            <Button variant="ghost" size="sm" onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}>
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-sm px-2 text-text-muted">{Math.round(zoomLevel * 100)}%</span>
+            <Button variant="ghost" size="sm" onClick={() => setZoomLevel(Math.min(2, zoomLevel + 0.25))}>
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </div>
+
           {/* View Mode Selector */}
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-surface-alt rounded-lg p-1">
             {(['daily', 'weekly', 'monthly', 'yearly'] as ViewMode[]).map((mode) => (
               <Button
                 key={mode}
@@ -315,44 +361,45 @@ export function RoadmapView() {
         </div>
       </div>
 
-      {/* Roadmap Chart */}
-      <Card className="bg-gray-900 border-gray-700 w-full">
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-4">
-            <CardTitle className="text-white text-xl">
-              <span className="text-white">GANTT CHART</span> <span className="text-red-500">View</span>
+      {/* Modern Roadmap Chart */}
+      <Card className="shadow-card">
+        <CardHeader className="border-b border-border">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-foreground flex items-center gap-3">
+              <div className="h-8 w-1 bg-gradient-primary rounded-full"></div>
+              <span>Timeline View</span>
+              <Badge variant="secondary" className="bg-accent-light text-accent-foreground">
+                {format(currentDate, 'MMMM yyyy')}
+              </Badge>
             </CardTitle>
-            <Badge variant="secondary" className="bg-gray-600 text-gray-200">
-              {format(currentDate, 'MMMM yyyy')}
-            </Badge>
           </div>
         </CardHeader>
         
-        <CardContent className="p-6">
+        <CardContent className="p-0">
           {/* Timeline Header */}
-          <div className="mb-6">
-            <div className="grid grid-cols-12 gap-1 mb-4">
-              <div className="col-span-3"></div>
+          <div className="sticky top-0 bg-surface-default border-b border-border z-10">
+            <div className="grid grid-cols-12 gap-1 p-4">
+              <div className="col-span-3 text-sm font-medium text-text-muted">Task / Milestone</div>
               {timelineData.intervals.slice(0, 9).map((date, index) => (
-                <div key={index} className="text-center text-gray-300 text-sm font-medium border-l border-dotted border-gray-600 pl-2">
+                <div key={index} className="text-center text-text-muted text-sm font-medium border-l border-border-subtle pl-2">
                   {formatTimelineLabel(date)}
                 </div>
               ))}
             </div>
             
-            {/* Timeline grid with vertical dotted lines */}
-            <div className="relative h-1 bg-gray-700 rounded mb-6">
+            {/* Timeline ruler */}
+            <div className="relative h-2 bg-surface-alt mx-4 rounded-sm mb-4">
               {/* Vertical grid lines */}
               <div className="absolute inset-0 grid grid-cols-12">
                 <div className="col-span-3"></div>
                 {timelineData.intervals.slice(0, 9).map((_, index) => (
-                  <div key={index} className="border-l border-dotted border-gray-500 h-full"></div>
+                  <div key={index} className="border-l border-border-subtle h-full"></div>
                 ))}
               </div>
               
               {/* Current time indicator */}
               <div 
-                className="absolute top-0 w-0.5 h-full bg-yellow-400 z-10"
+                className="absolute top-0 w-0.5 h-full bg-brand-accent z-10 rounded-full"
                 style={{ 
                   left: `${Math.min(100, Math.max(0, (differenceInDays(new Date(), timelineData.start) / differenceInDays(timelineData.end, timelineData.start)) * 100))}%` 
                 }}
@@ -360,54 +407,74 @@ export function RoadmapView() {
             </div>
           </div>
 
-          {/* Scrollable Tasks Container */}
-          <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-            {/* Tasks Grouped by Milestone */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Tasks by Milestone</h3>
+          {/* Tasks Container */}
+          <div className="max-h-96 overflow-y-auto" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}>
+            <div className="space-y-2 p-4">
               {groupedTasks.map((group, groupIndex) => (
-                <div key={group.milestone.id} className="space-y-3">
-                  <h4 className="text-md font-medium text-cyan-400 mb-2 border-b border-gray-700 pb-1">
-                    {group.milestone.name}
-                  </h4>
+                <div key={group.milestone.id} className="space-y-2">
+                  {/* Milestone Header */}
+                  <div className="flex items-center gap-2 py-2 border-b border-border-subtle">
+                    <div className="h-3 w-3 rounded-full bg-brand-primary"></div>
+                    <h4 className="font-medium text-foreground">{group.milestone.name}</h4>
+                    <Badge variant="outline" className="text-xs">
+                      {group.tasks.length} tasks
+                    </Badge>
+                  </div>
+                  
+                  {/* Tasks */}
                   {group.tasks.map((task, taskIndex) => {
                     const position = getTaskPosition(task.created_at, task.due_date);
                     if (!position) return null;
                     
                     const colorClass = taskColors[taskIndex % taskColors.length];
+                    const statusColor = statusColors[task.status as keyof typeof statusColors] || 'bg-muted';
                     
                     return (
-                      <div key={task.id} className="grid grid-cols-12 gap-1 items-center group border-b border-dotted border-gray-700 pb-2">
-                        <div className="col-span-3 text-sm font-medium truncate">
-                          <div className="text-white">{task.title}</div>
-                          <div className="text-gray-400 text-xs">
-                            Due: {format(parseISO(task.due_date), 'MMM dd')}
+                      <div key={task.id} className="grid grid-cols-12 gap-1 items-center group py-2 hover:bg-surface-alt rounded-lg px-2">
+                        <div className="col-span-3 text-sm truncate">
+                          <div className="font-medium text-foreground">{task.title}</div>
+                          <div className="text-text-muted text-xs flex items-center gap-2">
+                            <span>Due: {format(parseISO(task.due_date), 'MMM dd')}</span>
+                            {task.owner_id && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {getStakeholderName(task.owner_id)}
+                                </span>
+                              </>
+                            )}
                           </div>
-                          {task.owner_id && (
-                            <div className="text-gray-400 text-xs flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              {getStakeholderName(task.owner_id)}
-                            </div>
-                          )}
                         </div>
-                        <div className="col-span-9 relative h-8 bg-gray-800 rounded">
-                          {/* Vertical grid lines for this row */}
+                        
+                        <div className="col-span-9 relative h-6 bg-surface-alt rounded-sm">
+                          {/* Vertical grid lines */}
                           <div className="absolute inset-0 grid grid-cols-9 pointer-events-none">
                             {timelineData.intervals.slice(0, 9).map((_, index) => (
-                              <div key={index} className="border-l border-dotted border-gray-600 h-full opacity-30"></div>
+                              <div key={index} className="border-l border-border-subtle h-full opacity-50"></div>
                             ))}
                           </div>
                           
-                          {/* Task bar without text */}
+                          {/* Task bar */}
                           <div
-                            className={`absolute top-0 h-full ${colorClass} rounded transition-all hover:opacity-80 cursor-pointer shadow-sm`}
+                            className={`absolute top-0.5 h-5 ${statusColor} rounded-sm cursor-pointer group-hover:shadow-md transition-all flex items-center justify-center`}
                             style={position}
                             title={`${task.title} - ${task.status} - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}`}
-                          />
+                          >
+                            {/* Task progress indicator */}
+                            <div className="w-full h-full rounded-sm relative overflow-hidden">
+                              {task.status === 'completed' && (
+                                <div className="absolute inset-0 bg-status-success"></div>
+                              )}
+                              {task.status === 'in_progress' && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-brand-accent to-brand-accent/50"></div>
+                              )}
+                            </div>
+                          </div>
                           
                           {/* Priority indicator */}
-                          {task.priority && (
-                            <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${priorityColors[task.priority as keyof typeof priorityColors]} border-2 border-gray-900`} />
+                          {task.priority && task.priority !== 'low' && (
+                            <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${priorityColors[task.priority as keyof typeof priorityColors]} border border-background`} />
                           )}
                         </div>
                       </div>
@@ -418,32 +485,43 @@ export function RoadmapView() {
             </div>
           </div>
 
-          {/* Legend */}
-          <div className="mt-8 pt-6 border-t border-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Priority Legend */}
+          {/* Enhanced Legend */}
+          <div className="mt-4 p-4 border-t border-border bg-surface-alt">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Status Legend */}
               <div>
-                <h4 className="text-white text-sm font-medium mb-3">Priority Legend</h4>
-                <div className="flex flex-wrap gap-4">
-                  {Object.entries(priorityColors).map(([priority, color]) => (
-                    <div key={priority} className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${color}`} />
-                      <span className="text-gray-300 text-xs capitalize">{priority}</span>
+                <h4 className="text-foreground font-medium mb-2">Status</h4>
+                <div className="flex flex-wrap gap-3">
+                  {Object.entries(statusColors).map(([status, color]) => (
+                    <div key={status} className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-sm ${color}`} />
+                      <span className="text-text-muted text-xs capitalize">{status.replace('_', ' ')}</span>
                     </div>
                   ))}
                 </div>
               </div>
               
-              {/* Task Color Legend */}
+              {/* Priority Legend */}
               <div>
-                <h4 className="text-white text-sm font-medium mb-3">Task Colors</h4>
-                <div className="flex flex-wrap gap-4">
-                  {taskColors.map((color, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className={`w-4 h-3 rounded ${color}`} />
-                      <span className="text-gray-300 text-xs">Task {index + 1}</span>
+                <h4 className="text-foreground font-medium mb-2">Priority</h4>
+                <div className="flex flex-wrap gap-3">
+                  {Object.entries(priorityColors).map(([priority, color]) => (
+                    <div key={priority} className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${color}`} />
+                      <span className="text-text-muted text-xs capitalize">{priority}</span>
                     </div>
                   ))}
+                </div>
+              </div>
+              
+              {/* Progress Legend */}
+              <div>
+                <h4 className="text-foreground font-medium mb-2">Progress</h4>
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-brand-accent rounded-sm"></div>
+                    <span className="text-text-muted text-xs">Current time</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -451,50 +529,50 @@ export function RoadmapView() {
         </CardContent>
       </Card>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-l-4 border-l-cyan-500">
+      {/* Enhanced Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-brand-primary shadow-card">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <CalendarDays className="h-5 w-5 text-cyan-500" />
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CalendarDays className="h-4 w-4 text-brand-primary" />
               Milestones
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{milestones.length}</div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <div className="text-2xl font-bold text-foreground">{milestones.length}</div>
+            <p className="text-sm text-text-muted mt-1">
               {milestones.filter(m => m.status === 'completed').length} completed
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-status-success shadow-card">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Clock className="h-5 w-5 text-green-500" />
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="h-4 w-4 text-status-success" />
               Active Tasks
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">
-              {tasks.filter(t => t.status === 'in_progress').length}
+            <div className="text-2xl font-bold text-foreground">
+              {filteredTasks.filter(t => t.status === 'in_progress').length}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-text-muted mt-1">
               In progress
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-orange-500">
+        <Card className="border-l-4 border-l-status-warning shadow-card">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Calendar className="h-5 w-5 text-orange-500" />
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Calendar className="h-4 w-4 text-status-warning" />
               Due This Week
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">
-              {tasks.filter(t => {
+            <div className="text-2xl font-bold text-foreground">
+              {filteredTasks.filter(t => {
                 if (!t.due_date) return false;
                 const dueDate = parseISO(t.due_date);
                 const weekStart = startOfWeek(new Date());
@@ -502,8 +580,29 @@ export function RoadmapView() {
                 return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
               }).length}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-text-muted mt-1">
               Tasks due
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-destructive shadow-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="h-4 w-4 text-destructive" />
+              Overdue
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {filteredTasks.filter(t => {
+                if (!t.due_date || t.status === 'completed') return false;
+                const dueDate = parseISO(t.due_date);
+                return dueDate < new Date();
+              }).length}
+            </div>
+            <p className="text-sm text-text-muted mt-1">
+              Past due date
             </p>
           </CardContent>
         </Card>
