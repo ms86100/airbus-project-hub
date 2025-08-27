@@ -310,25 +310,11 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                       </div>
                       
                        <div className="flex items-center gap-2">
-                        <Select
-                          value={task.status}
-                          onValueChange={(value) => updateTask(task.id, { status: value as any })}
-                        >
-                          <SelectTrigger className="w-20 h-6 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="z-[100] bg-background border border-border shadow-lg" position="popper" side="bottom" align="start">
-                            <SelectItem value="todo">Todo</SelectItem>
-                            <SelectItem value="in-progress">In Progress</SelectItem>
-                            <SelectItem value="done">Done</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        
                         <Input
                           type="date"
                           value={task.dueDate}
                           onChange={(e) => updateTask(task.id, { dueDate: e.target.value })}
-                          className="w-24 h-6 text-xs"
+                          className="w-32 h-6 text-xs"
                         />
                       </div>
                     </div>
