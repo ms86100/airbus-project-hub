@@ -15,6 +15,7 @@ import {
   useSensor,
   useSensors,
   closestCorners,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -279,6 +280,10 @@ export function KanbanView({ projectId }: KanbanViewProps) {
 
   // Droppable Column Component
   function DroppableColumn({ column, tasks: columnTasks }: { column: typeof statusColumns[0], tasks: Task[] }) {
+    const { isOver, setNodeRef } = useDroppable({
+      id: column.key,
+    });
+
     return (
       <div className="flex flex-col h-full">
         <div className={`${column.color} rounded-lg p-4 mb-4`}>
@@ -292,9 +297,11 @@ export function KanbanView({ projectId }: KanbanViewProps) {
         
         <SortableContext items={columnTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           <div 
-            id={column.key}
+            ref={setNodeRef}
             className={`flex-1 space-y-3 overflow-y-auto min-h-24 p-2 rounded-lg transition-all duration-200 ${
-              activeTask && activeTask.status !== column.key 
+              isOver
+                ? 'bg-primary/10 border-2 border-dashed border-primary/50' 
+                : activeTask && activeTask.status !== column.key 
                 ? 'bg-primary/5 border-2 border-dashed border-primary/30' 
                 : 'border-2 border-transparent'
             }`}
@@ -309,10 +316,10 @@ export function KanbanView({ projectId }: KanbanViewProps) {
             {columnTasks.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <p className="text-sm">No tasks</p>
-                {activeTask && activeTask.status !== column.key && (
+                {(isOver || (activeTask && activeTask.status !== column.key)) && (
                   <p className="text-xs mt-1 text-primary font-medium">Drop here to move to {column.label}</p>
                 )}
-                {(!activeTask || activeTask.status === column.key) && (
+                {(!activeTask || activeTask.status === column.key) && !isOver && (
                   <p className="text-xs mt-1">Drop tasks here</p>
                 )}
               </div>
