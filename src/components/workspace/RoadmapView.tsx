@@ -260,14 +260,7 @@ export function RoadmapView() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-muted-foreground">Loading roadmap...</div>
-      </div>
-    );
-  }
-
+  // All hooks must be called BEFORE any conditional returns
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
       const statusMatch = filteredStatus === 'all' || task.status === filteredStatus;
@@ -293,6 +286,14 @@ export function RoadmapView() {
     
     return grouped.filter(group => group.tasks.length > 0);
   }, [milestones, filteredTasks]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-muted-foreground">Loading roadmap...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
