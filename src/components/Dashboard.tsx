@@ -277,13 +277,20 @@ const Dashboard = () => {
       {/* Recent Projects */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FolderOpen className="h-5 w-5" />
-            Recent Projects
-          </CardTitle>
-          <CardDescription>
-            Latest projects in the system
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FolderOpen className="h-5 w-5" />
+                Recent Projects
+              </CardTitle>
+              <CardDescription>
+                Latest projects in the system
+              </CardDescription>
+            </div>
+            <Button variant="outline" onClick={() => navigate('/projects')}>
+              View All Projects
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {projects.length === 0 ? (
@@ -294,7 +301,11 @@ const Dashboard = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
               {projects.map((project) => (
-                <Card key={project.id} className="hover:shadow-md transition-shadow border border-border">
+                <Card 
+                  key={project.id} 
+                  className="hover:shadow-md transition-shadow border border-border cursor-pointer"
+                  onClick={() => navigate(`/project/${project.id}`)}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <CardTitle className="text-lg line-clamp-1">{project.name}</CardTitle>

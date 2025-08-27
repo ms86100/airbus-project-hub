@@ -22,7 +22,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
 }) => {
   return (
     <Dialog open={show} onOpenChange={onClose}>
-      <DialogContent className="max-w-[560px] w-full mx-auto">
+      <DialogContent className="max-w-[560px] w-full !fixed !left-1/2 !top-1/2 !transform !-translate-x-1/2 !-translate-y-1/2 !z-[9999]">
         <DialogHeader>
           <div className="flex items-center justify-center mb-lg">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-primary to-brand-accent flex items-center justify-center">
