@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { Calendar, LayoutGrid, Users, Settings } from 'lucide-react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Calendar, LayoutGrid, Users, Settings, ArrowLeft } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +13,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
 
 interface ProjectSidebarProps {
   projectId: string;
@@ -50,6 +51,7 @@ const sidebarItems = [
 ];
 
 export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
+  const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const location = useLocation();
@@ -64,16 +66,24 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
       : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
 
   return (
-    <Sidebar className={collapsed ? "w-14" : "w-60"}>
+    <Sidebar className="w-60" collapsible="none">
       <SidebarContent>
         <div className="p-4 border-b border-sidebar-border">
-          <SidebarTrigger className="ml-auto" />
-          {!collapsed && (
-            <div className="mt-2">
-              <h2 className="text-lg font-semibold text-sidebar-foreground">Project Workspace</h2>
-              <p className="text-sm text-sidebar-foreground/60">Navigate project modules</p>
-            </div>
-          )}
+          <div className="flex items-center justify-between">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate('/projects')}
+              className="flex items-center gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Projects
+            </Button>
+          </div>
+          <div className="mt-3">
+            <h2 className="text-lg font-semibold text-sidebar-foreground">Project Workspace</h2>
+            <p className="text-sm text-sidebar-foreground/60">Navigate project modules</p>
+          </div>
         </div>
 
         <SidebarGroup>
@@ -89,15 +99,12 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                       <NavLink 
                         to={`/project/${projectId}/${item.path}`} 
                         className={getNavCls({ isActive: itemIsActive })}
-                        title={collapsed ? item.title : undefined}
                       >
-                        <item.icon className="h-4 w-4" />
-                        {!collapsed && (
-                          <div className="flex flex-col">
-                            <span className="font-medium">{item.title}</span>
-                            <span className="text-xs opacity-60">{item.description}</span>
-                          </div>
-                        )}
+                        <item.icon className="h-4 w-4 mr-3" />
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium text-sm">{item.title}</span>
+                          <span className="text-xs opacity-60">{item.description}</span>
+                        </div>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

@@ -104,13 +104,16 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="border-b border-border bg-card">
         <div className="flex items-center justify-between p-6">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Status Management</h1>
-            <p className="text-sm text-muted-foreground">Configure task statuses (Project Coordinator)</p>
+            <h1 className="text-3xl font-bold text-foreground">Status Management</h1>
+            <p className="text-muted-foreground mt-1">Configure task statuses (Project Coordinator)</p>
           </div>
-          <Button onClick={createStatus}>
+          <Button 
+            onClick={createStatus}
+            className="bg-airbus-primary text-white hover:bg-airbus-primary/90"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Status
           </Button>
@@ -176,15 +179,20 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
 
           {/* Status List */}
           {statuses.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Settings className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No custom statuses</h3>
-                <p className="text-muted-foreground text-center mb-4">
+            <Card className="bg-gradient-to-br from-card to-card/50">
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <div className="w-16 h-16 bg-airbus-primary/10 rounded-full flex items-center justify-center mb-6">
+                  <Settings className="h-8 w-8 text-airbus-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3">No custom statuses</h3>
+                <p className="text-muted-foreground text-center mb-6 max-w-md">
                   Initialize default statuses or create your own custom workflow.
                 </p>
-                <div className="flex gap-2">
-                  <Button onClick={initializeDefaultStatuses}>
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={initializeDefaultStatuses}
+                    className="bg-airbus-primary text-white hover:bg-airbus-primary/90"
+                  >
                     Initialize Default Statuses
                   </Button>
                   <Button variant="outline" onClick={createStatus}>
