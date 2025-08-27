@@ -116,57 +116,64 @@ export function RoadmapView() {
   };
 
   const timelineData = useMemo(() => {
-    // Calculate timeline based on actual task dates
+    // If no tasks, use current date range
     if (tasks.length === 0) {
       const start = startOfMonth(currentDate);
       const end = endOfMonth(currentDate);
       return { start, end, intervals: eachDayOfInterval({ start, end }) };
     }
 
-    // Find earliest start date and latest end date from all tasks
-    const taskDates = tasks.map(task => {
-      const taskStart = parseISO(task.created_at); // Use created_at as start date
-      const taskEnd = task.due_date ? parseISO(task.due_date) : addDays(taskStart, 7);
-      return { start: taskStart, end: taskEnd };
+    // Find all task dates (start and end)
+    const allDates: Date[] = [];
+    
+    tasks.forEach(task => {
+      // Add task start date (created_at)
+      allDates.push(parseISO(task.created_at));
+      
+      // Add task end date (due_date)
+      if (task.due_date) {
+        allDates.push(parseISO(task.due_date));
+      }
     });
 
-    const earliestStart = taskDates.reduce((earliest, task) => 
-      task.start < earliest ? task.start : earliest, taskDates[0].start);
-    const latestEnd = taskDates.reduce((latest, task) => 
-      task.end > latest ? task.end : latest, taskDates[0].end);
+    // Find the absolute earliest and latest dates
+    const earliestDate = allDates.reduce((earliest, date) => 
+      date < earliest ? date : earliest, allDates[0]);
+    const latestDate = allDates.reduce((latest, date) => 
+      date > latest ? date : latest, allDates[0]);
 
-    // Add some padding based on view mode
+    // Extend timeline with padding based on view mode
     let start: Date, end: Date, intervals: Date[];
     
     switch (viewMode) {
       case 'daily':
-        start = addDays(earliestStart, -1);
-        end = addDays(latestEnd, 1);
+        start = addDays(earliestDate, -2);
+        end = addDays(latestDate, 2);
         intervals = eachDayOfInterval({ start, end });
         break;
       case 'weekly':
-        start = startOfWeek(addDays(earliestStart, -7));
-        end = endOfWeek(addDays(latestEnd, 7));
+        start = startOfWeek(addDays(earliestDate, -7));
+        end = endOfWeek(addDays(latestDate, 7));
         intervals = eachDayOfInterval({ start, end });
         break;
       case 'monthly':
-        start = startOfMonth(subMonths(earliestStart, 1));
-        end = endOfMonth(addMonths(latestEnd, 1));
+        start = startOfMonth(addMonths(earliestDate, -1));
+        end = endOfMonth(addMonths(latestDate, 1));
         intervals = eachWeekOfInterval({ start, end });
         break;
       case 'yearly':
-        start = startOfYear(subYears(earliestStart, 1));
-        end = endOfYear(addYears(latestEnd, 1));
+        start = startOfYear(addYears(earliestDate, -1));
+        end = endOfYear(addYears(latestDate, 1));
         intervals = eachMonthOfInterval({ start, end });
         break;
       default:
-        start = startOfMonth(earliestStart);
-        end = endOfMonth(latestEnd);
+        start = startOfMonth(earliestDate);
+        end = endOfMonth(latestDate);
         intervals = eachDayOfInterval({ start, end });
     }
 
     return { start, end, intervals };
-  }, [viewMode, currentDate, tasks]);
+  }, [tasks, viewMode]);
 
   const getTaskPosition = (startDate: string, endDate?: string) => {
     if (!startDate) return null;
