@@ -48,13 +48,11 @@ export function RoadmapView() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>('monthly');
+  const [viewMode, setViewMode] = useState<ViewMode>('weekly');
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const taskColors = [
-    'bg-blue-500', 'bg-cyan-500', 'bg-teal-500', 'bg-green-500', 
-    'bg-lime-500', 'bg-yellow-500', 'bg-orange-500', 'bg-red-500', 
-    'bg-pink-500', 'bg-purple-500', 'bg-indigo-500', 'bg-violet-500'
+    'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500'
   ];
 
   const priorityColors = {
@@ -170,6 +168,24 @@ export function RoadmapView() {
     return stakeholder?.name || 'Unassigned';
   };
 
+  const groupedTasks = useMemo(() => {
+    const grouped = milestones.map(milestone => ({
+      milestone,
+      tasks: tasks.filter(task => task.milestone_id === milestone.id && task.due_date)
+    }));
+    
+    // Add tasks without milestones
+    const tasksWithoutMilestone = tasks.filter(task => !task.milestone_id && task.due_date);
+    if (tasksWithoutMilestone.length > 0) {
+      grouped.push({
+        milestone: { id: 'unassigned', name: 'Unassigned Tasks', due_date: '', status: '', description: '', project_id: '', created_by: '' },
+        tasks: tasksWithoutMilestone
+      });
+    }
+    
+    return grouped.filter(group => group.tasks.length > 0);
+  }, [milestones, tasks]);
+
   const navigateTime = (direction: 'prev' | 'next') => {
     switch (viewMode) {
       case 'weekly':
@@ -250,7 +266,7 @@ export function RoadmapView() {
         <CardHeader className="pb-4">
           <div className="flex items-center gap-4">
             <CardTitle className="text-white text-xl">
-              <span className="text-white">CREATIVE</span> <span className="text-red-500">GANTT CHART</span>
+              <span className="text-white">GANTT CHART</span> <span className="text-red-500">View</span>
             </CardTitle>
             <Badge variant="secondary" className="bg-gray-600 text-gray-200">
               {format(currentDate, 'MMMM yyyy')}
@@ -306,43 +322,53 @@ export function RoadmapView() {
             })}
           </div>
 
-          {/* Tasks */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white mb-4">Tasks</h3>
-            {tasks.filter(task => task.due_date).map((task, index) => {
-              const position = getTaskPosition(task.due_date);
-              if (!position) return null;
-              
-              const colorClass = task.priority ? priorityColors[task.priority as keyof typeof priorityColors] : taskColors[index % taskColors.length];
-              
-              return (
-                <div key={task.id} className="grid grid-cols-12 gap-1 items-center group">
-                  <div className="col-span-3 text-sm font-medium truncate">
-                    <div className="text-white">{task.title}</div>
-                    {task.owner_id && (
-                      <div className="text-gray-400 text-xs flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        {getStakeholderName(task.owner_id)}
+          {/* Tasks Grouped by Milestone */}
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Tasks by Milestone</h3>
+            {groupedTasks.map((group, groupIndex) => (
+              <div key={group.milestone.id} className="space-y-3">
+                <h4 className="text-md font-medium text-cyan-400 mb-2 border-b border-gray-700 pb-1">
+                  {group.milestone.name}
+                </h4>
+                {group.tasks.map((task, taskIndex) => {
+                  const position = getTaskPosition(task.due_date);
+                  if (!position) return null;
+                  
+                  const colorClass = taskColors[taskIndex % taskColors.length];
+                  
+                  return (
+                    <div key={task.id} className="grid grid-cols-12 gap-1 items-center group">
+                      <div className="col-span-3 text-sm font-medium truncate">
+                        <div className="text-white">{task.title}</div>
+                        <div className="text-gray-400 text-xs">
+                          Due: {format(parseISO(task.due_date), 'MMM dd')}
+                        </div>
+                        {task.owner_id && (
+                          <div className="text-gray-400 text-xs flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {getStakeholderName(task.owner_id)}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="col-span-9 relative h-8 bg-gray-800 rounded">
-                    <div
-                      className={`absolute top-0 h-full ${colorClass} rounded flex items-center justify-center text-xs text-white font-medium transition-all hover:opacity-80 cursor-pointer`}
-                      style={position}
-                      title={`${task.title} - ${task.status} - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}`}
-                    >
-                      <span className="truncate px-2">{task.title}</span>
+                      <div className="col-span-9 relative h-8 bg-gray-800 rounded">
+                        <div
+                          className={`absolute top-0 h-full ${colorClass} rounded flex items-center justify-center text-xs text-white font-medium transition-all hover:opacity-80 cursor-pointer`}
+                          style={position}
+                          title={`${task.title} - ${task.status} - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}`}
+                        >
+                          <span className="truncate px-2">{task.title}</span>
+                        </div>
+                        
+                        {/* Priority indicator */}
+                        {task.priority && (
+                          <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${priorityColors[task.priority as keyof typeof priorityColors]} border-2 border-gray-900`} />
+                        )}
+                      </div>
                     </div>
-                    
-                    {/* Priority indicator */}
-                    {task.priority && (
-                      <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${priorityColors[task.priority as keyof typeof priorityColors]} border-2 border-gray-900`} />
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            ))}
           </div>
 
           {/* Legend */}
