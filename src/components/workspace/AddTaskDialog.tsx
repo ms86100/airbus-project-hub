@@ -130,7 +130,7 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
           Add Task
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>

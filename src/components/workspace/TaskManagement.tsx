@@ -230,7 +230,7 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
                     <Edit className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[600px]">
                   <DialogHeader>
                     <DialogTitle>Edit Task</DialogTitle>
                   </DialogHeader>

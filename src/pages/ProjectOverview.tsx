@@ -235,7 +235,7 @@ const ProjectOverview = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+        <div className="w-full mx-auto p-4 md:p-6 lg:p-8 space-y-6" style={{ width: '70%' }}>
           {/* Header */}
           <div className="bg-card border border-border rounded-lg shadow-sm p-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -432,7 +432,7 @@ const ProjectOverview = () => {
                     const milestoneTasks = tasks.filter(t => t.milestone_id === milestone.id);
                     
                     return (
-                      <Card key={milestone.id} className="border-l-4 border-l-airbus-primary">
+                      <Card key={milestone.id} className="border-l-4 border-l-airbus-primary mt-6">
                         <CardHeader>
                           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                             <div>
