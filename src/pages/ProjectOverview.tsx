@@ -235,7 +235,7 @@ const ProjectOverview = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        <div className="w-full mx-auto p-4 md:p-6 lg:p-8 space-y-6" style={{ width: '70%' }}>
+        <div className="w-full mx-auto p-4 md:p-6 lg:p-8 space-y-6" style={{ width: '95%' }}>
           {/* Header */}
           <div className="bg-card border border-border rounded-lg shadow-sm p-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
