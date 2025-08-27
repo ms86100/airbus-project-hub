@@ -83,6 +83,12 @@ All colors MUST be HSL.
     --shadow-lg: 0 10px 15px -3px hsl(var(--text-primary) / 0.1), 0 4px 6px -2px hsl(var(--text-primary) / 0.05);
     --shadow-airbus: 0 8px 32px hsl(var(--brand-primary) / 0.12);
 
+    /* Z-index layers - fixed positioning hierarchy */
+    --z-header: 1000;
+    --z-dropdown: 2100;
+    --z-tooltip: 2200;
+    --z-modal: 3000;
+
     /* Status Colors */
     --status-success: 142 76% 36%;
     --status-warning: 38 92% 50%;

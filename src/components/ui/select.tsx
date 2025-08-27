@@ -69,15 +69,19 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
+  <SelectPrimitive.Portal container={document.body}>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-[280px] min-w-[8rem] overflow-hidden rounded-md border border-border bg-card text-foreground shadow-professional",
+        "relative max-h-[280px] min-w-[8rem] overflow-hidden rounded-md border border-border bg-card text-foreground shadow-professional",
+        "z-[2100]", // Use design system z-index for dropdowns
         className
       )}
       position={position}
-      sideOffset={2}
+      side="bottom"
+      align="start"
+      sideOffset={8}
+      collisionPadding={8}
       {...props}
     >
       <SelectScrollUpButton />

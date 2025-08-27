@@ -207,7 +207,7 @@ const ProjectWizard = () => {
 
   return (
     <>
-      <div className="max-w-6xl mx-auto p-lg space-y-xl bg-gradient-to-br from-surface-default to-surface-alt min-h-screen">
+      <div className="max-w-6xl mx-auto p-lg space-y-xl bg-gradient-to-br from-surface-default to-surface-alt min-h-screen pb-24 overflow-visible">
         {/* Cancel Button */}
         <div className="flex justify-end">
           <Button variant="outline" onClick={() => navigate('/')}>
@@ -232,42 +232,43 @@ const ProjectWizard = () => {
         />
 
         {/* Step Content */}
-        <Card className="shadow-card border-border-subtle">
-          <CardContent className="p-xl">
+        <Card className="shadow-card border-border-subtle overflow-visible">
+          <CardContent className="p-xl overflow-visible">
             <CurrentStepComponent 
               projectData={projectData}
               setProjectData={setProjectData}
             />
           </CardContent>
         </Card>
+      </div>
 
-        {/* Navigation */}
-        <div className="flex justify-end">
-          {currentStep === steps.length - 1 ? (
-            <Button 
-              onClick={createProject}
-              disabled={!canProceed() || isCreating}
-              className="bg-gradient-to-r from-brand-primary to-brand-accent hover:from-brand-primary/90 hover:to-brand-accent/90"
-            >
-              {isCreating ? (
-                <>Creating...</>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Create Project
-                </>
-              )}
-            </Button>
-          ) : (
-            <Button 
-              onClick={nextStep}
-              disabled={!canProceed()}
-            >
-              Next
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          )}
-        </div>
+      {/* Sticky Footer Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 h-18 bg-surface-default border-t border-border shadow-professional z-[1000] flex items-center justify-end px-4 gap-3">
+        {currentStep === steps.length - 1 ? (
+          <Button 
+            onClick={createProject}
+            disabled={!canProceed() || isCreating}
+            className="min-w-[140px] h-10 font-semibold"
+          >
+            {isCreating ? (
+              <>Creating...</>
+            ) : (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                Create Project
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button 
+            onClick={nextStep}
+            disabled={!canProceed()}
+            className="min-w-[140px] h-10 font-semibold"
+          >
+            Next
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        )}
       </div>
 
       {/* Celebration Overlay */}

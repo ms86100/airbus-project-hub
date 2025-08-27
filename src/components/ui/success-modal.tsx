@@ -22,7 +22,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
 }) => {
   return (
     <Dialog open={show} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-[560px] min-w-[420px] z-[3000] fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
         <DialogHeader>
           <div className="flex items-center justify-center mb-lg">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-primary to-brand-accent flex items-center justify-center">
@@ -40,7 +40,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
           <div className="flex flex-col gap-sm">
             <Button 
               onClick={onProjectOverview}
-              className="w-full bg-gradient-to-r from-brand-primary to-brand-accent hover:from-brand-primary/90 hover:to-brand-accent/90"
+              className="w-full min-w-[160px] h-10 font-semibold"
             >
               <Eye className="h-4 w-4 mr-2" />
               Go to Project Overview
@@ -48,7 +48,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
             <Button 
               variant="outline"
               onClick={onHomepage}
-              className="w-full"
+              className="w-full min-w-[160px] h-10 font-semibold"
             >
               <Home className="h-4 w-4 mr-2" />
               Back to Homepage
