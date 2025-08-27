@@ -1,0 +1,263 @@
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Calendar, AlertTriangle } from 'lucide-react';
+import { ProjectData, Task, Milestone } from '../ProjectWizard';
+
+interface MilestoneGroupingStepProps {
+  projectData: ProjectData;
+  setProjectData: (data: ProjectData) => void;
+}
+
+const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectData, setProjectData }) => {
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [newMilestoneName, setNewMilestoneName] = useState('');
+  const [newMilestoneDueDate, setNewMilestoneDueDate] = useState(projectData.endDate);
+
+  // Initialize with ungrouped tasks if no milestones exist
+  useEffect(() => {
+    if (projectData.milestones.length === 0 && projectData.tasks.length > 0) {
+      const defaultMilestone: Milestone = {
+        id: crypto.randomUUID(),
+        name: 'Milestone 1',
+        dueDate: projectData.endDate,
+        tasks: [...projectData.tasks]
+      };
+      
+      setProjectData({
+        ...projectData,
+        milestones: [defaultMilestone]
+      });
+    }
+  }, [projectData.tasks.length]);
+
+  const addMilestone = () => {
+    if (!newMilestoneName.trim()) return;
+
+    const newMilestone: Milestone = {
+      id: crypto.randomUUID(),
+      name: newMilestoneName.trim(),
+      dueDate: newMilestoneDueDate,
+      tasks: []
+    };
+
+    setProjectData({
+      ...projectData,
+      milestones: [...projectData.milestones, newMilestone]
+    });
+
+    setNewMilestoneName('');
+    setNewMilestoneDueDate(projectData.endDate);
+  };
+
+  const updateMilestone = (milestoneId: string, updates: Partial<Milestone>) => {
+    setProjectData({
+      ...projectData,
+      milestones: projectData.milestones.map(milestone => 
+        milestone.id === milestoneId ? { ...milestone, ...updates } : milestone
+      )
+    });
+  };
+
+  const moveTaskToMilestone = (taskId: string, targetMilestoneId: string) => {
+    const updatedMilestones = projectData.milestones.map(milestone => ({
+      ...milestone,
+      tasks: milestone.tasks.filter(task => task.id !== taskId)
+    }));
+
+    const taskToMove = projectData.milestones
+      .flatMap(m => m.tasks)
+      .find(task => task.id === taskId);
+
+    if (taskToMove) {
+      const targetMilestone = updatedMilestones.find(m => m.id === targetMilestoneId);
+      if (targetMilestone) {
+        targetMilestone.tasks.push(taskToMove);
+      }
+    }
+
+    setProjectData({
+      ...projectData,
+      milestones: updatedMilestones
+    });
+  };
+
+  const handleDragStart = (task: Task) => {
+    setDraggedTask(task);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, milestoneId: string) => {
+    e.preventDefault();
+    if (draggedTask) {
+      moveTaskToMilestone(draggedTask.id, milestoneId);
+      setDraggedTask(null);
+    }
+  };
+
+  const isValidToSubmit = () => {
+    return projectData.milestones.length > 0 && 
+           projectData.milestones.every(m => m.tasks.length > 0);
+  };
+
+  const suggestMilestones = () => {
+    if (projectData.tasks.length <= 10) return;
+    
+    // Auto-suggest 2-3 milestones based on task count
+    const chunkSize = Math.ceil(projectData.tasks.length / 3);
+    const chunks = [];
+    
+    for (let i = 0; i < projectData.tasks.length; i += chunkSize) {
+      chunks.push(projectData.tasks.slice(i, i + chunkSize));
+    }
+
+    const suggestedMilestones: Milestone[] = chunks.map((tasks, index) => ({
+      id: crypto.randomUUID(),
+      name: `Phase ${index + 1}`,
+      dueDate: projectData.endDate,
+      tasks
+    }));
+
+    setProjectData({
+      ...projectData,
+      milestones: suggestedMilestones
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <p className="text-muted-foreground">
+          Now, let's organize your tasks into milestones. How would you like to group them?
+        </p>
+        {projectData.tasks.length > 10 && (
+          <Button
+            variant="outline"
+            onClick={suggestMilestones}
+            className="mt-2"
+          >
+            Auto-suggest 3 milestones
+          </Button>
+        )}
+      </div>
+
+      {/* Add New Milestone */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            Add Milestone
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Label htmlFor="milestoneName">Milestone Name</Label>
+              <Input
+                id="milestoneName"
+                value={newMilestoneName}
+                onChange={(e) => setNewMilestoneName(e.target.value)}
+                placeholder="Enter milestone name"
+              />
+            </div>
+            <div className="w-40">
+              <Label htmlFor="milestoneDueDate">Due Date</Label>
+              <Input
+                id="milestoneDueDate"
+                type="date"
+                value={newMilestoneDueDate}
+                onChange={(e) => setNewMilestoneDueDate(e.target.value)}
+                min={projectData.startDate}
+                max={projectData.endDate}
+              />
+            </div>
+            <div className="flex items-end">
+              <Button onClick={addMilestone} disabled={!newMilestoneName.trim()}>
+                Add
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Milestone Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {projectData.milestones.map((milestone) => (
+          <Card 
+            key={milestone.id}
+            className="h-fit"
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, milestone.id)}
+          >
+            <CardHeader className="pb-3">
+              <div className="space-y-2">
+                <Input
+                  value={milestone.name}
+                  onChange={(e) => updateMilestone(milestone.id, { name: e.target.value })}
+                  className="font-semibold border-none p-0 h-auto focus-visible:ring-0"
+                />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <Input
+                    type="date"
+                    value={milestone.dueDate}
+                    onChange={(e) => updateMilestone(milestone.id, { dueDate: e.target.value })}
+                    className="border-none p-0 h-auto focus-visible:ring-0 w-auto"
+                    min={projectData.startDate}
+                    max={projectData.endDate}
+                  />
+                </div>
+                <Badge variant="outline">
+                  {milestone.tasks.length} tasks
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {milestone.tasks.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground border-dashed border-2 rounded">
+                  <p className="text-sm">Drop tasks here</p>
+                </div>
+              ) : (
+                milestone.tasks.map((task) => (
+                  <Card 
+                    key={task.id}
+                    className="p-2 cursor-move hover:shadow-md transition-shadow"
+                    draggable
+                    onDragStart={() => handleDragStart(task)}
+                  >
+                    <p className="text-sm font-medium">{task.title}</p>
+                    <Badge variant="outline" className="text-xs mt-1">
+                      {task.status}
+                    </Badge>
+                  </Card>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Validation Message */}
+      {!isValidToSubmit() && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              <p className="text-sm text-amber-800">
+                Each milestone must have at least 1 task to continue.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+export default MilestoneGroupingStep;

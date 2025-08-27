@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +32,7 @@ interface DashboardStats {
 const Dashboard = () => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalProjects: 0,
@@ -169,11 +171,7 @@ const Dashboard = () => {
       setShowDepartmentDialog(true);
       return;
     }
-    // Add your project creation logic here
-    toast({
-      title: "Feature Coming Soon",
-      description: "Project creation will be implemented next",
-    });
+    navigate('/create-project');
   };
 
   const handleDepartmentAssigned = () => {

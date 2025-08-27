@@ -35,6 +35,50 @@ export type Database = {
         }
         Relationships: []
       }
+      milestones: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string
+          id: string
+          name: string
+          project_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date: string
+          id?: string
+          name: string
+          project_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          name?: string
+          project_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -140,6 +184,66 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      tasks: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          id: string
+          milestone_id: string | null
+          owner_id: string | null
+          priority: string | null
+          project_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          milestone_id?: string | null
+          owner_id?: string | null
+          priority?: string | null
+          project_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          milestone_id?: string | null
+          owner_id?: string | null
+          priority?: string | null
+          project_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
