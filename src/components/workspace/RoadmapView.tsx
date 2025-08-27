@@ -171,11 +171,11 @@ export function RoadmapView() {
   const groupedTasks = useMemo(() => {
     const grouped = milestones.map(milestone => ({
       milestone,
-      tasks: tasks.filter(task => task.milestone_id === milestone.id && task.due_date)
+      tasks: tasks.filter(task => task.milestone_id === milestone.id)
     }));
     
     // Add tasks without milestones
-    const tasksWithoutMilestone = tasks.filter(task => !task.milestone_id && task.due_date);
+    const tasksWithoutMilestone = tasks.filter(task => !task.milestone_id);
     if (tasksWithoutMilestone.length > 0) {
       grouped.push({
         milestone: { id: 'unassigned', name: 'Unassigned Tasks', due_date: '', status: '', description: '', project_id: '', created_by: '' },
@@ -295,31 +295,6 @@ export function RoadmapView() {
                 }}
               />
             </div>
-          </div>
-
-          {/* Milestones */}
-          <div className="space-y-4 mb-8">
-            <h3 className="text-lg font-semibold text-white mb-4">Milestones</h3>
-            {milestones.map((milestone) => {
-              const position = getTaskPosition(milestone.due_date);
-              if (!position) return null;
-              
-              return (
-                <div key={milestone.id} className="grid grid-cols-12 gap-1 items-center">
-                  <div className="col-span-3 text-cyan-400 text-sm font-medium truncate">
-                    {milestone.name}
-                  </div>
-                  <div className="col-span-9 relative h-6 bg-gray-800 rounded">
-                    <div
-                      className="absolute top-0 h-full bg-cyan-500 rounded flex items-center justify-center text-xs text-white font-medium"
-                      style={position}
-                    >
-                      <span className="truncate px-2">{milestone.name}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
           </div>
 
           {/* Tasks Grouped by Milestone */}
