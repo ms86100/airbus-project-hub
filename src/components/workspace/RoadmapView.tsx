@@ -280,16 +280,25 @@ export function RoadmapView() {
             <div className="grid grid-cols-12 gap-1 mb-4">
               <div className="col-span-3"></div>
               {timelineData.intervals.slice(0, 9).map((date, index) => (
-                <div key={index} className="text-center text-gray-300 text-sm font-medium">
+                <div key={index} className="text-center text-gray-300 text-sm font-medium border-l border-dotted border-gray-600 pl-2">
                   {formatTimelineLabel(date)}
                 </div>
               ))}
             </div>
             
-            {/* Current time indicator */}
+            {/* Timeline grid with vertical dotted lines */}
             <div className="relative h-1 bg-gray-700 rounded mb-6">
+              {/* Vertical grid lines */}
+              <div className="absolute inset-0 grid grid-cols-12">
+                <div className="col-span-3"></div>
+                {timelineData.intervals.slice(0, 9).map((_, index) => (
+                  <div key={index} className="border-l border-dotted border-gray-500 h-full"></div>
+                ))}
+              </div>
+              
+              {/* Current time indicator */}
               <div 
-                className="absolute top-0 w-0.5 h-full bg-yellow-400"
+                className="absolute top-0 w-0.5 h-full bg-yellow-400 z-10"
                 style={{ 
                   left: `${Math.min(100, Math.max(0, (differenceInDays(new Date(), timelineData.start) / differenceInDays(timelineData.end, timelineData.start)) * 100))}%` 
                 }}
@@ -312,7 +321,7 @@ export function RoadmapView() {
                   const colorClass = taskColors[taskIndex % taskColors.length];
                   
                   return (
-                    <div key={task.id} className="grid grid-cols-12 gap-1 items-center group">
+                    <div key={task.id} className="grid grid-cols-12 gap-1 items-center group border-b border-dotted border-gray-700 pb-2">
                       <div className="col-span-3 text-sm font-medium truncate">
                         <div className="text-white">{task.title}</div>
                         <div className="text-gray-400 text-xs">
@@ -326,15 +335,19 @@ export function RoadmapView() {
                         )}
                       </div>
                       <div className="col-span-9 relative h-8 bg-gray-800 rounded">
+                        {/* Vertical grid lines for this row */}
+                        <div className="absolute inset-0 grid grid-cols-9 pointer-events-none">
+                          {timelineData.intervals.slice(0, 9).map((_, index) => (
+                            <div key={index} className="border-l border-dotted border-gray-600 h-full opacity-30"></div>
+                          ))}
+                        </div>
+                        
+                        {/* Task bar without text */}
                         <div
-                          className={`absolute top-0 h-full ${colorClass} rounded flex items-center justify-start text-xs text-white font-medium transition-all hover:opacity-80 cursor-pointer shadow-sm`}
+                          className={`absolute top-0 h-full ${colorClass} rounded transition-all hover:opacity-80 cursor-pointer shadow-sm`}
                           style={position}
                           title={`${task.title} - ${task.status} - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}`}
-                        >
-                          <span className="px-2 text-white font-medium text-xs leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
-                            {task.title}
-                          </span>
-                        </div>
+                        />
                         
                         {/* Priority indicator */}
                         {task.priority && (
