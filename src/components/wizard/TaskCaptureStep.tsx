@@ -183,28 +183,19 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
 
           <div className="space-y-2">
             {projectData.tasks.map((task) => (
-              <Card key={task.id} className="p-3 group">
+              <Card key={task.id} className="p-4 group hover:shadow-md transition-shadow">
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
                       <Input
                         value={task.title}
                         onChange={(e) => updateTask(task.id, { title: e.target.value })}
-                        className="border-none p-0 h-auto focus-visible:ring-0 font-medium"
+                        className="border border-border rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-primary"
+                        placeholder="Task title"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            setNewTaskTitle('');
-                            const newTask: Task = {
-                              id: crypto.randomUUID(),
-                              title: '',
-                              status: 'todo',
-                              dueDate: projectData.endDate
-                            };
-                            setProjectData({
-                              ...projectData,
-                              tasks: [...projectData.tasks, newTask]
-                            });
+                            addTask();
                           }
                         }}
                       />
@@ -215,6 +206,7 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
                         variant="ghost"
                         onClick={() => duplicateTask(task)}
                         title="Duplicate task"
+                        className="h-8 w-8 p-0"
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
@@ -223,36 +215,45 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
                         variant="ghost"
                         onClick={() => removeTask(task.id)}
                         title="Delete task"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 text-sm">
-                    <Select
-                      value={task.status}
-                      onValueChange={(value) => updateTask(task.id, { status: value as any })}
-                    >
-                      <SelectTrigger className="w-24 h-7">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todo">Todo</SelectItem>
-                        <SelectItem value="in-progress">In Progress</SelectItem>
-                        <SelectItem value="done">Done</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="flex items-center gap-3 pt-2">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-muted-foreground">Status:</label>
+                      <Select
+                        value={task.status}
+                        onValueChange={(value) => updateTask(task.id, { status: value as any })}
+                      >
+                        <SelectTrigger className="w-28 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todo">Todo</SelectItem>
+                          <SelectItem value="in-progress">In Progress</SelectItem>
+                          <SelectItem value="done">Done</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     
-                    <Input
-                      type="date"
-                      value={task.dueDate}
-                      onChange={(e) => updateTask(task.id, { dueDate: e.target.value })}
-                      className="w-32 h-7 text-sm"
-                    />
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-muted-foreground">Due:</label>
+                      <Input
+                        type="date"
+                        value={task.dueDate}
+                        onChange={(e) => updateTask(task.id, { dueDate: e.target.value })}
+                        className="w-36 h-8 text-xs"
+                      />
+                    </div>
                     
                     {task.sourceTag === 'template' && (
-                      <Badge variant="secondary" className="text-xs">Template</Badge>
+                      <Badge variant="secondary" className="text-xs ml-auto">
+                        Template
+                      </Badge>
                     )}
                   </div>
                 </div>

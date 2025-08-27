@@ -223,32 +223,38 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
             onDrop={(e) => handleDrop(e, milestone.id)}
           >
             <CardHeader className="pb-3">
-              <div className="space-y-2">
-                <Input
-                  value={milestone.name}
-                  onChange={(e) => updateMilestone(milestone.id, { name: e.target.value })}
-                  onBlur={() => {
-                    // Auto-save on blur - validation happens inline
-                    if (!milestone.name.trim()) {
-                      updateMilestone(milestone.id, { name: 'Unnamed Milestone' });
-                    }
-                  }}
-                  className="font-semibold border-none p-0 h-auto focus-visible:ring-0"
-                  placeholder="Enter milestone name"
-                />
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Milestone Name</label>
                   <Input
-                    type="date"
-                    value={milestone.dueDate}
-                    onChange={(e) => updateMilestone(milestone.id, { dueDate: e.target.value })}
-                    className="border-none p-0 h-auto focus-visible:ring-0 w-auto"
-                    min={projectData.startDate}
-                    max={projectData.endDate}
+                    value={milestone.name}
+                    onChange={(e) => updateMilestone(milestone.id, { name: e.target.value })}
+                    onBlur={() => {
+                      // Auto-save on blur - validation happens inline
+                      if (!milestone.name.trim()) {
+                        updateMilestone(milestone.id, { name: 'Unnamed Milestone' });
+                      }
+                    }}
+                    className="font-semibold border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+                    placeholder="Enter milestone name"
                   />
                 </div>
-                <Badge variant="outline">
-                  {milestone.tasks.length} tasks
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Due Date</label>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="date"
+                      value={milestone.dueDate}
+                      onChange={(e) => updateMilestone(milestone.id, { dueDate: e.target.value })}
+                      className="border border-border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                      min={projectData.startDate}
+                      max={projectData.endDate}
+                    />
+                  </div>
+                </div>
+                <Badge variant="outline" className="w-fit">
+                  {milestone.tasks.length} task{milestone.tasks.length !== 1 ? 's' : ''}
                 </Badge>
               </div>
             </CardHeader>
