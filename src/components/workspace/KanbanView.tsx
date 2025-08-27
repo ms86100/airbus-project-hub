@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, MoreHorizontal } from 'lucide-react';
+import { Plus, MoreHorizontal, Clock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -45,6 +46,15 @@ interface Milestone {
   due_date: string;
 }
 
+interface StatusHistoryEntry {
+  id: string;
+  old_status: string | null;
+  new_status: string;
+  changed_at: string;
+  changed_by: string;
+  notes?: string;
+}
+
 const statusColumns = [
   { key: 'todo', label: 'To Do', color: 'bg-gray-100' },
   { key: 'in_progress', label: 'In Progress', color: 'bg-blue-100' },
@@ -57,6 +67,9 @@ export function KanbanView({ projectId }: KanbanViewProps) {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [statusHistory, setStatusHistory] = useState<StatusHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -106,6 +119,37 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     }
   };
 
+  const fetchTaskStatusHistory = async (taskId: string) => {
+    try {
+      setHistoryLoading(true);
+      const { data, error } = await supabase
+        .from('task_status_history')
+        .select('*')
+        .eq('task_id', taskId)
+        .order('changed_at', { ascending: false });
+
+      if (error) throw error;
+      setStatusHistory(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error loading history",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    fetchTaskStatusHistory(task.id);
+  };
+
+  const formatStatus = (status: string) => {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
       // Find the task to get its current details
@@ -138,17 +182,17 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       );
 
       // Format status names for display
-      const formatStatus = (status: string) => {
+      const formatStatusForToast = (status: string) => {
         return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
       };
 
       // Show success toast with proper task name and status
       toast({
         title: "Task Updated",
-        description: `"${task.title}" moved to ${formatStatus(newStatus)}`,
+        description: `"${task.title}" moved to ${formatStatusForToast(newStatus)}`,
       });
 
-      console.log(`Task "${task.title}" status changed from ${formatStatus(oldStatus)} to ${formatStatus(newStatus)}`);
+      console.log(`Task "${task.title}" status changed from ${formatStatusForToast(oldStatus)} to ${formatStatusForToast(newStatus)}`);
 
     } catch (error: any) {
       console.error('Error updating task status:', error);
@@ -253,6 +297,13 @@ export function KanbanView({ projectId }: KanbanViewProps) {
         {...attributes}
         {...listeners}
         className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-l-4 ${getPriorityColor(task.priority)} ${isDragging ? 'shadow-lg scale-105' : ''}`}
+        onClick={(e) => {
+          // Only trigger click if not dragging
+          if (!isDragging) {
+            e.stopPropagation();
+            handleTaskClick(task);
+          }
+        }}
       >
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
@@ -431,6 +482,72 @@ export function KanbanView({ projectId }: KanbanViewProps) {
             </Card>
           ) : null}
         </DragOverlay>
+
+        {/* Task Status History Dialog */}
+        <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Status History: {selectedTask?.title}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="mt-4">
+              {historyLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : statusHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {statusHistory.map((entry, index) => (
+                    <div key={entry.id} className="flex items-start gap-3 pb-4 border-b border-border last:border-b-0">
+                      <div className="flex-shrink-0 w-2 h-2 bg-primary rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          {entry.old_status ? (
+                            <>
+                              <Badge variant="outline" className="text-xs">
+                                {formatStatus(entry.old_status)}
+                              </Badge>
+                              <span className="text-muted-foreground">→</span>
+                              <Badge variant="default" className="text-xs">
+                                {formatStatus(entry.new_status)}
+                              </Badge>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-muted-foreground">Created with status:</span>
+                              <Badge variant="default" className="text-xs">
+                                {formatStatus(entry.new_status)}
+                              </Badge>
+                            </>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(entry.changed_at), 'MMM dd, yyyy at h:mm a')}
+                          <User className="h-3 w-3 ml-2" />
+                          <span>User {entry.changed_by}</span>
+                        </div>
+                        {entry.notes && (
+                          <div className="text-sm text-muted-foreground mt-2 italic">
+                            {entry.notes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No status changes recorded yet</p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DndContext>
   );
