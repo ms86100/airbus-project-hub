@@ -15,6 +15,8 @@ import Layout from '@/components/Layout';
 import { RoadmapView } from '@/components/workspace/RoadmapView';
 import { KanbanView } from '@/components/workspace/KanbanView';
 import { StakeholdersManagement } from '@/components/workspace/StakeholdersManagement';
+import { TaskCard } from '@/components/workspace/TaskManagement';
+import { AddTaskDialog } from '@/components/workspace/AddTaskDialog';
 
 interface Project {
   id: string;
@@ -453,38 +455,22 @@ const ProjectOverview = () => {
                                 </Badge>
                               </div>
                             </div>
-                            <Button variant="outline" size="sm">
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Task
-                            </Button>
+                            <AddTaskDialog 
+                              milestoneId={milestone.id}
+                              projectId={id!}
+                              onTaskAdded={fetchProjectData}
+                            />
                           </div>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
                             {milestoneTasks.map((task) => (
-                              <Card key={task.id} className="bg-muted/50 hover:bg-muted/70 transition-colors">
-                                <CardContent className="p-4">
-                                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                                    <div className="flex-1">
-                                      <h4 className="font-medium text-foreground">{task.title}</h4>
-                                      {task.description && (
-                                        <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
-                                      )}
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                                      <Badge variant={getStatusBadgeVariant(task.status)} className="w-fit">
-                                        {task.status.replace('_', ' ')}
-                                      </Badge>
-                                      {task.due_date && (
-                                        <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                          <Calendar className="h-4 w-4" />
-                                          {new Date(task.due_date).toLocaleDateString()}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
+                              <TaskCard 
+                                key={task.id} 
+                                task={task}
+                                projectId={id!}
+                                onTaskUpdate={fetchProjectData}
+                              />
                             ))}
                             {milestoneTasks.length === 0 && (
                               <div className="text-center py-8 text-muted-foreground">
@@ -508,29 +494,12 @@ const ProjectOverview = () => {
                       <CardContent>
                         <div className="space-y-3">
                           {tasks.filter(t => !t.milestone_id).map((task) => (
-                            <Card key={task.id} className="bg-muted/50">
-                              <CardContent className="p-4">
-                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                                  <div className="flex-1">
-                                    <h4 className="font-medium text-foreground">{task.title}</h4>
-                                    {task.description && (
-                                      <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                                    <Badge variant={getStatusBadgeVariant(task.status)} className="w-fit">
-                                      {task.status.replace('_', ' ')}
-                                    </Badge>
-                                    {task.due_date && (
-                                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                        <Calendar className="h-4 w-4" />
-                                        {new Date(task.due_date).toLocaleDateString()}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
+                            <TaskCard 
+                              key={task.id} 
+                              task={task}
+                              projectId={id!}
+                              onTaskUpdate={fetchProjectData}
+                            />
                           ))}
                         </div>
                       </CardContent>
