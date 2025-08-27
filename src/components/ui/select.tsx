@@ -17,7 +17,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
       className={cn(
-        "flex h-10 w-full items-center justify-between rounded-md border border-airbus-light bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-airbus-primary disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
         className
       )}
     {...props}
@@ -69,19 +69,19 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal container={document.body}>
+  <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative max-h-[280px] min-w-[8rem] overflow-hidden rounded-md border border-border bg-card text-foreground shadow-professional",
-        "z-[2100]", // Use design system z-index for dropdowns
+        "relative z-[5000] max-h-[280px] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+        "data-[state=open]:animate-none data-[state=closed]:animate-none",
+        "data-[side=top]:slide-in-from-bottom-0 data-[side=bottom]:slide-in-from-top-0 data-[side=left]:slide-in-from-right-0 data-[side=right]:slide-in-from-left-0",
         className
       )}
       position={position}
       side="bottom"
       align="start"
-      sideOffset={8}
-      collisionPadding={8}
+      sideOffset={4}
       {...props}
     >
       <SelectScrollUpButton />
@@ -119,18 +119,18 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm outline-none data-[highlighted]:bg-airbus-light data-[highlighted]:text-airbus-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50 min-h-[36px]",
+      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <Check className="h-4 w-4 text-airbus-primary" />
+        <Check className="h-4 w-4" />
       </SelectPrimitive.ItemIndicator>
     </span>
 
-    <SelectPrimitive.ItemText className="font-medium">{children}</SelectPrimitive.ItemText>
+    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
 ))
 SelectItem.displayName = SelectPrimitive.Item.displayName
