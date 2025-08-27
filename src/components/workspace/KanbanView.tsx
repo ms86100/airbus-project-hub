@@ -107,32 +107,58 @@ export function KanbanView({ projectId }: KanbanViewProps) {
 
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
+      // Find the task to get its current details
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) {
+        console.error('Task not found:', taskId);
+        return;
+      }
+
+      const oldStatus = task.status;
+
+      // Update the task in the database
       const { error } = await supabase
         .from('tasks')
         .update({ status: newStatus })
         .eq('id', taskId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database update error:', error);
+        throw error;
+      }
 
-      // Update local state
+      // Update local state immediately for optimistic UI
       setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === taskId 
-            ? { ...task, status: newStatus }
-            : task
+        prevTasks.map(t => 
+          t.id === taskId 
+            ? { ...t, status: newStatus }
+            : t
         )
       );
 
+      // Format status names for display
+      const formatStatus = (status: string) => {
+        return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      };
+
+      // Show success toast with proper task name and status
       toast({
-        title: "Task updated",
-        description: `Task status changed to ${newStatus.replace('_', ' ')}`,
+        title: "Task Updated",
+        description: `"${task.title}" moved to ${formatStatus(newStatus)}`,
       });
+
+      console.log(`Task "${task.title}" status changed from ${formatStatus(oldStatus)} to ${formatStatus(newStatus)}`);
+
     } catch (error: any) {
+      console.error('Error updating task status:', error);
       toast({
         title: "Error updating task",
-        description: error.message,
+        description: error.message || "Failed to update task status",
         variant: "destructive",
       });
+      
+      // Refresh data to ensure consistency
+      fetchData();
     }
   };
 
@@ -145,14 +171,26 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     const { active, over } = event;
     setActiveTask(null);
 
-    if (!over) return;
+    if (!over) {
+      console.log('No valid drop target');
+      return;
+    }
 
     const taskId = active.id as string;
     const newStatus = over.id as string;
 
     const task = tasks.find(t => t.id === taskId);
-    if (!task || task.status === newStatus) return;
+    if (!task) {
+      console.error('Task not found for drag operation:', taskId);
+      return;
+    }
 
+    if (task.status === newStatus) {
+      console.log('Task already in target status:', newStatus);
+      return;
+    }
+
+    console.log(`Dragging task "${task.title}" from ${task.status} to ${newStatus}`);
     updateTaskStatus(taskId, newStatus);
   };
 
@@ -255,7 +293,11 @@ export function KanbanView({ projectId }: KanbanViewProps) {
         <SortableContext items={columnTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           <div 
             id={column.key}
-            className="flex-1 space-y-3 overflow-y-auto min-h-24 p-2 rounded-lg transition-colors duration-200"
+            className={`flex-1 space-y-3 overflow-y-auto min-h-24 p-2 rounded-lg transition-all duration-200 ${
+              activeTask && activeTask.status !== column.key 
+                ? 'bg-primary/5 border-2 border-dashed border-primary/30' 
+                : 'border-2 border-transparent'
+            }`}
             style={{
               minHeight: '200px',
             }}
@@ -267,7 +309,12 @@ export function KanbanView({ projectId }: KanbanViewProps) {
             {columnTasks.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <p className="text-sm">No tasks</p>
-                <p className="text-xs mt-1">Drop tasks here</p>
+                {activeTask && activeTask.status !== column.key && (
+                  <p className="text-xs mt-1 text-primary font-medium">Drop here to move to {column.label}</p>
+                )}
+                {(!activeTask || activeTask.status === column.key) && (
+                  <p className="text-xs mt-1">Drop tasks here</p>
+                )}
               </div>
             )}
           </div>
