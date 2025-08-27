@@ -227,23 +227,6 @@ export function RoadmapView() {
     return stakeholder?.name || 'Unassigned';
   };
 
-  const groupedTasks = useMemo(() => {
-    const grouped = milestones.map(milestone => ({
-      milestone,
-      tasks: tasks.filter(task => task.milestone_id === milestone.id)
-    }));
-    
-    // Add tasks without milestones
-    const tasksWithoutMilestone = tasks.filter(task => !task.milestone_id);
-    if (tasksWithoutMilestone.length > 0) {
-      grouped.push({
-        milestone: { id: 'unassigned', name: 'Unassigned Tasks', due_date: '', status: '', description: '', project_id: '', created_by: '' },
-        tasks: tasksWithoutMilestone
-      });
-    }
-    
-    return grouped.filter(group => group.tasks.length > 0);
-  }, [milestones, tasks]);
 
   const navigateTime = (direction: 'prev' | 'next') => {
     switch (viewMode) {
@@ -292,6 +275,24 @@ export function RoadmapView() {
       return statusMatch && priorityMatch;
     });
   }, [tasks, filteredStatus, filteredPriority]);
+
+  const groupedTasksData = useMemo(() => {
+    const grouped = milestones.map(milestone => ({
+      milestone,
+      tasks: filteredTasks.filter(task => task.milestone_id === milestone.id)
+    }));
+    
+    // Add tasks without milestones
+    const tasksWithoutMilestone = filteredTasks.filter(task => !task.milestone_id);
+    if (tasksWithoutMilestone.length > 0) {
+      grouped.push({
+        milestone: { id: 'unassigned', name: 'Unassigned Tasks', due_date: '', status: '', description: '', project_id: '', created_by: '' },
+        tasks: tasksWithoutMilestone
+      });
+    }
+    
+    return grouped.filter(group => group.tasks.length > 0);
+  }, [milestones, filteredTasks]);
 
   return (
     <div className="space-y-6 p-6">
@@ -410,7 +411,7 @@ export function RoadmapView() {
           {/* Tasks Container */}
           <div className="max-h-96 overflow-y-auto" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}>
             <div className="space-y-2 p-4">
-              {groupedTasks.map((group, groupIndex) => (
+              {groupedTasksData.map((group, groupIndex) => (
                 <div key={group.milestone.id} className="space-y-2">
                   {/* Milestone Header */}
                   <div className="flex items-center gap-2 py-2 border-b border-border-subtle">
