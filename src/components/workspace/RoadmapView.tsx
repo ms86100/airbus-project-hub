@@ -350,14 +350,32 @@ export function RoadmapView() {
 
           {/* Legend */}
           <div className="mt-8 pt-6 border-t border-gray-700">
-            <h4 className="text-white text-sm font-medium mb-3">Priority Legend</h4>
-            <div className="flex flex-wrap gap-4">
-              {Object.entries(priorityColors).map(([priority, color]) => (
-                <div key={priority} className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded ${color}`} />
-                  <span className="text-gray-300 text-xs capitalize">{priority}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Priority Legend */}
+              <div>
+                <h4 className="text-white text-sm font-medium mb-3">Priority Legend</h4>
+                <div className="flex flex-wrap gap-4">
+                  {Object.entries(priorityColors).map(([priority, color]) => (
+                    <div key={priority} className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${color}`} />
+                      <span className="text-gray-300 text-xs capitalize">{priority}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              
+              {/* Task Color Legend */}
+              <div>
+                <h4 className="text-white text-sm font-medium mb-3">Task Colors</h4>
+                <div className="flex flex-wrap gap-4">
+                  {taskColors.map((color, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <div className={`w-4 h-3 rounded ${color}`} />
+                      <span className="text-gray-300 text-xs">Task {index + 1}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
