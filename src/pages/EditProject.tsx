@@ -98,7 +98,7 @@ const EditProject = () => {
         description: "Project details have been saved successfully.",
       });
       
-      navigate(`/projects/${project.id}`);
+      navigate(`/project/${project.id}`);
     } catch (error) {
       console.error('Error updating project:', error);
       toast({
@@ -112,7 +112,7 @@ const EditProject = () => {
   };
 
   const handleCancel = () => {
-    navigate(`/projects/${id}`);
+    navigate(`/project/${id}`);
   };
 
   if (loading) {
@@ -143,7 +143,7 @@ const EditProject = () => {
           <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
-              onClick={() => navigate(`/projects/${id}`)}
+              onClick={() => navigate(`/project/${id}`)}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Edit3, Trash2, Calendar, Users, CheckCircle, Clock, AlertCircle, Plus } from 'lucide-react';
-import Layout from '@/components/Layout';
+import DashboardLayout from '@/components/DashboardLayout';
 import { RoadmapView } from '@/components/workspace/RoadmapView';
 import { KanbanView } from '@/components/workspace/KanbanView';
 import { StakeholdersManagement } from '@/components/workspace/StakeholdersManagement';
@@ -162,26 +162,26 @@ const ProjectOverview = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-muted-foreground">Loading project...</div>
         </div>
-      </Layout>
+      </DashboardLayout>
     );
   }
 
   if (!project) {
     return (
-      <Layout>
+      <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-muted-foreground">Project not found</div>
         </div>
-      </Layout>
+      </DashboardLayout>
     );
   }
 
   return (
-    <Layout>
+    <DashboardLayout>
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
         <div className="w-full mx-auto p-4 md:p-6 lg:p-8 space-y-6" style={{ width: '95%' }}>
           {/* Header */}
@@ -196,7 +196,7 @@ const ProjectOverview = () => {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => navigate(`/projects/${id}/edit`)}
+                  onClick={() => navigate(`/project/${id}/edit`)}
                   className="w-full sm:w-auto"
                 >
                   <Edit3 className="h-4 w-4 mr-2" />
@@ -434,7 +434,7 @@ const ProjectOverview = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </DashboardLayout>
   );
 };
 
