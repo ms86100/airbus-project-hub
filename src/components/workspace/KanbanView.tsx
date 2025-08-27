@@ -6,6 +6,22 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface KanbanViewProps {
   projectId: string;
@@ -39,7 +55,16 @@ export function KanbanView({ projectId }: KanbanViewProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
   const { toast } = useToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement required to start dragging
+      },
+    })
+  );
 
   useEffect(() => {
     fetchData();
@@ -80,6 +105,57 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     }
   };
 
+  const updateTaskStatus = async (taskId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ status: newStatus })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      // Update local state
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === taskId 
+            ? { ...task, status: newStatus }
+            : task
+        )
+      );
+
+      toast({
+        title: "Task updated",
+        description: `Task status changed to ${newStatus.replace('_', ' ')}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error updating task",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = tasks.find(t => t.id === event.active.id);
+    setActiveTask(task || null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTask(null);
+
+    if (!over) return;
+
+    const taskId = active.id as string;
+    const newStatus = over.id as string;
+
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.status === newStatus) return;
+
+    updateTaskStatus(taskId, newStatus);
+  };
+
   const getTasksForStatus = (status: string) => {
     return tasks.filter(task => task.status === status);
   };
@@ -99,6 +175,107 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     }
   };
 
+  // Draggable Task Card Component
+  function DraggableTaskCard({ task }: { task: Task }) {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: task.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <Card 
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-l-4 ${getPriorityColor(task.priority)} ${isDragging ? 'shadow-lg scale-105' : ''}`}
+      >
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between">
+            <CardTitle className="text-sm font-medium leading-tight">
+              {task.title}
+            </CardTitle>
+            <MoreHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          </div>
+        </CardHeader>
+        
+        <CardContent className="pt-0">
+          {task.description && (
+            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+              {task.description}
+            </p>
+          )}
+          
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">
+                {getMilestoneName(task.milestone_id)}
+              </span>
+              {task.priority && (
+                <Badge variant="outline" className="text-xs">
+                  {task.priority}
+                </Badge>
+              )}
+            </div>
+            
+            {task.due_date && (
+              <div className="text-xs text-muted-foreground">
+                Due: {format(new Date(task.due_date), 'MMM dd')}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Droppable Column Component
+  function DroppableColumn({ column, tasks: columnTasks }: { column: typeof statusColumns[0], tasks: Task[] }) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className={`${column.color} rounded-lg p-4 mb-4`}>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm">{column.label}</h3>
+            <Badge variant="secondary" className="text-xs">
+              {columnTasks.length}
+            </Badge>
+          </div>
+        </div>
+        
+        <SortableContext items={columnTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          <div 
+            id={column.key}
+            className="flex-1 space-y-3 overflow-y-auto min-h-24 p-2 rounded-lg transition-colors duration-200"
+            style={{
+              minHeight: '200px',
+            }}
+          >
+            {columnTasks.map((task) => (
+              <DraggableTaskCard key={task.id} task={task} />
+            ))}
+            
+            {columnTasks.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">No tasks</p>
+                <p className="text-xs mt-1">Drop tasks here</p>
+              </div>
+            )}
+          </div>
+        </SortableContext>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -108,90 +285,80 @@ export function KanbanView({ projectId }: KanbanViewProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between p-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">Kanban</h1>
-            <p className="text-sm text-muted-foreground">Drag and drop tasks by status within each milestone</p>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center justify-between p-6">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">Kanban</h1>
+              <p className="text-sm text-muted-foreground">Drag and drop tasks between status columns</p>
+            </div>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Task
+            </Button>
           </div>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Task
-          </Button>
         </div>
-      </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="grid grid-cols-4 gap-6 h-full">
-          {statusColumns.map((column) => {
-            const columnTasks = getTasksForStatus(column.key);
-            
-            return (
-              <div key={column.key} className="flex flex-col">
-                <div className={`${column.color} rounded-lg p-4 mb-4`}>
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-sm">{column.label}</h3>
-                    <Badge variant="secondary" className="text-xs">
-                      {columnTasks.length}
-                    </Badge>
+        {/* Kanban Board */}
+        <div className="flex-1 overflow-auto p-6">
+          <div className="grid grid-cols-4 gap-6 h-full">
+            {statusColumns.map((column) => {
+              const columnTasks = getTasksForStatus(column.key);
+              return (
+                <DroppableColumn 
+                  key={column.key} 
+                  column={column} 
+                  tasks={columnTasks} 
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeTask ? (
+            <Card className={`cursor-grabbing shadow-2xl rotate-3 border-l-4 ${getPriorityColor(activeTask.priority)}`}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium leading-tight">
+                  {activeTask.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {activeTask.description && (
+                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                    {activeTask.description}
+                  </p>
+                )}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {getMilestoneName(activeTask.milestone_id)}
+                    </span>
+                    {activeTask.priority && (
+                      <Badge variant="outline" className="text-xs">
+                        {activeTask.priority}
+                      </Badge>
+                    )}
                   </div>
-                </div>
-                
-                <div className="flex-1 space-y-3 overflow-y-auto">
-                  {columnTasks.map((task) => (
-                    <Card key={task.id} className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${getPriorityColor(task.priority)}`}>
-                      <CardHeader className="pb-2">
-                        <div className="flex items-start justify-between">
-                          <CardTitle className="text-sm font-medium leading-tight">
-                            {task.title}
-                          </CardTitle>
-                          <MoreHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent className="pt-0">
-                        {task.description && (
-                          <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                            {task.description}
-                          </p>
-                        )}
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">
-                              {getMilestoneName(task.milestone_id)}
-                            </span>
-                            {task.priority && (
-                              <Badge variant="outline" className="text-xs">
-                                {task.priority}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          {task.due_date && (
-                            <div className="text-xs text-muted-foreground">
-                              Due: {format(new Date(task.due_date), 'MMM dd')}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  
-                  {columnTasks.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p className="text-sm">No tasks</p>
+                  {activeTask.due_date && (
+                    <div className="text-xs text-muted-foreground">
+                      Due: {format(new Date(activeTask.due_date), 'MMM dd')}
                     </div>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </DragOverlay>
       </div>
-    </div>
+    </DndContext>
   );
 }
