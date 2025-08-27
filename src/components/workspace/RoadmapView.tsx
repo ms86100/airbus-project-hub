@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Calendar, Clock, User, ChevronLeft, ChevronRight, Filter, Download, Settings, ZoomIn, ZoomOut } from 'lucide-react';
+import { CalendarDays, Calendar, Clock, User, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, addWeeks, addMonths, addYears, subWeeks, subMonths, subYears, isWithinInterval, parseISO, differenceInDays, addDays } from 'date-fns';
 
 interface Task {
@@ -51,8 +51,6 @@ export function RoadmapView() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('weekly');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [filteredStatus, setFilteredStatus] = useState<string>('all');
-  const [filteredPriority, setFilteredPriority] = useState<string>('all');
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
   // Enhanced Color System for Timeline Bars
@@ -282,12 +280,8 @@ export function RoadmapView() {
 
   // All hooks must be called BEFORE any conditional returns
   const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
-      const statusMatch = filteredStatus === 'all' || task.status === filteredStatus;
-      const priorityMatch = filteredPriority === 'all' || task.priority === filteredPriority;
-      return statusMatch && priorityMatch;
-    });
-  }, [tasks, filteredStatus, filteredPriority]);
+    return tasks; // Show all tasks without filtering
+  }, [tasks]);
 
   const groupedTasksData = useMemo(() => {
     const grouped = milestones.map(milestone => ({
@@ -326,21 +320,6 @@ export function RoadmapView() {
         
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Filters */}
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Filters
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-          </div>
 
           {/* Zoom Controls */}
           <div className="flex items-center gap-1 bg-surface-alt rounded-lg p-1">
