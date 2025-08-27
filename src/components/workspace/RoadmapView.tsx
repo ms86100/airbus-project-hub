@@ -19,6 +19,7 @@ interface Task {
   milestone_id: string;
   project_id: string;
   created_by: string;
+  created_at: string;
 }
 
 interface Milestone {
@@ -115,37 +116,57 @@ export function RoadmapView() {
   };
 
   const timelineData = useMemo(() => {
-    let start: Date, end: Date, intervals: Date[];
+    // Calculate timeline based on actual task dates
+    if (tasks.length === 0) {
+      const start = startOfMonth(currentDate);
+      const end = endOfMonth(currentDate);
+      return { start, end, intervals: eachDayOfInterval({ start, end }) };
+    }
 
+    // Find earliest start date and latest end date from all tasks
+    const taskDates = tasks.map(task => {
+      const taskStart = parseISO(task.created_at); // Use created_at as start date
+      const taskEnd = task.due_date ? parseISO(task.due_date) : addDays(taskStart, 7);
+      return { start: taskStart, end: taskEnd };
+    });
+
+    const earliestStart = taskDates.reduce((earliest, task) => 
+      task.start < earliest ? task.start : earliest, taskDates[0].start);
+    const latestEnd = taskDates.reduce((latest, task) => 
+      task.end > latest ? task.end : latest, taskDates[0].end);
+
+    // Add some padding based on view mode
+    let start: Date, end: Date, intervals: Date[];
+    
     switch (viewMode) {
       case 'daily':
-        start = addDays(currentDate, -3);
-        end = addDays(currentDate, 3);
+        start = addDays(earliestStart, -1);
+        end = addDays(latestEnd, 1);
         intervals = eachDayOfInterval({ start, end });
         break;
       case 'weekly':
-        start = startOfWeek(subWeeks(currentDate, 2));
-        end = endOfWeek(addWeeks(currentDate, 2));
+        start = startOfWeek(addDays(earliestStart, -7));
+        end = endOfWeek(addDays(latestEnd, 7));
         intervals = eachDayOfInterval({ start, end });
         break;
       case 'monthly':
-        start = startOfMonth(subMonths(currentDate, 2));
-        end = endOfMonth(addMonths(currentDate, 2));
+        start = startOfMonth(subMonths(earliestStart, 1));
+        end = endOfMonth(addMonths(latestEnd, 1));
         intervals = eachWeekOfInterval({ start, end });
         break;
       case 'yearly':
-        start = startOfYear(subYears(currentDate, 1));
-        end = endOfYear(addYears(currentDate, 1));
+        start = startOfYear(subYears(earliestStart, 1));
+        end = endOfYear(addYears(latestEnd, 1));
         intervals = eachMonthOfInterval({ start, end });
         break;
       default:
-        start = startOfMonth(currentDate);
-        end = endOfMonth(currentDate);
+        start = startOfMonth(earliestStart);
+        end = endOfMonth(latestEnd);
         intervals = eachDayOfInterval({ start, end });
     }
 
     return { start, end, intervals };
-  }, [viewMode, currentDate]);
+  }, [viewMode, currentDate, tasks]);
 
   const getTaskPosition = (startDate: string, endDate?: string) => {
     if (!startDate) return null;
@@ -327,7 +348,7 @@ export function RoadmapView() {
                     {group.milestone.name}
                   </h4>
                   {group.tasks.map((task, taskIndex) => {
-                    const position = getTaskPosition(task.due_date);
+                    const position = getTaskPosition(task.created_at, task.due_date);
                     if (!position) return null;
                     
                     const colorClass = taskColors[taskIndex % taskColors.length];
