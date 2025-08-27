@@ -6,6 +6,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuPortal, // ⬅️ use a portal to <body>
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 
@@ -25,7 +26,18 @@ interface SimpleSelectItemProps {
 }
 
 const SimpleSelect = React.forwardRef<HTMLButtonElement, SimpleSelectProps>(
-  ({ value, onValueChange, placeholder = "Select an option", children, className, disabled, ...props }, ref) => {
+  (
+    {
+      value,
+      onValueChange,
+      placeholder = "Select an option",
+      children,
+      className,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
     const [selectedValue, setSelectedValue] = React.useState(value)
     const [selectedLabel, setSelectedLabel] = React.useState<string>("")
 
@@ -34,14 +46,9 @@ const SimpleSelect = React.forwardRef<HTMLButtonElement, SimpleSelectProps>(
     }, [value])
 
     React.useEffect(() => {
-      // Find the label for the selected value
       const items = React.Children.toArray(children) as React.ReactElement<SimpleSelectItemProps>[]
-      const selectedItem = items.find(item => item.props.value === selectedValue)
-      if (selectedItem) {
-        setSelectedLabel(selectedItem.props.children as string)
-      } else {
-        setSelectedLabel("")
-      }
+      const selectedItem = items.find((item) => item.props.value === selectedValue)
+      setSelectedLabel(selectedItem ? (selectedItem.props.children as string) : "")
     }, [selectedValue, children])
 
     const handleSelect = (itemValue: string) => {
@@ -68,33 +75,46 @@ const SimpleSelect = React.forwardRef<HTMLButtonElement, SimpleSelectProps>(
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          className={cn(
-            "z-[3100] w-full min-w-[var(--radix-dropdown-menu-trigger-width)]",
-            "fixed" // ensure viewport-relative positioning
-          )}
-        >
-          {React.Children.map(children, (child) => {
-            if (React.isValidElement<SimpleSelectItemProps>(child)) {
-              return (
-                <DropdownMenuItem
-                  key={child.props.value}
-                  onSelect={() => handleSelect(child.props.value)}
-                  className={cn(
-                    "flex items-center justify-between cursor-pointer",
-                    child.props.className
-                  )}
-                >
-                  <span>{child.props.children}</span>
-                  {selectedValue === child.props.value && (
-                    <Check className="h-4 w-4" />
-                  )}
-                </DropdownMenuItem>
-              )
-            }
-            return null
-          })}
-        </DropdownMenuContent>
+
+        {/* ✅ Portal to body so dialogs/parents don't clip or offset the menu */}
+        <DropdownMenuPortal>
+          <DropdownMenuContent
+            /* ✅ Let Radix/Popper position via transform; DO NOT use `fixed` */
+            side="bottom"
+            align="start"
+            sideOffset={8}
+            alignOffset={0}
+            avoidCollisions
+            collisionPadding={8}
+            className={cn(
+              "z-[3100]",
+              // Match trigger width using Radix var (works across portals)
+              "w-[var(--radix-dropdown-menu-trigger-width)]",
+              "min-w-[var(--radix-dropdown-menu-trigger-width)]",
+              "max-h-[280px] overflow-auto",
+              "rounded-md border bg-popover text-popover-foreground shadow-md"
+            )}
+          >
+            {React.Children.map(children, (child) => {
+              if (React.isValidElement<SimpleSelectItemProps>(child)) {
+                return (
+                  <DropdownMenuItem
+                    key={child.props.value}
+                    onSelect={() => handleSelect(child.props.value)}
+                    className={cn(
+                      "flex items-center justify-between cursor-pointer",
+                      child.props.className
+                    )}
+                  >
+                    <span>{child.props.children}</span>
+                    {selectedValue === child.props.value && <Check className="h-4 w-4" />}
+                  </DropdownMenuItem>
+                )
+              }
+              return null
+            })}
+          </DropdownMenuContent>
+        </DropdownMenuPortal>
       </DropdownMenu>
     )
   }
@@ -102,7 +122,11 @@ const SimpleSelect = React.forwardRef<HTMLButtonElement, SimpleSelectProps>(
 SimpleSelect.displayName = "SimpleSelect"
 
 const SimpleSelectItem = ({ value, children, className }: SimpleSelectItemProps) => {
-  return <div data-value={value} className={className}>{children}</div>
+  return (
+    <div data-value={value} className={className}>
+      {children}
+    </div>
+  )
 }
 
 export { SimpleSelect, SimpleSelectItem }
