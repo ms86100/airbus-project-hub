@@ -243,13 +243,13 @@ const ProjectWizard = () => {
       </div>
 
       {/* Sticky Footer Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 h-18 bg-surface-default border-t border-border shadow-professional z-[1000] flex items-center justify-between px-6 gap-3">
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-[1000] flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           Step {currentStep + 1} of {steps.length}
         </div>
         <div className="flex items-center gap-3">
           {currentStep > 0 && (
-            <Button variant="outline" onClick={prevStep} className="min-w-[100px] h-10">
+            <Button variant="outline" onClick={prevStep} className="min-w-[100px] h-12 px-6">
               Back
             </Button>
           )}
@@ -257,7 +257,7 @@ const ProjectWizard = () => {
             <Button 
               onClick={createProject}
               disabled={!canProceed() || isCreating}
-              className="min-w-[140px] h-10 font-semibold bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
+              className="min-w-[140px] h-12 px-6 font-semibold"
             >
               {isCreating ? (
                 <>Creating...</>
@@ -272,7 +272,7 @@ const ProjectWizard = () => {
             <Button 
               onClick={nextStep}
               disabled={!canProceed()}
-              className="min-w-[140px] h-10 font-semibold bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
+              className="min-w-[140px] h-12 px-6 font-semibold"
             >
               Next
               <ArrowRight className="h-4 w-4 ml-2" />
