@@ -183,14 +183,14 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
 
           <div className="space-y-2">
             {projectData.tasks.map((task) => (
-              <Card key={task.id} className="p-4 group hover:shadow-md transition-shadow">
+              <Card key={task.id} className="p-4 group">
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <Input
                         value={task.title}
                         onChange={(e) => updateTask(task.id, { title: e.target.value })}
-                        className="border border-border rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-primary"
+                        className="border border-border rounded-md px-3 py-2 text-sm font-medium"
                         placeholder="Task title"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -200,7 +200,7 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
                         }}
                       />
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 opacity-100">
                       <Button
                         size="sm"
                         variant="ghost"
@@ -232,7 +232,7 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
                         <SelectTrigger className="w-28 h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-50">
                           <SelectItem value="todo">Todo</SelectItem>
                           <SelectItem value="in-progress">In Progress</SelectItem>
                           <SelectItem value="done">Done</SelectItem>
