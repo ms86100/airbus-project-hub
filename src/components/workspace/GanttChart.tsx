@@ -81,14 +81,16 @@ export function GanttChart({ projectId }: GanttChartProps) {
           ? new Date(Math.max(...allEndDates.map(d => d.getTime())))
           : new Date();
         
-        // Start from beginning of the earliest week
+        // CRITICAL FIX: Ensure timeline includes the FULL end date
+        // Start timeline a week before the earliest date
         const timelineStart = new Date(minDate);
-        timelineStart.setDate(timelineStart.getDate() - timelineStart.getDay() - 7); // Go back to start of previous week
+        timelineStart.setDate(timelineStart.getDate() - 7);
+        timelineStart.setHours(0, 0, 0, 0); // Start of day
         
-        // End at the end of the week containing the latest date + buffer
+        // CRITICAL FIX: End timeline AFTER the latest end date to ensure full visibility
         const timelineEnd = new Date(maxDate);
-        timelineEnd.setDate(timelineEnd.getDate() + (6 - timelineEnd.getDay()) + 14); // Go to end of next week + 2 weeks buffer
-        timelineEnd.setHours(23, 59, 59, 999); // Set to end of day
+        timelineEnd.setDate(timelineEnd.getDate() + 1); // Add one extra day
+        timelineEnd.setHours(23, 59, 59, 999); // End of that day
         
         setStartDate(timelineStart);
         setEndDate(timelineEnd);
@@ -145,20 +147,27 @@ export function GanttChart({ projectId }: GanttChartProps) {
 
   const calculateBarPosition = (dateStr: string) => {
     const itemDate = new Date(dateStr);
+    itemDate.setHours(0, 0, 0, 0); // Normalize to start of day
+    
     const totalMs = endDate.getTime() - startDate.getTime();
     const itemMs = itemDate.getTime() - startDate.getTime();
-    return Math.max(0, Math.min(100, (itemMs / totalMs) * 100));
+    const positionPercent = (itemMs / totalMs) * 100;
+    
+    return Math.max(0, Math.min(95, positionPercent));
   };
 
   const calculateBarWidth = (startDateStr: string, endDateStr: string) => {
     const start = new Date(startDateStr);
+    start.setHours(0, 0, 0, 0); // Start of day
+    
     const end = new Date(endDateStr);
-    end.setHours(23, 59, 59, 999); // Ensure we go to end of the due date
+    end.setHours(23, 59, 59, 999); // CRITICAL: End of the due date
     
     const totalMs = endDate.getTime() - startDate.getTime();
     const taskMs = end.getTime() - start.getTime();
     
-    return Math.max(0.5, Math.min(100, (taskMs / totalMs) * 100));
+    const widthPercent = (taskMs / totalMs) * 100;
+    return Math.max(1, Math.min(95, widthPercent)); // Ensure visible width
   };
 
   const getTaskColor = (task: Task) => {
