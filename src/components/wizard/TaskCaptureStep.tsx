@@ -62,7 +62,32 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
     });
   };
 
-  const kickoffTemplate = ["Define objectives", "Assign roles", "Schedule kickoff meeting"];
+  const templates = {
+    kickoff_checklist: {
+      name: "Project Kickoff (PM Best-Practice)",
+      description: "Meaningful tasks to start any project strong",
+      tasks: [
+        "Draft Project Charter (scope, objectives, success criteria)",
+        "Identify Stakeholders & Create RACI",
+        "Set up Communication Plan (cadence, channels, owners)", 
+        "Create Risk Register & Initial Risk Assessment",
+        "Define WBS & High-Level Timeline",
+        "Estimate Effort & Set Initial Backlog",
+        "Schedule Kickoff Meeting & Share Agenda",
+        "Capture Minutes & Decisions from Kickoff"
+      ]
+    },
+    uat_checklist: {
+      name: "UAT Preparation", 
+      tasks: [
+        "Define Acceptance Criteria",
+        "Prepare Test Data & Environments",
+        "Draft Test Cases & Assign Owners",
+        "Schedule UAT Window",
+        "Plan Defect Triage & Sign-off Process"
+      ]
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -97,13 +122,20 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
                 <p className="text-sm text-amber-800">
                   Add at least 3 tasks to build momentum.
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => useTemplate(kickoffTemplate)}
+                    onClick={() => useTemplate(templates.kickoff_checklist.tasks)}
                   >
-                    Use Kickoff Template
+                    Use {templates.kickoff_checklist.name}
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => useTemplate(templates.uat_checklist.tasks)}
+                  >
+                    Use {templates.uat_checklist.name}
                   </Button>
                 </div>
               </div>

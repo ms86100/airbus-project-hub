@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
+import { WizardHeader } from '@/components/ui/wizard-header';
+import { ProgressStepper } from '@/components/ui/progress-stepper';
+import { CelebrationOverlay } from '@/components/ui/celebration-overlay';
 import ProjectBasicsStep from './wizard/ProjectBasicsStep';
 import TaskCaptureStep from './wizard/TaskCaptureStep';
 import MilestoneGroupingStep from './wizard/MilestoneGroupingStep';
@@ -46,6 +48,7 @@ const ProjectWizard = () => {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   
   const [projectData, setProjectData] = useState<ProjectData>({
     projectName: '',
@@ -59,11 +62,11 @@ const ProjectWizard = () => {
   });
 
   const steps = [
-    { id: 'project_wizard', title: 'Project Basics', component: ProjectBasicsStep },
-    { id: 'task_capture', title: 'Add Tasks', component: TaskCaptureStep },
-    { id: 'milestone_grouping', title: 'Organize Milestones', component: MilestoneGroupingStep },
-    { id: 'team_setup', title: 'Invite Team', component: TeamSetupStep },
-    { id: 'confirm', title: 'Review & Create', component: ConfirmationStep }
+    { id: 'project_wizard', title: 'Project Basics', subtitle: 'Just the essentials to get started', component: ProjectBasicsStep },
+    { id: 'task_capture', title: 'List Your Tasks', subtitle: 'Type quickly; we\'ll organize later', component: TaskCaptureStep },
+    { id: 'milestone_grouping', title: 'Create Milestones & Group Tasks', subtitle: 'Drag tasks into milestones', component: MilestoneGroupingStep },
+    { id: 'team_setup', title: 'Invite Teammates', subtitle: 'Optional but recommended', component: TeamSetupStep },
+    { id: 'confirm', title: 'Review & Create', subtitle: 'One last glance', component: ConfirmationStep }
   ];
 
   const canProceed = () => {
@@ -173,8 +176,13 @@ const ProjectWizard = () => {
         description: `${projectData.projectName} has been created with ${projectData.tasks.length} tasks across ${projectData.milestones.length} milestones.`,
       });
 
-      // Navigate to dashboard
-      navigate('/');
+      // Show celebration animation
+      setShowCelebration(true);
+      
+      // Navigate to dashboard after celebration
+      setTimeout(() => {
+        navigate('/');
+      }, 2500);
       
     } catch (error) {
       console.error('Error creating project:', error);
@@ -192,75 +200,76 @@ const ProjectWizard = () => {
   const progressPercentage = ((currentStep + 1) / steps.length) * 100;
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Create New Project</h1>
+    <>
+      <div className="max-w-4xl mx-auto p-lg space-y-xl bg-gradient-to-br from-surface-default to-surface-alt min-h-screen">
+        {/* Cancel Button */}
+        <div className="flex justify-end">
           <Button variant="outline" onClick={() => navigate('/')}>
             Cancel
           </Button>
         </div>
-        
-        {/* Progress */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Step {currentStep + 1} of {steps.length}</span>
-            <span>{steps[currentStep].title}</span>
-          </div>
-          <Progress value={progressPercentage} className="h-2" />
+
+        {/* Wizard Header */}
+        <WizardHeader
+          title={steps[currentStep].title}
+          subtitle={steps[currentStep].subtitle}
+          step={currentStep + 1}
+          of={steps.length}
+          onBack={currentStep > 0 ? prevStep : undefined}
+        />
+
+        {/* Progress Stepper */}
+        <ProgressStepper
+          current={currentStep + 1}
+          total={steps.length}
+          labels={steps.map(step => step.title)}
+        />
+
+        {/* Step Content */}
+        <Card className="shadow-card border-border-subtle">
+          <CardContent className="p-xl">
+            <CurrentStepComponent 
+              projectData={projectData}
+              setProjectData={setProjectData}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Navigation */}
+        <div className="flex justify-end">
+          {currentStep === steps.length - 1 ? (
+            <Button 
+              onClick={createProject}
+              disabled={!canProceed() || isCreating}
+              className="bg-gradient-to-r from-brand-primary to-brand-accent hover:from-brand-primary/90 hover:to-brand-accent/90"
+            >
+              {isCreating ? (
+                <>Creating...</>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Create Project
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button 
+              onClick={nextStep}
+              disabled={!canProceed()}
+            >
+              Next
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Step Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{steps[currentStep].title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CurrentStepComponent 
-            projectData={projectData}
-            setProjectData={setProjectData}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Navigation */}
-      <div className="flex justify-between">
-        <Button 
-          variant="outline" 
-          onClick={prevStep}
-          disabled={currentStep === 0}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-
-        {currentStep === steps.length - 1 ? (
-          <Button 
-            onClick={createProject}
-            disabled={!canProceed() || isCreating}
-          >
-            {isCreating ? (
-              <>Creating...</>
-            ) : (
-              <>
-                <Check className="h-4 w-4 mr-2" />
-                Create Project
-              </>
-            )}
-          </Button>
-        ) : (
-          <Button 
-            onClick={nextStep}
-            disabled={!canProceed()}
-          >
-            Next
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        )}
-      </div>
-    </div>
+      {/* Celebration Overlay */}
+      <CelebrationOverlay 
+        show={showCelebration} 
+        onComplete={() => setShowCelebration(false)}
+      />
+    </>
   );
 };
 

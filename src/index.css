@@ -18,11 +18,21 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 221 39% 11%;
 
-    /* Airbus Primary Blues */
-    --primary: 221 100% 31%;
-    --primary-foreground: 0 0% 98%;
+    /* Airbus Brand Colors */
+    --brand-primary: 221 100% 31%;
+    --brand-on-primary: 0 0% 98%;
+    --brand-accent: 199 89% 48%;
+
+    /* Primary System */
+    --primary: var(--brand-primary);
+    --primary-foreground: var(--brand-on-primary);
     --primary-hover: 221 100% 36%;
     --primary-light: 221 100% 90%;
+
+    /* Surface System */
+    --surface-default: 0 0% 100%;
+    --surface-alt: 220 14% 98%;
+    --surface-elevated: 0 0% 100%;
 
     /* Professional Secondary */
     --secondary: 220 14% 96%;
@@ -32,36 +42,56 @@ All colors MUST be HSL.
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 199 89% 48%;
+    --accent: var(--brand-accent);
     --accent-foreground: 0 0% 98%;
     --accent-light: 199 89% 95%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
+    /* Border System */
     --border: 220 13% 91%;
+    --border-subtle: 220 13% 94%;
     --input: 220 13% 91%;
-    --ring: 221 100% 31%;
+    --ring: var(--brand-primary);
 
+    /* Layout */
     --radius: 0.375rem;
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    /* Text System */
+    --text-primary: 221 39% 11%;
+    --text-muted: 220 9% 46%;
 
     /* Airbus Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(221 100% 31%), hsl(199 89% 48%));
-    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(220 14% 98%));
-    --gradient-hero: linear-gradient(135deg, hsl(221 100% 31%) 0%, hsl(199 89% 48%) 50%, hsl(221 100% 31%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--brand-primary)), hsl(var(--brand-accent)));
+    --gradient-card: linear-gradient(135deg, hsl(var(--surface-default)), hsl(var(--surface-alt)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--brand-primary)) 0%, hsl(var(--brand-accent)) 50%, hsl(var(--brand-primary)) 100%);
 
     /* Professional Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(221 39% 11% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(221 39% 11% / 0.1), 0 2px 4px -1px hsl(221 39% 11% / 0.06);
-    --shadow-lg: 0 10px 15px -3px hsl(221 39% 11% / 0.1), 0 4px 6px -2px hsl(221 39% 11% / 0.05);
-    --shadow-airbus: 0 8px 32px hsl(221 100% 31% / 0.12);
+    --shadow-sm: 0 1px 2px 0 hsl(var(--text-primary) / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(var(--text-primary) / 0.1), 0 2px 4px -1px hsl(var(--text-primary) / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(var(--text-primary) / 0.1), 0 4px 6px -2px hsl(var(--text-primary) / 0.05);
+    --shadow-airbus: 0 8px 32px hsl(var(--brand-primary) / 0.12);
 
     /* Status Colors */
-    --success: 142 76% 36%;
+    --status-success: 142 76% 36%;
+    --status-warning: 38 92% 50%;
+    --status-info: var(--brand-accent);
+    --success: var(--status-success);
     --success-foreground: 0 0% 98%;
-    --warning: 38 92% 50%;
+    --warning: var(--status-warning);
     --warning-foreground: 0 0% 98%;
-    --info: 199 89% 48%;
+    --info: var(--status-info);
     --info-foreground: 0 0% 98%;
 
     --sidebar-background: 0 0% 98%;

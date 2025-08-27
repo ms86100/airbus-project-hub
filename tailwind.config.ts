@@ -24,6 +24,34 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				
+				// Brand tokens
+				brand: {
+					primary: 'hsl(var(--brand-primary))',
+					'on-primary': 'hsl(var(--brand-on-primary))',
+					accent: 'hsl(var(--brand-accent))'
+				},
+				
+				// Surface tokens
+				surface: {
+					default: 'hsl(var(--surface-default))',
+					alt: 'hsl(var(--surface-alt))',
+					elevated: 'hsl(var(--surface-elevated))'
+				},
+				
+				// Text tokens
+				text: {
+					primary: 'hsl(var(--text-primary))',
+					muted: 'hsl(var(--text-muted))'
+				},
+				
+				// Status tokens
+				status: {
+					success: 'hsl(var(--status-success))',
+					warning: 'hsl(var(--status-warning))',
+					info: 'hsl(var(--status-info))'
+				},
+				
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))',
@@ -79,10 +107,25 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
+			spacing: {
+				'xs': 'var(--spacing-xs)',
+				'sm': 'var(--spacing-sm)', 
+				'md': 'var(--spacing-md)',
+				'lg': 'var(--spacing-lg)',
+				'xl': 'var(--spacing-xl)'
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				'radius-sm': 'var(--radius-sm)',
+				'radius-md': 'var(--radius-md)',
+				'radius-lg': 'var(--radius-lg)'
+			},
+			boxShadow: {
+				'card': 'var(--shadow-sm)',
+				'elevated': 'var(--shadow-md)',
+				'airbus': 'var(--shadow-airbus)'
 			},
 			keyframes: {
 				'accordion-down': {
