@@ -12,6 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Edit3, Trash2, Calendar, Users, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import Layout from '@/components/Layout';
+import { RoadmapView } from '@/components/workspace/RoadmapView';
+import { KanbanView } from '@/components/workspace/KanbanView';
+import { StakeholdersView } from '@/components/workspace/StakeholdersView';
 
 interface Project {
   id: string;
@@ -237,12 +240,6 @@ const ProjectOverview = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Projects
             </Button>
-            <Button 
-              onClick={() => navigate(`/project/${id}/roadmap`)}
-              className="bg-airbus-primary text-white border border-airbus-primary shadow-professional hover:bg-airbus-primary/90"
-            >
-              Open Workspace
-            </Button>
           </div>
           <div className="flex items-center gap-sm">
             <Button
@@ -360,6 +357,9 @@ const ProjectOverview = () => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
             <TabsTrigger value="milestones">Milestones ({milestones.length})</TabsTrigger>
+            <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
+            <TabsTrigger value="kanban">Kanban</TabsTrigger>
+            <TabsTrigger value="stakeholders">Stakeholders</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-lg">
@@ -482,6 +482,24 @@ const ProjectOverview = () => {
                   </CardContent>
                 </Card>
               )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="roadmap" className="space-y-lg">
+            <div className="h-[600px]">
+              <RoadmapView projectId={id!} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="kanban" className="space-y-lg">
+            <div className="h-[600px]">
+              <KanbanView projectId={id!} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="stakeholders" className="space-y-lg">
+            <div className="h-[600px]">
+              <StakeholdersView projectId={id!} />
             </div>
           </TabsContent>
         </Tabs>
