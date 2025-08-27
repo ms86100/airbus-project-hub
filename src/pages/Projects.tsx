@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import Layout from '@/components/Layout';
+import DashboardLayout from '@/components/DashboardLayout';
 import ProjectsList from '@/components/ProjectsList';
 
 const Projects = () => {
@@ -28,9 +28,9 @@ const Projects = () => {
   }
 
   return (
-    <Layout>
+    <DashboardLayout>
       <ProjectsList />
-    </Layout>
+    </DashboardLayout>
   );
 };
 

@@ -172,11 +172,18 @@ All colors MUST be HSL.
     @apply max-w-4xl mx-auto px-4 lg:px-6;
   }
   
-  /* NO ANIMATIONS - Disable all transitions */
-  *, *::before, *::after {
-    transition: none !important;
-    animation: none !important;
-    transform: none !important;
+  /* Professional transitions - subtle animations */
+  * {
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   
   /* Beautiful Professional Scrollbars */

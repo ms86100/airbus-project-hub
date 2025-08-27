@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import Layout from '@/components/Layout';
+import DashboardLayout from '@/components/DashboardLayout';
 import Dashboard from '@/components/Dashboard';
 
 const Index = () => {
@@ -27,9 +27,9 @@ const Index = () => {
   }
 
   return (
-    <Layout>
+    <DashboardLayout>
       <Dashboard />
-    </Layout>
+    </DashboardLayout>
   );
 };
 
