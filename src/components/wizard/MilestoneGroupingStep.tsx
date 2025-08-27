@@ -220,7 +220,7 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
       </Card>
 
       {/* Milestone Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {projectData.milestones.map((milestone) => (
           <Card 
             key={milestone.id}
@@ -317,7 +317,7 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                           <SelectTrigger className="w-20 h-6 text-xs">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-50">
+                          <SelectContent className="z-[100] bg-background border border-border shadow-lg" position="popper" side="bottom" align="start">
                             <SelectItem value="todo">Todo</SelectItem>
                             <SelectItem value="in-progress">In Progress</SelectItem>
                             <SelectItem value="done">Done</SelectItem>
