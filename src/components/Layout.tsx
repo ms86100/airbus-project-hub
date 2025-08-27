@@ -43,60 +43,60 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="min-h-screen bg-gradient-to-br from-surface-default to-surface-alt">
+      {/* Professional Header */}
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-surface-default/80 backdrop-blur-md shadow-card">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-primary rounded-lg">
-              <Plane className="h-6 w-6 text-primary-foreground" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-gradient-primary rounded-lg shadow-airbus">
+              <Plane className="h-7 w-7 text-brand-on-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Project Hub</h1>
-              <p className="text-xs text-muted-foreground">Enterprise Management</p>
+              <h1 className="text-2xl font-heading font-bold text-text-primary tracking-tight">ProjectFlow</h1>
+              <p className="text-sm text-text-muted font-medium">Professional Project Management</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             {userRole && (
-              <Badge variant={getRoleBadgeVariant(userRole)}>
+              <Badge variant={getRoleBadgeVariant(userRole)} className="shadow-sm">
                 {getRoleDisplayName(userRole)}
               </Badge>
             )}
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Button variant="ghost" className="relative h-12 w-12 rounded-full border border-border shadow-sm hover:shadow-card">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src="/placeholder-avatar.jpg" alt={user?.email} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
+                    <AvatarFallback className="bg-gradient-primary text-brand-on-primary font-semibold">
                       {user?.email?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user?.email}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
+              <DropdownMenuContent className="w-64 bg-surface-default border-border shadow-elevated" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal p-4">
+                  <div className="flex flex-col space-y-2">
+                    <p className="text-sm font-semibold leading-none text-text-primary">{user?.email}</p>
+                    <p className="text-xs leading-none text-text-muted font-medium">
                       {getRoleDisplayName(userRole)}
                     </p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuItem className="p-3 text-text-primary hover:bg-surface-alt">
+                  <User className="mr-3 h-4 w-4" />
+                  <span>Profile Settings</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
+                <DropdownMenuItem className="p-3 text-text-primary hover:bg-surface-alt">
+                  <Settings className="mr-3 h-4 w-4" />
+                  <span>Preferences</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuItem onClick={signOut} className="p-3 text-destructive hover:bg-destructive/5">
+                  <LogOut className="mr-3 h-4 w-4" />
+                  <span>Sign Out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -104,9 +104,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto py-6">
-        {children}
+      {/* Main Content with Professional Spacing */}
+      <main className="container py-8 animate-fade-in">
+        <div className="max-w-6xl mx-auto">
+          {children}
+        </div>
       </main>
     </div>
   );

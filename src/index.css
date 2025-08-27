@@ -156,6 +156,43 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: 'Inter', 'Source Sans Pro', system-ui, sans-serif;
+  }
+  
+  /* Professional Layout Enhancements */
+  .container {
+    @apply max-w-7xl mx-auto px-8 lg:px-12;
+  }
+  
+  /* Smooth Professional Transitions */
+  * {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Beautiful Professional Scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-surface-alt;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-brand-primary/30 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-brand-primary/50;
+  }
+  
+  /* Typography Enhancement */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Source Sans Pro', 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
   }
 }
