@@ -214,7 +214,7 @@ const ProjectOverview = () => {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="text-text-muted">Loading project...</div>
+          <div className="text-muted-foreground">Loading project...</div>
         </div>
       </Layout>
     );
@@ -224,7 +224,7 @@ const ProjectOverview = () => {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="text-text-muted">Project not found</div>
+          <div className="text-muted-foreground">Project not found</div>
         </div>
       </Layout>
     );
@@ -232,277 +232,295 @@ const ProjectOverview = () => {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto p-lg space-y-xl">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-md">
-            <Button variant="ghost" onClick={() => navigate('/projects')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Projects
-            </Button>
-          </div>
-          <div className="flex items-center gap-sm">
-            <Button
-              variant="outline"
-              onClick={() => setEditingProject(true)}
-            >
-              <Edit3 className="h-4 w-4 mr-2" />
-              Edit Project
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="text-status-error border-status-error hover:bg-status-error hover:text-white">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Project
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+        <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+          {/* Header */}
+          <div className="bg-card border border-border rounded-lg shadow-sm p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" onClick={() => navigate('/projects')} className="shrink-0">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Projects
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Project?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. Type the project name "{project.name}" to confirm.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <Input
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="Type project name"
-                />
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDeleteConfirmText('')}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={deleteProject}
-                    disabled={deleteConfirmText !== project.name}
-                    className="bg-status-error hover:bg-status-error/90"
-                  >
-                    Delete Project
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-
-        {/* Project Header */}
-        <div className="space-y-md">
-          {editingProject ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Edit Project Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-md">
-                <div>
-                  <label className="text-sm font-medium text-text-primary mb-xs block">Project Name</label>
-                  <Input
-                    value={editForm.name}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    placeholder="Project name"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-text-primary mb-xs block">Description</label>
-                  <Textarea
-                    value={editForm.description}
-                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                    placeholder="Project description"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-md">
-                  <div>
-                    <label className="text-sm font-medium text-text-primary mb-xs block">Start Date</label>
+              </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingProject(true)}
+                  className="w-full sm:w-auto"
+                >
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Edit Project
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-auto text-status-error border-status-error hover:bg-status-error hover:text-white">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Project
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Project?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. Type the project name "{project.name}" to confirm.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
                     <Input
-                      type="date"
-                      value={editForm.start_date}
-                      onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="Type project name"
                     />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-text-primary mb-xs block">End Date</label>
-                    <Input
-                      type="date"
-                      value={editForm.end_date}
-                      onChange={(e) => setEditForm({ ...editForm, end_date: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-sm">
-                  <Button onClick={updateProject}>Save Changes</Button>
-                  <Button variant="outline" onClick={() => setEditingProject(false)}>Cancel</Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div>
-              <h1 className="text-3xl font-bold text-text-primary">{project.name}</h1>
-              <p className="text-text-muted mt-xs">{project.description}</p>
-              <div className="flex items-center gap-md mt-md">
-                <Badge variant={getStatusBadgeVariant(project.status)}>
-                  {React.createElement(getStatusIcon(project.status), { className: "h-3 w-3 mr-1" })}
-                  {project.status.replace('_', ' ')}
-                </Badge>
-                {project.start_date && (
-                  <div className="flex items-center gap-xs text-sm text-text-muted">
-                    <Calendar className="h-4 w-4" />
-                    {new Date(project.start_date).toLocaleDateString()} - {project.end_date ? new Date(project.end_date).toLocaleDateString() : 'Ongoing'}
-                  </div>
-                )}
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setDeleteConfirmText('')}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={deleteProject}
+                        disabled={deleteConfirmText !== project.name}
+                        className="bg-status-error hover:bg-status-error/90"
+                      >
+                        Delete Project
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="overview" className="space-y-lg">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
-            <TabsTrigger value="milestones">Milestones ({milestones.length})</TabsTrigger>
-            <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
-            <TabsTrigger value="kanban">Kanban</TabsTrigger>
-            <TabsTrigger value="stakeholders">Stakeholders</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-lg">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" />
-                    Tasks
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-text-primary">{tasks.length}</div>
-                  <p className="text-sm text-text-muted">
-                    {tasks.filter(t => t.status === 'completed').length} completed
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Milestones
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-text-primary">{milestones.length}</div>
-                  <p className="text-sm text-text-muted">
-                    {milestones.filter(m => m.status === 'completed').length} completed
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Team
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-text-primary">1</div>
-                  <p className="text-sm text-text-muted">Project creator</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="tasks" className="space-y-lg">
-            <div className="space-y-sm">
-              {tasks.map((task) => (
-                <Card key={task.id}>
-                  <CardContent className="p-md">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium text-text-primary">{task.title}</h3>
-                        {task.description && (
-                          <p className="text-sm text-text-muted mt-xs">{task.description}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-sm">
-                        <Badge variant={getStatusBadgeVariant(task.status)}>
-                          {task.status.replace('_', ' ')}
-                        </Badge>
-                        {task.due_date && (
-                          <span className="text-sm text-text-muted">
-                            Due: {new Date(task.due_date).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
+          {/* Project Header */}
+          <div className="bg-card border border-border rounded-lg shadow-sm">
+            {editingProject ? (
+              <div className="p-6">
+                <div className="border-l-4 border-airbus-primary pl-4 mb-6">
+                  <h2 className="text-xl font-semibold text-foreground">Edit Project Details</h2>
+                  <p className="text-muted-foreground">Update your project information</p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">Project Name</label>
+                      <Input
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        placeholder="Project name"
+                        className="w-full"
+                      />
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {tasks.length === 0 && (
-                <Card>
-                  <CardContent className="p-lg text-center">
-                    <p className="text-text-muted">No tasks found</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="milestones" className="space-y-lg">
-            <div className="space-y-sm">
-              {milestones.map((milestone) => {
-                const milestoneTasks = tasks.filter(t => t.milestone_id === milestone.id);
-                return (
-                  <Card key={milestone.id}>
-                    <CardContent className="p-md">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium text-text-primary">{milestone.name}</h3>
-                          {milestone.description && (
-                            <p className="text-sm text-text-muted mt-xs">{milestone.description}</p>
-                          )}
-                          <p className="text-xs text-text-muted mt-xs">
-                            {milestoneTasks.length} tasks
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-sm">
-                          <Badge variant={getStatusBadgeVariant(milestone.status)}>
-                            {milestone.status.replace('_', ' ')}
-                          </Badge>
-                          <span className="text-sm text-text-muted">
-                            Due: {new Date(milestone.due_date).toLocaleDateString()}
-                          </span>
-                        </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">Description</label>
+                      <Textarea
+                        value={editForm.description}
+                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                        placeholder="Project description"
+                        className="w-full min-h-[100px]"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">Start Date</label>
+                      <Input
+                        type="date"
+                        value={editForm.start_date}
+                        onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">End Date</label>
+                      <Input
+                        type="date"
+                        value={editForm.end_date}
+                        onChange={(e) => setEditForm({ ...editForm, end_date: e.target.value })}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-border">
+                  <Button onClick={updateProject} className="sm:w-auto">Save Changes</Button>
+                  <Button variant="outline" onClick={() => setEditingProject(false)} className="sm:w-auto">Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6">
+                <div className="border-l-4 border-airbus-primary pl-4">
+                  <h1 className="text-3xl font-bold text-foreground">{project.name}</h1>
+                  <p className="text-muted-foreground mt-2 text-lg">{project.description}</p>
+                  <div className="flex flex-wrap items-center gap-4 mt-4">
+                    <Badge variant={getStatusBadgeVariant(project.status)} className="text-sm">
+                      {React.createElement(getStatusIcon(project.status), { className: "h-3 w-3 mr-1" })}
+                      {project.status.replace('_', ' ')}
+                    </Badge>
+                    {project.start_date && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(project.start_date).toLocaleDateString()} - {project.end_date ? new Date(project.end_date).toLocaleDateString() : 'Ongoing'}
                       </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+            <Tabs defaultValue="overview" className="w-full">
+              <div className="border-b border-border bg-muted/5">
+                <TabsList className="w-full h-auto p-0 bg-transparent">
+                  <TabsTrigger value="overview" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Overview</TabsTrigger>
+                  <TabsTrigger value="tasks" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Tasks ({tasks.length})</TabsTrigger>
+                  <TabsTrigger value="milestones" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Milestones ({milestones.length})</TabsTrigger>
+                  <TabsTrigger value="roadmap" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Roadmap</TabsTrigger>
+                  <TabsTrigger value="kanban" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Kanban</TabsTrigger>
+                  <TabsTrigger value="stakeholders" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Stakeholders</TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="overview" className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <Card className="border-l-4 border-l-airbus-primary">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <CheckCircle className="h-5 w-5 text-airbus-primary" />
+                        Tasks
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-foreground">{tasks.length}</div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {tasks.filter(t => t.status === 'completed').length} completed
+                      </p>
                     </CardContent>
                   </Card>
-                );
-              })}
-              {milestones.length === 0 && (
-                <Card>
-                  <CardContent className="p-lg text-center">
-                    <p className="text-text-muted">No milestones found</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
 
-          <TabsContent value="roadmap" className="space-y-lg">
-            <div className="h-[600px]">
-              <RoadmapView projectId={id!} />
-            </div>
-          </TabsContent>
+                  <Card className="border-l-4 border-l-airbus-secondary">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Calendar className="h-5 w-5 text-airbus-secondary" />
+                        Milestones
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-foreground">{milestones.length}</div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {milestones.filter(m => m.status === 'completed').length} completed
+                      </p>
+                    </CardContent>
+                  </Card>
 
-          <TabsContent value="kanban" className="space-y-lg">
-            <div className="h-[600px]">
-              <KanbanView projectId={id!} />
-            </div>
-          </TabsContent>
+                  <Card className="border-l-4 border-l-accent">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Users className="h-5 w-5 text-accent" />
+                        Team
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-foreground">1</div>
+                      <p className="text-sm text-muted-foreground mt-1">Project creator</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
 
-          <TabsContent value="stakeholders" className="space-y-lg">
-            <div className="h-[600px]">
-              <StakeholdersView projectId={id!} />
-            </div>
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="tasks" className="p-6">
+                <div className="space-y-4">
+                  {tasks.map((task) => (
+                    <Card key={task.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <h3 className="font-medium text-foreground">{task.title}</h3>
+                            {task.description && (
+                              <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                            )}
+                          </div>
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                            <Badge variant={getStatusBadgeVariant(task.status)}>
+                              {task.status.replace('_', ' ')}
+                            </Badge>
+                            {task.due_date && (
+                              <span className="text-sm text-muted-foreground">
+                                Due: {new Date(task.due_date).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {tasks.length === 0 && (
+                    <Card>
+                      <CardContent className="p-8 text-center">
+                        <p className="text-muted-foreground">No tasks found</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="milestones" className="p-6">
+                <div className="space-y-4">
+                  {milestones.map((milestone) => {
+                    const milestoneTasks = tasks.filter(t => t.milestone_id === milestone.id);
+                    return (
+                      <Card key={milestone.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div className="flex-1">
+                              <h3 className="font-medium text-foreground">{milestone.name}</h3>
+                              {milestone.description && (
+                                <p className="text-sm text-muted-foreground mt-1">{milestone.description}</p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-2">
+                                {milestoneTasks.length} tasks
+                              </p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                              <Badge variant={getStatusBadgeVariant(milestone.status)}>
+                                {milestone.status.replace('_', ' ')}
+                              </Badge>
+                              <span className="text-sm text-muted-foreground">
+                                Due: {new Date(milestone.due_date).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                  {milestones.length === 0 && (
+                    <Card>
+                      <CardContent className="p-8 text-center">
+                        <p className="text-muted-foreground">No milestones found</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="roadmap" className="p-0">
+                <div className="h-[700px] w-full">
+                  <RoadmapView projectId={id!} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="kanban" className="p-0">
+                <div className="h-[700px] w-full">
+                  <KanbanView projectId={id!} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="stakeholders" className="p-0">
+                <div className="h-[700px] w-full">
+                  <StakeholdersView projectId={id!} />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
     </Layout>
   );
