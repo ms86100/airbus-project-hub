@@ -38,7 +38,7 @@ interface Stakeholder {
   department?: string;
 }
 
-type ViewMode = 'weekly' | 'monthly' | 'yearly';
+type ViewMode = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export function RoadmapView() {
   const { id } = useParams();
@@ -118,6 +118,11 @@ export function RoadmapView() {
     let start: Date, end: Date, intervals: Date[];
 
     switch (viewMode) {
+      case 'daily':
+        start = addDays(currentDate, -3);
+        end = addDays(currentDate, 3);
+        intervals = eachDayOfInterval({ start, end });
+        break;
       case 'weekly':
         start = startOfWeek(subWeeks(currentDate, 2));
         end = endOfWeek(addWeeks(currentDate, 2));
@@ -188,6 +193,9 @@ export function RoadmapView() {
 
   const navigateTime = (direction: 'prev' | 'next') => {
     switch (viewMode) {
+      case 'daily':
+        setCurrentDate(direction === 'next' ? addDays(currentDate, 1) : addDays(currentDate, -1));
+        break;
       case 'weekly':
         setCurrentDate(direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1));
         break;
@@ -202,6 +210,8 @@ export function RoadmapView() {
 
   const formatTimelineLabel = (date: Date) => {
     switch (viewMode) {
+      case 'daily':
+        return format(date, 'EEE d');
       case 'weekly':
         return format(date, 'EEE d');
       case 'monthly':
@@ -233,7 +243,7 @@ export function RoadmapView() {
         <div className="flex items-center gap-4">
           {/* View Mode Selector */}
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-            {(['weekly', 'monthly', 'yearly'] as ViewMode[]).map((mode) => (
+            {(['daily', 'weekly', 'monthly', 'yearly'] as ViewMode[]).map((mode) => (
               <Button
                 key={mode}
                 variant={viewMode === mode ? 'default' : 'ghost'}
@@ -262,7 +272,7 @@ export function RoadmapView() {
       </div>
 
       {/* Roadmap Chart */}
-      <Card className="bg-gray-900 border-gray-700">
+      <Card className="bg-gray-900 border-gray-700 w-full">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-4">
             <CardTitle className="text-white text-xl">
@@ -306,59 +316,62 @@ export function RoadmapView() {
             </div>
           </div>
 
-          {/* Tasks Grouped by Milestone */}
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Tasks by Milestone</h3>
-            {groupedTasks.map((group, groupIndex) => (
-              <div key={group.milestone.id} className="space-y-3">
-                <h4 className="text-md font-medium text-cyan-400 mb-2 border-b border-gray-700 pb-1">
-                  {group.milestone.name}
-                </h4>
-                {group.tasks.map((task, taskIndex) => {
-                  const position = getTaskPosition(task.due_date);
-                  if (!position) return null;
-                  
-                  const colorClass = taskColors[taskIndex % taskColors.length];
-                  
-                  return (
-                    <div key={task.id} className="grid grid-cols-12 gap-1 items-center group border-b border-dotted border-gray-700 pb-2">
-                      <div className="col-span-3 text-sm font-medium truncate">
-                        <div className="text-white">{task.title}</div>
-                        <div className="text-gray-400 text-xs">
-                          Due: {format(parseISO(task.due_date), 'MMM dd')}
-                        </div>
-                        {task.owner_id && (
-                          <div className="text-gray-400 text-xs flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {getStakeholderName(task.owner_id)}
+          {/* Scrollable Tasks Container */}
+          <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+            {/* Tasks Grouped by Milestone */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Tasks by Milestone</h3>
+              {groupedTasks.map((group, groupIndex) => (
+                <div key={group.milestone.id} className="space-y-3">
+                  <h4 className="text-md font-medium text-cyan-400 mb-2 border-b border-gray-700 pb-1">
+                    {group.milestone.name}
+                  </h4>
+                  {group.tasks.map((task, taskIndex) => {
+                    const position = getTaskPosition(task.due_date);
+                    if (!position) return null;
+                    
+                    const colorClass = taskColors[taskIndex % taskColors.length];
+                    
+                    return (
+                      <div key={task.id} className="grid grid-cols-12 gap-1 items-center group border-b border-dotted border-gray-700 pb-2">
+                        <div className="col-span-3 text-sm font-medium truncate">
+                          <div className="text-white">{task.title}</div>
+                          <div className="text-gray-400 text-xs">
+                            Due: {format(parseISO(task.due_date), 'MMM dd')}
                           </div>
-                        )}
-                      </div>
-                      <div className="col-span-9 relative h-8 bg-gray-800 rounded">
-                        {/* Vertical grid lines for this row */}
-                        <div className="absolute inset-0 grid grid-cols-9 pointer-events-none">
-                          {timelineData.intervals.slice(0, 9).map((_, index) => (
-                            <div key={index} className="border-l border-dotted border-gray-600 h-full opacity-30"></div>
-                          ))}
+                          {task.owner_id && (
+                            <div className="text-gray-400 text-xs flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {getStakeholderName(task.owner_id)}
+                            </div>
+                          )}
                         </div>
-                        
-                        {/* Task bar without text */}
-                        <div
-                          className={`absolute top-0 h-full ${colorClass} rounded transition-all hover:opacity-80 cursor-pointer shadow-sm`}
-                          style={position}
-                          title={`${task.title} - ${task.status} - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}`}
-                        />
-                        
-                        {/* Priority indicator */}
-                        {task.priority && (
-                          <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${priorityColors[task.priority as keyof typeof priorityColors]} border-2 border-gray-900`} />
-                        )}
+                        <div className="col-span-9 relative h-8 bg-gray-800 rounded">
+                          {/* Vertical grid lines for this row */}
+                          <div className="absolute inset-0 grid grid-cols-9 pointer-events-none">
+                            {timelineData.intervals.slice(0, 9).map((_, index) => (
+                              <div key={index} className="border-l border-dotted border-gray-600 h-full opacity-30"></div>
+                            ))}
+                          </div>
+                          
+                          {/* Task bar without text */}
+                          <div
+                            className={`absolute top-0 h-full ${colorClass} rounded transition-all hover:opacity-80 cursor-pointer shadow-sm`}
+                            style={position}
+                            title={`${task.title} - ${task.status} - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}`}
+                          />
+                          
+                          {/* Priority indicator */}
+                          {task.priority && (
+                            <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${priorityColors[task.priority as keyof typeof priorityColors]} border-2 border-gray-900`} />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Legend */}
