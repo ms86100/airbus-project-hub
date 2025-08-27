@@ -55,9 +55,14 @@ export function RoadmapView() {
   const [filteredPriority, setFilteredPriority] = useState<string>('all');
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
-  const taskColors = [
-    'bg-brand-primary', 'bg-status-success', 'bg-accent', 'bg-status-warning', 'bg-primary-light'
-  ];
+  // Enhanced Color System for Timeline Bars
+  const taskColors = {
+    planning: 'bg-brand-primary',
+    development: 'bg-brand-accent', 
+    testing: 'bg-status-warning',
+    deployment: 'bg-status-success',
+    maintenance: 'bg-accent'
+  };
 
   const priorityColors = {
     low: 'bg-status-success',
@@ -70,7 +75,22 @@ export function RoadmapView() {
     'not_started': 'bg-muted',
     'in_progress': 'bg-brand-accent',
     'completed': 'bg-status-success',
-    'on_hold': 'bg-status-warning'
+    'on_hold': 'bg-status-warning',
+    'blocked': 'bg-destructive'
+  };
+
+  // Color mapping for different task types based on title keywords
+  const getTaskColor = (task: Task, index: number) => {
+    const title = task.title.toLowerCase();
+    if (title.includes('test') || title.includes('qa')) return taskColors.testing;
+    if (title.includes('deploy') || title.includes('release')) return taskColors.deployment;
+    if (title.includes('plan') || title.includes('design') || title.includes('define')) return taskColors.planning;
+    if (title.includes('develop') || title.includes('code') || title.includes('build')) return taskColors.development;
+    if (title.includes('maintain') || title.includes('support')) return taskColors.maintenance;
+    
+    // Fallback to cycling through colors
+    const colorKeys = Object.keys(taskColors);
+    return taskColors[colorKeys[index % colorKeys.length] as keyof typeof taskColors];
   };
 
   useEffect(() => {
@@ -423,13 +443,13 @@ export function RoadmapView() {
                     </Badge>
                   </div>
                   
-                  {/* Tasks */}
-                  {group.tasks.map((task, taskIndex) => {
-                    const position = getTaskPosition(task.created_at, task.due_date);
-                    if (!position) return null;
-                    
-                    const colorClass = taskColors[taskIndex % taskColors.length];
-                    const statusColor = statusColors[task.status as keyof typeof statusColors] || 'bg-muted';
+                   {/* Tasks */}
+                   {group.tasks.map((task, taskIndex) => {
+                     const position = getTaskPosition(task.created_at, task.due_date);
+                     if (!position) return null;
+                     
+                     const taskColorClass = getTaskColor(task, taskIndex);
+                     const statusColor = statusColors[task.status as keyof typeof statusColors] || 'bg-muted';
                     
                     return (
                       <div key={task.id} className="grid grid-cols-12 gap-1 items-center group py-2 hover:bg-surface-alt rounded-lg px-2">
@@ -457,12 +477,12 @@ export function RoadmapView() {
                             ))}
                           </div>
                           
-                          {/* Task bar */}
-                          <div
-                            className={`absolute top-0.5 h-5 ${statusColor} rounded-sm cursor-pointer group-hover:shadow-md transition-all flex items-center justify-center`}
-                            style={position}
-                            title={`${task.title} - ${task.status} - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}`}
-                          >
+                           {/* Task bar with intelligent color coding */}
+                           <div
+                             className={`absolute top-0.5 h-5 ${taskColorClass} rounded-sm cursor-pointer group-hover:shadow-md transition-all flex items-center justify-center border border-white/20`}
+                             style={position}
+                             title={`${task.title} - ${task.status} - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}`}
+                           >
                             {/* Task progress indicator */}
                             <div className="w-full h-full rounded-sm relative overflow-hidden">
                               {task.status === 'completed' && (
@@ -487,16 +507,29 @@ export function RoadmapView() {
             </div>
           </div>
 
-          {/* Enhanced Legend */}
+          {/* Enhanced Legend with Task Types */}
           <div className="mt-4 p-4 border-t border-border bg-surface-alt">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Task Type Legend */}
+              <div>
+                <h4 className="text-foreground font-medium mb-3">Task Types</h4>
+                <div className="space-y-2">
+                  {Object.entries(taskColors).map(([type, color]) => (
+                    <div key={type} className="flex items-center gap-2">
+                      <div className={`w-4 h-3 rounded-sm ${color} border border-white/20`} />
+                      <span className="text-text-muted text-xs capitalize">{type}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Status Legend */}
               <div>
-                <h4 className="text-foreground font-medium mb-2">Status</h4>
-                <div className="flex flex-wrap gap-3">
+                <h4 className="text-foreground font-medium mb-3">Status</h4>
+                <div className="space-y-2">
                   {Object.entries(statusColors).map(([status, color]) => (
                     <div key={status} className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-sm ${color}`} />
+                      <div className={`w-4 h-3 rounded-sm ${color}`} />
                       <span className="text-text-muted text-xs capitalize">{status.replace('_', ' ')}</span>
                     </div>
                   ))}
@@ -505,8 +538,8 @@ export function RoadmapView() {
               
               {/* Priority Legend */}
               <div>
-                <h4 className="text-foreground font-medium mb-2">Priority</h4>
-                <div className="flex flex-wrap gap-3">
+                <h4 className="text-foreground font-medium mb-3">Priority</h4>
+                <div className="space-y-2">
                   {Object.entries(priorityColors).map(([priority, color]) => (
                     <div key={priority} className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${color}`} />
@@ -516,13 +549,21 @@ export function RoadmapView() {
                 </div>
               </div>
               
-              {/* Progress Legend */}
+              {/* Progress Indicators */}
               <div>
-                <h4 className="text-foreground font-medium mb-2">Progress</h4>
-                <div className="flex flex-wrap gap-3">
+                <h4 className="text-foreground font-medium mb-3">Indicators</h4>
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-brand-accent rounded-sm"></div>
+                    <div className="w-1 h-4 bg-brand-accent rounded-full"></div>
                     <span className="text-text-muted text-xs">Current time</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-destructive border border-background"></div>
+                    <span className="text-text-muted text-xs">High priority</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-3 rounded-sm bg-gradient-to-r from-brand-accent to-brand-accent/50"></div>
+                    <span className="text-text-muted text-xs">In progress</span>
                   </div>
                 </div>
               </div>
