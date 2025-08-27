@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { format, addDays, differenceInDays, startOfDay, endOfDay } from 'date-fns';
 
 interface Task {
   id: string;
@@ -62,24 +63,35 @@ export function GanttChart({ projectId }: GanttChartProps) {
       if (tasksError) throw tasksError;
       setTasks(tasksData || []);
 
-      // Calculate date range
-      const allDates = [
+      // Calculate date range - include both start and end dates for accurate timeline
+      const allStartDates = [
+        ...(tasksData || []).map(t => new Date(t.created_at))
+      ];
+      
+      const allEndDates = [
         ...(milestonesData || []).map(m => new Date(m.due_date)),
         ...(tasksData || []).filter(t => t.due_date).map(t => new Date(t.due_date!))
       ];
       
-      if (allDates.length > 0) {
-        const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
-        const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
+      if (allStartDates.length > 0 || allEndDates.length > 0) {
+        const minDate = allStartDates.length > 0 
+          ? new Date(Math.min(...allStartDates.map(d => d.getTime())))
+          : new Date();
+        const maxDate = allEndDates.length > 0
+          ? new Date(Math.max(...allEndDates.map(d => d.getTime())))
+          : new Date();
         
-        // Add padding
-        minDate.setDate(minDate.getDate() - 7);
-        maxDate.setDate(maxDate.getDate() + 7);
+        // Ensure timeline extends properly - add buffer days before start and after end
+        const timelineStart = startOfDay(new Date(minDate));
+        timelineStart.setDate(timelineStart.getDate() - 3);
         
-        setStartDate(minDate);
-        setEndDate(maxDate);
+        const timelineEnd = endOfDay(new Date(maxDate));
+        timelineEnd.setDate(timelineEnd.getDate() + 3);
+        
+        setStartDate(timelineStart);
+        setEndDate(timelineEnd);
       } else {
-        // Default to current month
+        // Default to current month with proper extension
         const now = new Date();
         setStartDate(new Date(now.getFullYear(), now.getMonth(), 1));
         setEndDate(new Date(now.getFullYear(), now.getMonth() + 3, 0));
@@ -93,34 +105,59 @@ export function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const generateTimelineHeaders = () => {
-    const headers = [];
-    const current = new Date(startDate);
-    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const totalDays = differenceInDays(endDate, startDate) + 1;
     
-    // Generate month headers
-    const months = [];
+    // Generate weekly headers for cleaner view like the reference images
+    const weeks = [];
+    const current = new Date(startDate);
+    
     while (current <= endDate) {
-      const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
-      const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0);
-      const monthName = current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      const weekEnd = new Date(current);
+      weekEnd.setDate(weekEnd.getDate() + 6);
       
-      months.push({
-        name: monthName,
-        start: Math.max(0, Math.ceil((monthStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))),
-        days: Math.min(monthEnd.getDate(), Math.ceil((monthEnd.getTime() - Math.max(startDate.getTime(), monthStart.getTime())) / (1000 * 60 * 60 * 24)))
+      weeks.push({
+        start: format(current, 'MMM d'),
+        end: format(weekEnd > endDate ? endDate : weekEnd, 'MMM d'),
+        days: Math.min(7, differenceInDays(endDate, current) + 1)
       });
       
-      current.setMonth(current.getMonth() + 1);
+      current.setDate(current.getDate() + 7);
     }
 
-    return { months, totalDays };
+    return { weeks, totalDays };
   };
 
   const calculateBarPosition = (date: string) => {
-    const itemDate = new Date(date);
-    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const daysPassed = Math.ceil((itemDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    return (daysPassed / totalDays) * 100;
+    const itemDate = startOfDay(new Date(date));
+    const totalDays = differenceInDays(endDate, startDate) + 1;
+    const daysPassed = differenceInDays(itemDate, startDate);
+    return Math.max(0, (daysPassed / totalDays) * 100);
+  };
+
+  const calculateBarWidth = (startDateStr: string, endDateStr: string) => {
+    const start = startOfDay(new Date(startDateStr));
+    const end = endOfDay(new Date(endDateStr));
+    const totalDays = differenceInDays(endDate, startDate) + 1;
+    const taskDays = differenceInDays(end, start) + 1;
+    return Math.max(2, (taskDays / totalDays) * 100);
+  };
+
+  const getTaskColor = (task: Task) => {
+    // Color coding based on task content and priority
+    const title = task.title.toLowerCase();
+    
+    if (title.includes('test') || title.includes('testing')) return 'hsl(var(--chart-3))'; // Orange
+    if (title.includes('deploy') || title.includes('release')) return 'hsl(var(--chart-2))'; // Blue
+    if (title.includes('plan') || title.includes('design')) return 'hsl(var(--chart-1))'; // Navy
+    if (title.includes('develop') || title.includes('build')) return 'hsl(var(--chart-4))'; // Green
+    
+    // Fallback to priority colors
+    switch (task.priority) {
+      case 'high': return 'hsl(var(--destructive))';
+      case 'medium': return 'hsl(var(--warning))';
+      case 'low': return 'hsl(var(--success))';
+      default: return 'hsl(var(--muted))';
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -150,166 +187,171 @@ export function GanttChart({ projectId }: GanttChartProps) {
     );
   }
 
-  const { months, totalDays } = generateTimelineHeaders();
+  const { weeks, totalDays } = generateTimelineHeaders();
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-xl font-bold text-foreground">Project Timeline</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <div className="min-w-[800px]">
-            {/* Timeline Header */}
-            <div className="border-b border-border mb-4">
-              {/* Month Headers */}
-              <div className="flex h-8 bg-airbus-primary/5">
-                {months.map((month, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-center border-r border-border text-xs font-semibold text-airbus-primary"
-                    style={{ width: `${(month.days / totalDays) * 100}%` }}
-                  >
-                    {month.name}
-                  </div>
-                ))}
+    <div className="w-full bg-background">
+      {/* Clean header matching reference images */}
+      <div className="border-l-4 border-l-primary bg-muted/30 px-4 py-3 mb-6">
+        <h2 className="text-lg font-semibold text-foreground">Timeline View</h2>
+      </div>
+      
+      {/* Horizontal scrollable container */}
+      <div className="overflow-x-auto overflow-y-hidden">
+        <div className="min-w-[1200px] p-4">
+          {/* Timeline Header */}
+          <div className="border-b border-border mb-6">
+            <div className="flex bg-muted/30 border-b border-border">
+              <div className="w-80 px-4 py-3 border-r border-border bg-background">
+                <span className="text-sm font-medium text-muted-foreground">Task / Milestone</span>
               </div>
               
-              {/* Week Grid */}
-              <div className="flex h-6 bg-gray-50">
-                {Array.from({ length: Math.ceil(totalDays / 7) }, (_, i) => (
+              {/* Week Headers */}
+              <div className="flex flex-1">
+                {weeks.map((week, index) => (
                   <div
-                    key={i}
-                    className="border-r border-border text-xs text-center flex items-center justify-center text-gray-600"
-                    style={{ width: `${(7 / totalDays) * 100}%` }}
+                    key={index}
+                    className="flex items-center justify-center border-r border-border text-xs font-medium text-muted-foreground py-3 px-2"
+                    style={{ width: `${(week.days / totalDays) * 100}%`, minWidth: '60px' }}
                   >
-                    W{i + 1}
+                    {week.start}
                   </div>
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* Milestones */}
-            {milestones.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3 text-foreground">Milestones</h3>
-                {milestones.map((milestone) => (
-                  <div key={milestone.id} className="mb-3">
-                    <div className="flex items-center mb-1">
-                      <div className="w-48 pr-4">
-                        <div className="font-medium text-sm truncate">{milestone.name}</div>
-                        <Badge variant="outline" className="text-xs">
-                          {milestone.status}
-                        </Badge>
+          {/* Content rows */}
+          <div className="space-y-0">
+            {/* Milestones grouped with their tasks */}
+            {milestones.map((milestone) => {
+              const milestoneTasks = tasks.filter(task => task.milestone_id === milestone.id);
+              
+              return (
+                <div key={milestone.id} className="border-b border-border/50">
+                  {/* Milestone row */}
+                  <div className="flex items-center border-b border-border/30 bg-muted/20">
+                    <div className="w-80 px-4 py-3 border-r border-border bg-background">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-primary"></div>
+                        <span className="font-medium text-sm">{milestone.name}</span>
+                        <span className="text-xs text-muted-foreground ml-auto">
+                          {milestoneTasks.length} tasks
+                        </span>
                       </div>
-                      <div className="flex-1 relative h-8 bg-gray-100 rounded">
-                        <div
-                          className="absolute top-1 h-6 bg-airbus-primary rounded flex items-center justify-center"
-                          style={{
-                            left: `${calculateBarPosition(milestone.due_date)}%`,
-                            width: '2px',
-                            minWidth: '2px'
+                    </div>
+                    
+                    <div className="flex-1 relative py-3">
+                      {/* Milestone marker */}
+                      <div
+                        className="absolute top-1/2 transform -translate-y-1/2 w-1 h-8 bg-primary"
+                        style={{ left: `${calculateBarPosition(milestone.due_date)}%` }}
+                      >
+                        <div className="absolute -top-1 -left-1 w-3 h-3 bg-primary rounded-full border-2 border-background"></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Milestone tasks */}
+                  {milestoneTasks.map((task) => (
+                    <div key={task.id} className="flex items-center hover:bg-muted/20 transition-colors">
+                      <div className="w-80 px-4 py-3 border-r border-border bg-background">
+                        <div className="text-sm font-medium truncate">{task.title}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Due: {task.due_date ? format(new Date(task.due_date), 'MMM d') : 'No date'}
+                          <span className="ml-2 text-xs font-medium text-muted-foreground">
+                            A. Sagar
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 relative py-3">
+                        {task.due_date && (
+                          <div
+                            className="absolute top-1/2 transform -translate-y-1/2 h-4 rounded"
+                            style={{
+                              left: `${calculateBarPosition(task.created_at)}%`,
+                              width: `${calculateBarWidth(task.created_at, task.due_date)}%`,
+                              backgroundColor: getTaskColor(task),
+                              minWidth: '20px'
+                            }}
+                          ></div>
+                        )}
+                        
+                        {/* Status indicator */}
+                        <div 
+                          className="absolute top-1/2 transform -translate-y-1/2 w-2 h-2 rounded-full border border-background"
+                          style={{ 
+                            right: '10px',
+                            backgroundColor: task.status === 'completed' ? 'hsl(var(--success))' : 
+                                           task.status === 'in_progress' ? 'hsl(var(--warning))' : 
+                                           'hsl(var(--muted))'
                           }}
-                        >
-                          <div className="w-4 h-4 bg-airbus-primary rounded-full border-2 border-white shadow-md"></div>
-                        </div>
-                        <div
-                          className="absolute top-0 text-xs text-white font-medium"
-                          style={{ left: `${Math.max(0, calculateBarPosition(milestone.due_date) - 5)}%` }}
-                        >
-                          {new Date(milestone.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </div>
+                        ></div>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+
+            {/* Unassigned tasks */}
+            {tasks.filter(task => !task.milestone_id).length > 0 && (
+              <div className="border-b border-border/50">
+                <div className="flex items-center border-b border-border/30 bg-muted/20">
+                  <div className="w-80 px-4 py-3 border-r border-border bg-background">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-muted"></div>
+                      <span className="font-medium text-sm text-muted-foreground">Unassigned Tasks</span>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {tasks.filter(task => !task.milestone_id).length} tasks
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1"></div>
+                </div>
+                
+                {tasks.filter(task => !task.milestone_id).map((task) => (
+                  <div key={task.id} className="flex items-center hover:bg-muted/20 transition-colors">
+                    <div className="w-80 px-4 py-3 border-r border-border bg-background">
+                      <div className="text-sm font-medium truncate">{task.title}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Due: {task.due_date ? format(new Date(task.due_date), 'MMM d') : 'No date'}
+                        <span className="ml-2 text-xs font-medium text-muted-foreground">
+                          A. Sagar
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 relative py-3">
+                      {task.due_date && (
+                        <div
+                          className="absolute top-1/2 transform -translate-y-1/2 h-4 rounded"
+                            style={{
+                              left: `${calculateBarPosition(task.created_at)}%`,
+                              width: `${calculateBarWidth(task.created_at, task.due_date)}%`,
+                              backgroundColor: getTaskColor(task),
+                              minWidth: '20px'
+                            }}
+                        ></div>
+                      )}
+                      
+                      <div 
+                        className="absolute top-1/2 transform -translate-y-1/2 w-2 h-2 rounded-full border border-background"
+                        style={{ 
+                          right: '10px',
+                          backgroundColor: task.status === 'completed' ? 'hsl(var(--success))' : 
+                                         task.status === 'in_progress' ? 'hsl(var(--warning))' : 
+                                         'hsl(var(--muted))'
+                        }}
+                      ></div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Tasks grouped by milestone */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3 text-foreground">Tasks</h3>
-              {milestones.map((milestone) => {
-                const milestoneTasks = tasks.filter(task => task.milestone_id === milestone.id);
-                if (milestoneTasks.length === 0) return null;
-
-                return (
-                  <div key={milestone.id} className="mb-6">
-                    <h4 className="text-md font-medium mb-2 text-airbus-primary bg-airbus-primary/5 px-3 py-1 rounded">
-                      {milestone.name}
-                    </h4>
-                    {milestoneTasks.map((task) => (
-                      <div key={task.id} className="mb-2">
-                        <div className="flex items-center">
-                          <div className="w-48 pr-4">
-                            <div className="font-medium text-sm truncate">{task.title}</div>
-                            <div className="flex gap-1 mt-1">
-                              <Badge className={getStatusColor(task.status)} variant="secondary">
-                                {task.status}
-                              </Badge>
-                              <Badge className={getPriorityColor(task.priority)}>
-                                {task.priority}
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="flex-1 relative h-6 bg-gray-100 rounded">
-                            {task.due_date && (
-                              <div
-                                className={`absolute top-1 h-4 rounded ${getStatusColor(task.status)}`}
-                                style={{
-                                  left: `${Math.max(0, calculateBarPosition(task.due_date) - 2)}%`,
-                                  width: '4%',
-                                  minWidth: '20px'
-                                }}
-                              ></div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-
-              {/* Unassigned tasks */}
-              {tasks.filter(task => !task.milestone_id).length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-md font-medium mb-2 text-gray-600 bg-gray-100 px-3 py-1 rounded">
-                    Unassigned Tasks
-                  </h4>
-                  {tasks.filter(task => !task.milestone_id).map((task) => (
-                    <div key={task.id} className="mb-2">
-                      <div className="flex items-center">
-                        <div className="w-48 pr-4">
-                          <div className="font-medium text-sm truncate">{task.title}</div>
-                          <div className="flex gap-1 mt-1">
-                            <Badge className={getStatusColor(task.status)} variant="secondary">
-                              {task.status}
-                            </Badge>
-                            <Badge className={getPriorityColor(task.priority)}>
-                              {task.priority}
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="flex-1 relative h-6 bg-gray-100 rounded">
-                          {task.due_date && (
-                            <div
-                              className={`absolute top-1 h-4 rounded ${getStatusColor(task.status)}`}
-                              style={{
-                                left: `${Math.max(0, calculateBarPosition(task.due_date) - 2)}%`,
-                                width: '4%',
-                                minWidth: '20px'
-                              }}
-                            ></div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
+            {/* Empty state */}
             {(milestones.length === 0 && tasks.length === 0) && (
               <div className="text-center py-12 text-muted-foreground">
                 <p>No milestones or tasks found for this project.</p>
@@ -317,8 +359,53 @@ export function GanttChart({ projectId }: GanttChartProps) {
               </div>
             )}
           </div>
+          
+          {/* Legend */}
+          <div className="mt-8 p-4 bg-muted/30 rounded-lg">
+            <h4 className="text-sm font-medium mb-3">Legend</h4>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <div className="font-medium mb-2">Task Types</div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(var(--chart-1))' }}></div>
+                    <span>Planning & Design</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(var(--chart-3))' }}></div>
+                    <span>Testing</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(var(--chart-2))' }}></div>
+                    <span>Deployment</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(var(--chart-4))' }}></div>
+                    <span>Development</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div className="font-medium mb-2">Status</div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--success))' }}></div>
+                    <span>Completed</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--warning))' }}></div>
+                    <span>In Progress</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--muted))' }}></div>
+                    <span>Not Started</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
