@@ -63,7 +63,7 @@ export function GanttChart({ projectId }: GanttChartProps) {
       if (tasksError) throw tasksError;
       setTasks(tasksData || []);
 
-      // Calculate date range - include both start and end dates for accurate timeline
+      // Calculate date range - ensure timeline includes full end dates
       const allStartDates = [
         ...(tasksData || []).map(t => new Date(t.created_at))
       ];
@@ -81,20 +81,25 @@ export function GanttChart({ projectId }: GanttChartProps) {
           ? new Date(Math.max(...allEndDates.map(d => d.getTime())))
           : new Date();
         
-        // Ensure timeline extends properly - add buffer days before start and after end
-        const timelineStart = startOfDay(new Date(minDate));
-        timelineStart.setDate(timelineStart.getDate() - 3);
+        // Start from beginning of the earliest week
+        const timelineStart = new Date(minDate);
+        timelineStart.setDate(timelineStart.getDate() - timelineStart.getDay() - 7); // Go back to start of previous week
         
-        const timelineEnd = endOfDay(new Date(maxDate));
-        timelineEnd.setDate(timelineEnd.getDate() + 3);
+        // End at the end of the week containing the latest date + buffer
+        const timelineEnd = new Date(maxDate);
+        timelineEnd.setDate(timelineEnd.getDate() + (6 - timelineEnd.getDay()) + 14); // Go to end of next week + 2 weeks buffer
+        timelineEnd.setHours(23, 59, 59, 999); // Set to end of day
         
         setStartDate(timelineStart);
         setEndDate(timelineEnd);
       } else {
         // Default to current month with proper extension
         const now = new Date();
-        setStartDate(new Date(now.getFullYear(), now.getMonth(), 1));
-        setEndDate(new Date(now.getFullYear(), now.getMonth() + 3, 0));
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(now.getFullYear(), now.getMonth() + 3, 0);
+        end.setHours(23, 59, 59, 999);
+        setStartDate(start);
+        setEndDate(end);
       }
 
     } catch (error) {
@@ -105,41 +110,55 @@ export function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const generateTimelineHeaders = () => {
-    const totalDays = differenceInDays(endDate, startDate) + 1;
+    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Generate weekly headers for cleaner view like the reference images
-    const weeks = [];
+    // Generate daily headers grouped by week for precision
+    const days = [];
     const current = new Date(startDate);
     
     while (current <= endDate) {
-      const weekEnd = new Date(current);
-      weekEnd.setDate(weekEnd.getDate() + 6);
+      days.push({
+        date: new Date(current),
+        day: current.getDate(),
+        month: format(current, 'MMM'),
+        isWeekStart: current.getDay() === 0
+      });
+      current.setDate(current.getDate() + 1);
+    }
+    
+    // Group days into weeks for header display
+    const weeks = [];
+    for (let i = 0; i < days.length; i += 7) {
+      const weekDays = days.slice(i, i + 7);
+      const weekStart = weekDays[0];
+      const weekEnd = weekDays[weekDays.length - 1];
       
       weeks.push({
-        start: format(current, 'MMM d'),
-        end: format(weekEnd > endDate ? endDate : weekEnd, 'MMM d'),
-        days: Math.min(7, differenceInDays(endDate, current) + 1)
+        start: format(weekStart.date, 'MMM d'),
+        end: format(weekEnd.date, 'd'),
+        days: weekDays.length
       });
-      
-      current.setDate(current.getDate() + 7);
     }
 
-    return { weeks, totalDays };
+    return { weeks, totalDays, days };
   };
 
-  const calculateBarPosition = (date: string) => {
-    const itemDate = startOfDay(new Date(date));
-    const totalDays = differenceInDays(endDate, startDate) + 1;
-    const daysPassed = differenceInDays(itemDate, startDate);
-    return Math.max(0, (daysPassed / totalDays) * 100);
+  const calculateBarPosition = (dateStr: string) => {
+    const itemDate = new Date(dateStr);
+    const totalMs = endDate.getTime() - startDate.getTime();
+    const itemMs = itemDate.getTime() - startDate.getTime();
+    return Math.max(0, Math.min(100, (itemMs / totalMs) * 100));
   };
 
   const calculateBarWidth = (startDateStr: string, endDateStr: string) => {
-    const start = startOfDay(new Date(startDateStr));
-    const end = endOfDay(new Date(endDateStr));
-    const totalDays = differenceInDays(endDate, startDate) + 1;
-    const taskDays = differenceInDays(end, start) + 1;
-    return Math.max(2, (taskDays / totalDays) * 100);
+    const start = new Date(startDateStr);
+    const end = new Date(endDateStr);
+    end.setHours(23, 59, 59, 999); // Ensure we go to end of the due date
+    
+    const totalMs = endDate.getTime() - startDate.getTime();
+    const taskMs = end.getTime() - start.getTime();
+    
+    return Math.max(0.5, Math.min(100, (taskMs / totalMs) * 100));
   };
 
   const getTaskColor = (task: Task) => {
@@ -187,7 +206,7 @@ export function GanttChart({ projectId }: GanttChartProps) {
     );
   }
 
-  const { weeks, totalDays } = generateTimelineHeaders();
+  const { weeks, totalDays, days } = generateTimelineHeaders();
 
   return (
     <div className="w-full bg-background">
@@ -196,9 +215,9 @@ export function GanttChart({ projectId }: GanttChartProps) {
         <h2 className="text-lg font-semibold text-foreground">Timeline View</h2>
       </div>
       
-      {/* Horizontal scrollable container */}
-      <div className="overflow-x-auto overflow-y-hidden">
-        <div className="min-w-[1200px] p-4">
+      {/* Horizontal scrollable container with improved width */}
+      <div className="overflow-x-auto overflow-y-hidden border rounded-lg">
+        <div style={{ minWidth: `${Math.max(1200, totalDays * 12)}px` }} className="p-4">
           {/* Timeline Header */}
           <div className="border-b border-border mb-6">
             <div className="flex bg-muted/30 border-b border-border">
@@ -206,15 +225,18 @@ export function GanttChart({ projectId }: GanttChartProps) {
                 <span className="text-sm font-medium text-muted-foreground">Task / Milestone</span>
               </div>
               
-              {/* Week Headers */}
+              {/* Week Headers with improved spacing */}
               <div className="flex flex-1">
                 {weeks.map((week, index) => (
                   <div
                     key={index}
                     className="flex items-center justify-center border-r border-border text-xs font-medium text-muted-foreground py-3 px-2"
-                    style={{ width: `${(week.days / totalDays) * 100}%`, minWidth: '60px' }}
+                    style={{ width: `${(week.days * 7 / totalDays) * 100}%`, minWidth: '80px' }}
                   >
-                    {week.start}
+                    <div className="text-center">
+                      <div>{week.start}</div>
+                      {week.end !== week.start && <div className="text-xs text-muted-foreground/70">to {week.end}</div>}
+                    </div>
                   </div>
                 ))}
               </div>
