@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Plus, Calendar, AlertTriangle, X, Edit2 } from 'lucide-react';
 import { ProjectData, Task, Milestone } from '../ProjectWizard';
 
@@ -16,7 +17,9 @@ interface MilestoneGroupingStepProps {
 const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectData, setProjectData }) => {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [newMilestoneName, setNewMilestoneName] = useState('');
-  const [newMilestoneDueDate, setNewMilestoneDueDate] = useState(projectData.endDate);
+  const [newMilestoneDueDate, setNewMilestoneDueDate] = useState<Date | undefined>(
+    projectData.endDate ? new Date(projectData.endDate) : undefined
+  );
 
   // Initialize with default milestone if none exist
   useEffect(() => {
@@ -67,7 +70,7 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
     const newMilestone: Milestone = {
       id: crypto.randomUUID(),
       name: newMilestoneName.trim(),
-      dueDate: newMilestoneDueDate,
+      dueDate: newMilestoneDueDate?.toISOString().split('T')[0] || projectData.endDate,
       tasks: []
     };
 
@@ -77,7 +80,7 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
     });
 
     setNewMilestoneName('');
-    setNewMilestoneDueDate(projectData.endDate);
+    setNewMilestoneDueDate(projectData.endDate ? new Date(projectData.endDate) : undefined);
   };
 
   const updateMilestone = (milestoneId: string, updates: Partial<Milestone>) => {
@@ -196,15 +199,16 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
             </div>
             <div>
               <Label htmlFor="milestoneDueDate" className="text-sm font-medium">Due Date</Label>
-              <Input
-                id="milestoneDueDate"
-                type="date"
-                className="mt-1"
-                value={newMilestoneDueDate}
-                onChange={(e) => setNewMilestoneDueDate(e.target.value)}
-                min={projectData.startDate}
-                max={projectData.endDate}
-              />
+              <div className="mt-1">
+                <DatePicker
+                  date={newMilestoneDueDate}
+                  onDateChange={setNewMilestoneDueDate}
+                  placeholder="Select due date"
+                  minDate={projectData.startDate ? new Date(projectData.startDate) : undefined}
+                  maxDate={projectData.endDate ? new Date(projectData.endDate) : undefined}
+                  className="w-full"
+                />
+              </div>
             </div>
             <div>
             <Button 
@@ -247,17 +251,18 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Due Date</label>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="date"
-                      value={milestone.dueDate}
-                      onChange={(e) => updateMilestone(milestone.id, { dueDate: e.target.value })}
-                      className="border border-border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
-                      min={projectData.startDate}
-                      max={projectData.endDate}
-                    />
-                  </div>
+                  <DatePicker
+                    date={milestone.dueDate ? new Date(milestone.dueDate) : undefined}
+                    onDateChange={(date) => 
+                      updateMilestone(milestone.id, { 
+                        dueDate: date?.toISOString().split('T')[0] || projectData.endDate 
+                      })
+                    }
+                    placeholder="Select due date"
+                    minDate={projectData.startDate ? new Date(projectData.startDate) : undefined}
+                    maxDate={projectData.endDate ? new Date(projectData.endDate) : undefined}
+                    className="w-full"
+                  />
                 </div>
                  <div className="flex items-center justify-between">
                    <Badge variant="outline" className="w-fit">
@@ -310,13 +315,19 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                       </div>
                       
                        <div className="flex items-center gap-2">
-                        <Input
-                          type="date"
-                          value={task.dueDate}
-                          onChange={(e) => updateTask(task.id, { dueDate: e.target.value })}
-                          className="w-32 h-6 text-xs"
+                        <DatePicker
+                          date={task.dueDate ? new Date(task.dueDate) : undefined}
+                          onDateChange={(date) => 
+                            updateTask(task.id, { 
+                              dueDate: date?.toISOString().split('T')[0] || milestone.dueDate 
+                            })
+                          }
+                          placeholder="Task due date"
+                          minDate={projectData.startDate ? new Date(projectData.startDate) : undefined}
+                          maxDate={milestone.dueDate ? new Date(milestone.dueDate) : undefined}
+                          className="w-full text-xs"
                         />
-                      </div>
+                       </div>
                     </div>
                   </Card>
                 ))
