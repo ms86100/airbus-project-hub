@@ -175,8 +175,9 @@ export function RoadmapView() {
         intervals = eachWeekOfInterval({ start, end });
         break;
       case 'yearly':
-        start = startOfYear(addYears(earliestDate, -1));
-        end = endOfYear(addYears(latestDate, 1));
+        // For yearly view, just extend by a few months, not a full year
+        start = startOfMonth(addMonths(earliestDate, -2));
+        end = endOfMonth(addMonths(latestDate, 2));
         intervals = eachMonthOfInterval({ start, end });
         break;
       default:
