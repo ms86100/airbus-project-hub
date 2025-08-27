@@ -239,48 +239,48 @@ const ProjectWizard = () => {
               setProjectData={setProjectData}
             />
           </CardContent>
-        </Card>
-      </div>
-
-      {/* Footer Navigation - Positioned below wizard content */}
-      <div className="bg-surface-default border-t border-border shadow-lg z-[1000] flex items-center justify-between px-6 py-6 mt-8">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          Step {currentStep + 1} of {steps.length}
-        </div>
-        <div className="flex items-center gap-3">
-          {currentStep > 0 && (
-            <Button variant="outline" onClick={prevStep} className="min-w-[100px] h-12 px-6">
-              Back
-            </Button>
-          )}
-          {currentStep === steps.length - 1 ? (
-            <Button 
-              variant="default"
-              onClick={createProject}
-              disabled={!canProceed() || isCreating}
-              className="min-w-[140px] h-12 px-6 font-semibold bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
-            >
-              {isCreating ? (
-                <>Creating...</>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Create Project
-                </>
+          
+          {/* Footer Navigation - Inside the card */}
+          <div className="bg-surface-default border-t border-border shadow-lg flex items-center justify-between px-6 py-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              Step {currentStep + 1} of {steps.length}
+            </div>
+            <div className="flex items-center gap-3">
+              {currentStep > 0 && (
+                <Button variant="outline" onClick={prevStep} className="min-w-[100px] h-12 px-6">
+                  Back
+                </Button>
               )}
-            </Button>
-          ) : (
-            <Button 
-              variant="default"
-              onClick={nextStep}
-              disabled={!canProceed()}
-              className="min-w-[140px] h-12 px-6 font-semibold bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
-            >
-              Next
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          )}
-        </div>
+              {currentStep === steps.length - 1 ? (
+                <Button 
+                  variant="default"
+                  onClick={createProject}
+                  disabled={!canProceed() || isCreating}
+                  className="min-w-[140px] h-12 px-6 font-semibold bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
+                >
+                  {isCreating ? (
+                    <>Creating...</>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Create Project
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button 
+                  variant="default"
+                  onClick={nextStep}
+                  disabled={!canProceed()}
+                  className="min-w-[140px] h-12 px-6 font-semibold bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Celebration Overlay */}
