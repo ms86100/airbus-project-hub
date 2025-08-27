@@ -94,10 +94,10 @@ export default function DepartmentSelectionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby="dept-dialog-description">
         <DialogHeader>
           <DialogTitle>Select Your Department</DialogTitle>
-          <DialogDescription>
+          <DialogDescription id="dept-dialog-description">
             You must select a department before you can create projects. Please choose from the available departments below.
           </DialogDescription>
         </DialogHeader>

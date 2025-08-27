@@ -68,7 +68,12 @@ const SimpleSelect = React.forwardRef<HTMLButtonElement, SimpleSelectProps>(
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-full min-w-[var(--radix-dropdown-menu-trigger-width)]">
+        <DropdownMenuContent 
+          className={cn(
+            "z-[3100] w-full min-w-[var(--radix-dropdown-menu-trigger-width)]",
+            "fixed" // ensure viewport-relative positioning
+          )}
+        >
           {React.Children.map(children, (child) => {
             if (React.isValidElement<SimpleSelectItemProps>(child)) {
               return (

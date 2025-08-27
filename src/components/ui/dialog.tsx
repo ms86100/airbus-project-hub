@@ -19,7 +19,9 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-[3000] bg-black/45 backdrop-blur-[2px] pointer-events-auto",
+      "fixed inset-0 z-[3000] bg-black/45",
+      // no blur (blur creates containing block issues for fixed children)
+      "backdrop-blur-0",
       className
     )}
     {...props}
@@ -27,27 +29,33 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+type ContentProps = React.ComponentProps<typeof DialogPrimitive.Content> & {
+  "aria-describedby"?: string
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+  ContentProps
 >(({ className, children, ...props }, ref) => (
-  <DialogPortal container={document.body}>
-    <DialogOverlay>
-      <DialogPrimitive.Content
-        ref={ref}
-        className={cn(
-          "relative top-[10vh] mx-auto z-[3001] w-[clamp(360px,90vw,560px)] max-h-[90vh] overflow-y-auto rounded-xl border bg-background p-6 shadow-lg pointer-events-auto focus:outline-none",
-          className
-        )}
-        {...props}
-      >
-        {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      </DialogPrimitive.Content>
-    </DialogOverlay>
+  <DialogPortal>
+    <DialogOverlay />
+    <DialogPrimitive.Content
+      ref={ref}
+      // hard center relative to viewport; above overlay; allow portaled menus to overlap
+      className={cn(
+        "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
+        "z-[3001] m-0 w-[clamp(360px,90vw,560px)] max-h-[90vh]",
+        "overflow-visible focus:outline-none rounded-xl border bg-background p-6 shadow-lg",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+        <X className="h-4 w-4" />
+        <span className="sr-only">Close</span>
+      </DialogPrimitive.Close>
+    </DialogPrimitive.Content>
   </DialogPortal>
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName
