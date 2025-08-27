@@ -53,6 +53,7 @@ interface StatusHistoryEntry {
   changed_at: string;
   changed_by: string;
   notes?: string;
+  user_name?: string;
 }
 
 const statusColumns = [
@@ -122,14 +123,42 @@ export function KanbanView({ projectId }: KanbanViewProps) {
   const fetchTaskStatusHistory = async (taskId: string) => {
     try {
       setHistoryLoading(true);
-      const { data, error } = await supabase
+      
+      // First get the status history
+      const { data: historyData, error: historyError } = await supabase
         .from('task_status_history')
         .select('*')
         .eq('task_id', taskId)
         .order('changed_at', { ascending: false });
 
-      if (error) throw error;
-      setStatusHistory(data || []);
+      if (historyError) throw historyError;
+
+      // Get unique user IDs from the history
+      const userIds = [...new Set((historyData || []).map(entry => entry.changed_by))];
+      
+      // Fetch user profiles for these IDs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.warn('Could not fetch user profiles:', profilesError);
+      }
+
+      // Create a map of user ID to user name
+      const userMap = (profilesData || []).reduce((acc, profile) => {
+        acc[profile.id] = profile.full_name || profile.email || 'Unknown User';
+        return acc;
+      }, {} as Record<string, string>);
+
+      // Format the data to include user names
+      const formattedData = (historyData || []).map(entry => ({
+        ...entry,
+        user_name: userMap[entry.changed_by] || 'Unknown User'
+      }));
+      
+      setStatusHistory(formattedData);
     } catch (error: any) {
       toast({
         title: "Error loading history",
@@ -147,6 +176,9 @@ export function KanbanView({ projectId }: KanbanViewProps) {
   };
 
   const formatStatus = (status: string) => {
+    if (!status) return 'Unknown';
+    // Handle any remaining corrupted statuses
+    if (status.includes('-') && status.length > 10) return 'Invalid Status';
     return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
@@ -528,7 +560,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
                           <Clock className="h-3 w-3" />
                           {format(new Date(entry.changed_at), 'MMM dd, yyyy at h:mm a')}
                           <User className="h-3 w-3 ml-2" />
-                          <span>User {entry.changed_by}</span>
+                          <span>{entry.user_name || 'Unknown User'}</span>
                         </div>
                         {entry.notes && (
                           <div className="text-sm text-muted-foreground mt-2 italic">
