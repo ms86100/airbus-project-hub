@@ -233,9 +233,12 @@ const ProjectOverview = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-md">
-            <Button variant="ghost" onClick={() => navigate('/')}>
+            <Button variant="ghost" onClick={() => navigate('/projects')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              Back to Projects
+            </Button>
+            <Button onClick={() => navigate(`/project/${id}/roadmap`)}>
+              Open Workspace
             </Button>
           </div>
           <div className="flex items-center gap-sm">

@@ -344,7 +344,7 @@ const ProjectsList = () => {
                 <div className="flex items-start justify-between">
                   <CardTitle 
                     className="text-lg font-semibold truncate cursor-pointer hover:text-brand-primary"
-                    onClick={() => navigate(`/project/${project.id}`)}
+                    onClick={() => navigate(`/project/${project.id}/roadmap`)}
                   >
                     {project.name}
                   </CardTitle>
