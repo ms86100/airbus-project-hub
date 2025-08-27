@@ -207,7 +207,7 @@ const ProjectWizard = () => {
 
   return (
     <>
-      <div className="max-w-6xl mx-auto p-lg space-y-xl bg-gradient-to-br from-surface-default to-surface-alt min-h-screen pb-24 overflow-visible">
+      <div className="max-w-6xl mx-auto p-lg space-y-xl bg-gradient-to-br from-surface-default to-surface-alt min-h-screen overflow-visible">
         {/* Cancel Button */}
         <div className="flex justify-end">
           <Button variant="outline" onClick={() => navigate('/')}>
@@ -242,8 +242,8 @@ const ProjectWizard = () => {
         </Card>
       </div>
 
-      {/* Sticky Footer Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-[1000] flex items-center justify-between px-6 py-4">
+      {/* Footer Navigation - Positioned below wizard content */}
+      <div className="bg-surface-default border-t border-border shadow-lg z-[1000] flex items-center justify-between px-6 py-6 mt-8">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           Step {currentStep + 1} of {steps.length}
         </div>
@@ -255,9 +255,10 @@ const ProjectWizard = () => {
           )}
           {currentStep === steps.length - 1 ? (
             <Button 
+              variant="default"
               onClick={createProject}
               disabled={!canProceed() || isCreating}
-              className="min-w-[140px] h-12 px-6 font-semibold"
+              className="min-w-[140px] h-12 px-6 font-semibold bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
             >
               {isCreating ? (
                 <>Creating...</>
@@ -270,9 +271,10 @@ const ProjectWizard = () => {
             </Button>
           ) : (
             <Button 
+              variant="default"
               onClick={nextStep}
               disabled={!canProceed()}
-              className="min-w-[140px] h-12 px-6 font-semibold"
+              className="min-w-[140px] h-12 px-6 font-semibold bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
             >
               Next
               <ArrowRight className="h-4 w-4 ml-2" />
