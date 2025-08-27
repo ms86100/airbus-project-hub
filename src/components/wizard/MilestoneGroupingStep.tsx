@@ -183,30 +183,32 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Label htmlFor="milestoneName">Milestone Name</Label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="md:col-span-2">
+              <Label htmlFor="milestoneName" className="text-sm font-medium">Milestone Name</Label>
               <Input
                 id="milestoneName"
                 value={newMilestoneName}
                 onChange={(e) => setNewMilestoneName(e.target.value)}
                 placeholder="Enter milestone name"
+                className="mt-1"
               />
             </div>
-            <div className="w-40">
-              <Label htmlFor="milestoneDueDate">Due Date</Label>
+            <div>
+              <Label htmlFor="milestoneDueDate" className="text-sm font-medium">Due Date</Label>
               <Input
                 id="milestoneDueDate"
                 type="date"
+                className="mt-1"
                 value={newMilestoneDueDate}
                 onChange={(e) => setNewMilestoneDueDate(e.target.value)}
                 min={projectData.startDate}
                 max={projectData.endDate}
               />
             </div>
-            <div className="flex items-end">
-              <Button onClick={addMilestone} disabled={!newMilestoneName.trim()}>
-                Add
+            <div>
+              <Button onClick={addMilestone} disabled={!newMilestoneName.trim()} className="w-full">
+                Add Milestone
               </Button>
             </div>
           </div>
@@ -253,9 +255,24 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                     />
                   </div>
                 </div>
-                <Badge variant="outline" className="w-fit">
-                  {milestone.tasks.length} task{milestone.tasks.length !== 1 ? 's' : ''}
-                </Badge>
+                 <div className="flex items-center justify-between">
+                   <Badge variant="outline" className="w-fit">
+                     {milestone.tasks.length} task{milestone.tasks.length !== 1 ? 's' : ''}
+                   </Badge>
+                   <Button
+                     size="sm"
+                     variant="ghost"
+                     onClick={() => {
+                       setProjectData({
+                         ...projectData,
+                         milestones: projectData.milestones.filter(m => m.id !== milestone.id)
+                       });
+                     }}
+                     className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                   >
+                     <X className="h-3 w-3" />
+                   </Button>
+                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-2">

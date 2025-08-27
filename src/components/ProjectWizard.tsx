@@ -207,7 +207,7 @@ const ProjectWizard = () => {
 
   return (
     <>
-      <div className="max-w-4xl mx-auto p-lg space-y-xl bg-gradient-to-br from-surface-default to-surface-alt min-h-screen">
+      <div className="max-w-6xl mx-auto p-lg space-y-xl bg-gradient-to-br from-surface-default to-surface-alt min-h-screen">
         {/* Cancel Button */}
         <div className="flex justify-end">
           <Button variant="outline" onClick={() => navigate('/')}>
