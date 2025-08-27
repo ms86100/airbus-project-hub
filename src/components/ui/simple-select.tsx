@@ -6,7 +6,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuPortal, // ⬅️ use a portal to <body>
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 
@@ -76,45 +75,41 @@ const SimpleSelect = React.forwardRef<HTMLButtonElement, SimpleSelectProps>(
           </Button>
         </DropdownMenuTrigger>
 
-        {/* ✅ Portal to body so dialogs/parents don't clip or offset the menu */}
-        <DropdownMenuPortal>
-          <DropdownMenuContent
-            /* ✅ Let Radix/Popper position via transform; DO NOT use `fixed` */
-            side="bottom"
-            align="start"
-            sideOffset={8}
-            alignOffset={0}
-            avoidCollisions
-            collisionPadding={8}
-            className={cn(
-              "z-[3100]",
-              // Match trigger width using Radix var (works across portals)
-              "w-[var(--radix-dropdown-menu-trigger-width)]",
-              "min-w-[var(--radix-dropdown-menu-trigger-width)]",
-              "max-h-[280px] overflow-auto",
-              "rounded-md border bg-popover text-popover-foreground shadow-md"
-            )}
-          >
-            {React.Children.map(children, (child) => {
-              if (React.isValidElement<SimpleSelectItemProps>(child)) {
-                return (
-                  <DropdownMenuItem
-                    key={child.props.value}
-                    onSelect={() => handleSelect(child.props.value)}
-                    className={cn(
-                      "flex items-center justify-between cursor-pointer",
-                      child.props.className
-                    )}
-                  >
-                    <span>{child.props.children}</span>
-                    {selectedValue === child.props.value && <Check className="h-4 w-4" />}
-                  </DropdownMenuItem>
-                )
-              }
-              return null
-            })}
-          </DropdownMenuContent>
-        </DropdownMenuPortal>
+        <DropdownMenuContent
+          /* ✅ Let Radix/Popper position via transform; DO NOT use `fixed` */
+          side="bottom"
+          align="start"
+          sideOffset={8}
+          alignOffset={0}
+          avoidCollisions
+          collisionPadding={8}
+          className={cn(
+            "z-[3100]",
+            // Match trigger width using Radix var (works across portals)
+            "w-[var(--radix-dropdown-menu-trigger-width)]",
+            "min-w-[var(--radix-dropdown-menu-trigger-width)]",
+            "max-h-[280px] overflow-auto"
+          )}
+        >
+          {React.Children.map(children, (child) => {
+            if (React.isValidElement<SimpleSelectItemProps>(child)) {
+              return (
+                <DropdownMenuItem
+                  key={child.props.value}
+                  onSelect={() => handleSelect(child.props.value)}
+                  className={cn(
+                    "flex items-center justify-between cursor-pointer",
+                    child.props.className
+                  )}
+                >
+                  <span>{child.props.children}</span>
+                  {selectedValue === child.props.value && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+              )
+            }
+            return null
+          })}
+        </DropdownMenuContent>
       </DropdownMenu>
     )
   }
