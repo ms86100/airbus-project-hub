@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import ProjectWizard from "./components/ProjectWizard";
 import ProjectOverview from "./pages/ProjectOverview";
 import Projects from "./pages/Projects";
+import ProjectWorkspace from "./components/ProjectWorkspace";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/create-project" element={<ProjectWizard />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/project/:id" element={<ProjectOverview />} />
+            <Route path="/project/:id/:module" element={<ProjectWorkspace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
