@@ -113,6 +113,28 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Project</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <button 
+                    onClick={() => navigate(`/project/${projectId}`)}
+                    className="flex items-center gap-3 w-full text-left hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground p-2 rounded-md"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium text-sm">Project Settings</span>
+                      <span className="text-xs opacity-60">Edit project details</span>
+                    </div>
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
