@@ -222,33 +222,16 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3 pt-2">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs text-muted-foreground">Status:</label>
-                      <Select
-                        value={task.status}
-                        onValueChange={(value) => updateTask(task.id, { status: value as any })}
-                      >
-                        <SelectTrigger className="w-28 h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="z-50">
-                          <SelectItem value="todo">Todo</SelectItem>
-                          <SelectItem value="in-progress">In Progress</SelectItem>
-                          <SelectItem value="done">Done</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs text-muted-foreground">Due:</label>
-                      <Input
-                        type="date"
-                        value={task.dueDate}
-                        onChange={(e) => updateTask(task.id, { dueDate: e.target.value })}
-                        className="w-36 h-8 text-xs"
-                      />
-                    </div>
+                   <div className="flex items-center gap-3 pt-2">
+                     <div className="flex items-center gap-2">
+                       <label className="text-xs text-muted-foreground">Due:</label>
+                       <Input
+                         type="date"
+                         value={task.dueDate}
+                         onChange={(e) => updateTask(task.id, { dueDate: e.target.value })}
+                         className="w-36 h-8 text-xs"
+                       />
+                     </div>
                     
                     {task.sourceTag === 'template' && (
                       <Badge variant="secondary" className="text-xs ml-auto">
