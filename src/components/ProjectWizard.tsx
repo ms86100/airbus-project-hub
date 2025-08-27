@@ -9,6 +9,7 @@ import { ArrowRight, Check } from 'lucide-react';
 import { WizardHeader } from '@/components/ui/wizard-header';
 import { ProgressStepper } from '@/components/ui/progress-stepper';
 import { CelebrationOverlay } from '@/components/ui/celebration-overlay';
+import { SuccessModal } from '@/components/ui/success-modal';
 import ProjectBasicsStep from './wizard/ProjectBasicsStep';
 import TaskCaptureStep from './wizard/TaskCaptureStep';
 import MilestoneGroupingStep from './wizard/MilestoneGroupingStep';
@@ -49,6 +50,8 @@ const ProjectWizard = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   
   const [projectData, setProjectData] = useState<ProjectData>({
     projectName: '',
@@ -176,12 +179,14 @@ const ProjectWizard = () => {
         description: `${projectData.projectName} has been created with ${projectData.tasks.length} tasks across ${projectData.milestones.length} milestones.`,
       });
 
-      // Show celebration animation
+      // Show celebration animation then success modal
+      setCreatedProjectId(project.id);
       setShowCelebration(true);
       
-      // Navigate to dashboard after celebration
+      // Show success modal after celebration
       setTimeout(() => {
-        navigate('/');
+        setShowCelebration(false);
+        setShowSuccessModal(true);
       }, 2500);
       
     } catch (error) {
@@ -268,6 +273,25 @@ const ProjectWizard = () => {
       <CelebrationOverlay 
         show={showCelebration} 
         onComplete={() => setShowCelebration(false)}
+      />
+
+      {/* Success Modal */}
+      <SuccessModal
+        show={showSuccessModal}
+        title="Congratulations"
+        body="Your project has been created. What would you like to do next?"
+        onProjectOverview={() => {
+          setShowSuccessModal(false);
+          navigate(`/project/${createdProjectId}`);
+        }}
+        onHomepage={() => {
+          setShowSuccessModal(false);
+          navigate('/');
+        }}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigate('/');
+        }}
       />
     </>
   );
