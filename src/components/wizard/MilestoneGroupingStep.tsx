@@ -207,9 +207,13 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
               />
             </div>
             <div>
-              <Button onClick={addMilestone} disabled={!newMilestoneName.trim()} className="w-full">
-                Add Milestone
-              </Button>
+            <Button 
+              onClick={addMilestone} 
+              disabled={!newMilestoneName.trim()} 
+              className="w-full bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
+            >
+              Add Milestone
+            </Button>
             </div>
           </div>
         </CardContent>
@@ -275,7 +279,7 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                  </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2 pt-2">
               {milestone.tasks.length === 0 ? (
                 <div className="text-center py-4 text-muted-foreground border-dashed border-2 rounded">
                   <p className="text-sm">Drop tasks here</p>
@@ -284,7 +288,7 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                 milestone.tasks.map((task) => (
                   <Card 
                     key={task.id}
-                    className="p-3 cursor-move hover:shadow-md transition-shadow group"
+                    className="p-3 mt-2 cursor-move hover:shadow-md transition-shadow group"
                     draggable
                     onDragStart={() => handleDragStart(task)}
                   >
@@ -305,7 +309,7 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                         </Button>
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                       <div className="flex items-center gap-2">
                         <Select
                           value={task.status}
                           onValueChange={(value) => updateTask(task.id, { status: value as any })}
@@ -313,7 +317,7 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                           <SelectTrigger className="w-20 h-6 text-xs">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-50">
                             <SelectItem value="todo">Todo</SelectItem>
                             <SelectItem value="in-progress">In Progress</SelectItem>
                             <SelectItem value="done">Done</SelectItem>
