@@ -10,11 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Edit3, Trash2, Calendar, Users, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Edit3, Trash2, Calendar, Users, CheckCircle, Clock, AlertCircle, Plus } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { RoadmapView } from '@/components/workspace/RoadmapView';
 import { KanbanView } from '@/components/workspace/KanbanView';
-import { StakeholdersView } from '@/components/workspace/StakeholdersView';
+import { StakeholdersManagement } from '@/components/workspace/StakeholdersManagement';
 
 interface Project {
   id: string;
@@ -370,8 +370,7 @@ const ProjectOverview = () => {
               <div className="border-b border-border bg-muted/5">
                 <TabsList className="w-full h-auto p-0 bg-transparent">
                   <TabsTrigger value="overview" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Overview</TabsTrigger>
-                  <TabsTrigger value="tasks" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Tasks ({tasks.length})</TabsTrigger>
-                  <TabsTrigger value="milestones" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Milestones ({milestones.length})</TabsTrigger>
+                  <TabsTrigger value="tasks" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Tasks & Milestones</TabsTrigger>
                   <TabsTrigger value="roadmap" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Roadmap</TabsTrigger>
                   <TabsTrigger value="kanban" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Kanban</TabsTrigger>
                   <TabsTrigger value="stakeholders" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Stakeholders</TabsTrigger>
@@ -426,80 +425,132 @@ const ProjectOverview = () => {
               </TabsContent>
 
               <TabsContent value="tasks" className="p-6">
-                <div className="space-y-4">
-                  {tasks.map((task) => (
-                    <Card key={task.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                          <div className="flex-1">
-                            <h3 className="font-medium text-foreground">{task.title}</h3>
-                            {task.description && (
-                              <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                <div className="space-y-6">
+                  {milestones.map((milestone) => {
+                    const milestoneTasks = tasks.filter(t => t.milestone_id === milestone.id);
+                    
+                    return (
+                      <Card key={milestone.id} className="border-l-4 border-l-airbus-primary">
+                        <CardHeader>
+                          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div>
+                              <CardTitle className="text-xl">{milestone.name}</CardTitle>
+                              {milestone.description && (
+                                <p className="text-muted-foreground mt-1">{milestone.description}</p>
+                              )}
+                              <div className="flex items-center gap-4 mt-2">
+                                <Badge variant={getStatusBadgeVariant(milestone.status)}>
+                                  {milestone.status.replace('_', ' ')}
+                                </Badge>
+                                {milestone.due_date && (
+                                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                    <Calendar className="h-4 w-4" />
+                                    Due: {new Date(milestone.due_date).toLocaleDateString()}
+                                  </div>
+                                )}
+                                <Badge variant="outline" className="text-xs">
+                                  {milestoneTasks.length} tasks
+                                </Badge>
+                              </div>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Task
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {milestoneTasks.map((task) => (
+                              <Card key={task.id} className="bg-muted/50 hover:bg-muted/70 transition-colors">
+                                <CardContent className="p-4">
+                                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                    <div className="flex-1">
+                                      <h4 className="font-medium text-foreground">{task.title}</h4>
+                                      {task.description && (
+                                        <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                                      <Badge variant={getStatusBadgeVariant(task.status)} className="w-fit">
+                                        {task.status.replace('_', ' ')}
+                                      </Badge>
+                                      {task.due_date && (
+                                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                          <Calendar className="h-4 w-4" />
+                                          {new Date(task.due_date).toLocaleDateString()}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                            {milestoneTasks.length === 0 && (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <p className="text-sm">No tasks in this milestone yet.</p>
+                                <p className="text-sm">Click "Add Task" to create one.</p>
+                              </div>
                             )}
                           </div>
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                            <Badge variant={getStatusBadgeVariant(task.status)}>
-                              {task.status.replace('_', ' ')}
-                            </Badge>
-                            {task.due_date && (
-                              <span className="text-sm text-muted-foreground">
-                                Due: {new Date(task.due_date).toLocaleDateString()}
-                              </span>
-                            )}
-                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                  
+                  {/* Unassigned tasks */}
+                  {tasks.filter(t => !t.milestone_id).length > 0 && (
+                    <Card className="border-l-4 border-l-muted">
+                      <CardHeader>
+                        <CardTitle className="text-xl text-muted-foreground">Unassigned Tasks</CardTitle>
+                        <p className="text-sm text-muted-foreground">Tasks not yet assigned to a milestone</p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {tasks.filter(t => !t.milestone_id).map((task) => (
+                            <Card key={task.id} className="bg-muted/50">
+                              <CardContent className="p-4">
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                  <div className="flex-1">
+                                    <h4 className="font-medium text-foreground">{task.title}</h4>
+                                    {task.description && (
+                                      <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                                    <Badge variant={getStatusBadgeVariant(task.status)} className="w-fit">
+                                      {task.status.replace('_', ' ')}
+                                    </Badge>
+                                    {task.due_date && (
+                                      <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                        <Calendar className="h-4 w-4" />
+                                        {new Date(task.due_date).toLocaleDateString()}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
-                  {tasks.length === 0 && (
+                  )}
+                  
+                  {milestones.length === 0 && (
                     <Card>
-                      <CardContent className="p-8 text-center">
-                        <p className="text-muted-foreground">No tasks found</p>
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No milestones yet</h3>
+                        <p className="text-muted-foreground text-center">
+                          Create milestones to organize your project tasks.
+                        </p>
                       </CardContent>
                     </Card>
                   )}
                 </div>
               </TabsContent>
 
-              <TabsContent value="milestones" className="p-6">
-                <div className="space-y-4">
-                  {milestones.map((milestone) => {
-                    const milestoneTasks = tasks.filter(t => t.milestone_id === milestone.id);
-                    return (
-                      <Card key={milestone.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                            <div className="flex-1">
-                              <h3 className="font-medium text-foreground">{milestone.name}</h3>
-                              {milestone.description && (
-                                <p className="text-sm text-muted-foreground mt-1">{milestone.description}</p>
-                              )}
-                              <p className="text-xs text-muted-foreground mt-2">
-                                {milestoneTasks.length} tasks
-                              </p>
-                            </div>
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                              <Badge variant={getStatusBadgeVariant(milestone.status)}>
-                                {milestone.status.replace('_', ' ')}
-                              </Badge>
-                              <span className="text-sm text-muted-foreground">
-                                Due: {new Date(milestone.due_date).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                  {milestones.length === 0 && (
-                    <Card>
-                      <CardContent className="p-8 text-center">
-                        <p className="text-muted-foreground">No milestones found</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </TabsContent>
 
               <TabsContent value="roadmap" className="p-0">
                 <div className="h-[700px] w-full">
@@ -515,7 +566,7 @@ const ProjectOverview = () => {
 
               <TabsContent value="stakeholders" className="p-0">
                 <div className="h-[700px] w-full">
-                  <StakeholdersView projectId={id!} />
+                  <StakeholdersManagement projectId={id!} />
                 </div>
               </TabsContent>
             </Tabs>

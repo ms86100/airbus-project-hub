@@ -216,6 +216,56 @@ export type Database = {
           },
         ]
       }
+      stakeholders: {
+        Row: {
+          created_at: string
+          created_by: string
+          department: string | null
+          email: string | null
+          id: string
+          influence_level: string | null
+          name: string
+          notes: string | null
+          project_id: string
+          raci: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          department?: string | null
+          email?: string | null
+          id?: string
+          influence_level?: string | null
+          name: string
+          notes?: string | null
+          project_id: string
+          raci?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          department?: string | null
+          email?: string | null
+          id?: string
+          influence_level?: string | null
+          name?: string
+          notes?: string | null
+          project_id?: string
+          raci?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stakeholders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           created_at: string
