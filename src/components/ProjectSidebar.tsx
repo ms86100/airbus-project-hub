@@ -87,23 +87,25 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
         </div>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Modules</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wide">
+            Modules
+          </SidebarGroupLabel>
           
-          <SidebarGroupContent>
-            <SidebarMenu>
+          <SidebarGroupContent className="px-2">
+            <SidebarMenu className="space-y-1">
               {sidebarItems.map((item) => {
                 const itemIsActive = isActive(item.path);
                 return (
                   <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild className="w-full">
                       <NavLink 
                         to={`/project/${projectId}/${item.path}`} 
-                        className={getNavCls({ isActive: itemIsActive })}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${getNavCls({ isActive: itemIsActive })}`}
                       >
-                        <item.icon className="h-4 w-4 mr-3" />
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium text-sm">{item.title}</span>
-                          <span className="text-xs opacity-60">{item.description}</span>
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        <div className="flex flex-col items-start min-w-0 flex-1">
+                          <span className="font-medium text-sm truncate w-full">{item.title}</span>
+                          <span className="text-xs opacity-60 truncate w-full">{item.description}</span>
                         </div>
                       </NavLink>
                     </SidebarMenuButton>
@@ -114,20 +116,22 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Project</SidebarGroupLabel>
-          <SidebarGroupContent>
+        <SidebarGroup className="mt-6">
+          <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wide">
+            Project
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="px-2">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="w-full">
                   <button 
                     onClick={() => navigate(`/project/${projectId}`)}
-                    className="flex items-center gap-3 w-full text-left hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground p-2 rounded-md"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground w-full text-left"
                   >
-                    <Settings className="h-4 w-4" />
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium text-sm">Project Settings</span>
-                      <span className="text-xs opacity-60">Edit project details</span>
+                    <Settings className="h-4 w-4 flex-shrink-0" />
+                    <div className="flex flex-col items-start min-w-0 flex-1">
+                      <span className="font-medium text-sm truncate w-full">Project Settings</span>
+                      <span className="text-xs opacity-60 truncate w-full">Edit project details</span>
                     </div>
                   </button>
                 </SidebarMenuButton>
