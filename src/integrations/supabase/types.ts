@@ -39,6 +39,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          department_id: string | null
           description: string | null
           due_date: string
           id: string
@@ -50,6 +51,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          department_id?: string | null
           description?: string | null
           due_date: string
           id?: string
@@ -61,6 +63,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          department_id?: string | null
           description?: string | null
           due_date?: string
           id?: string
@@ -70,6 +73,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "milestones_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "milestones_project_id_fkey"
             columns: ["project_id"]
@@ -116,6 +126,7 @@ export type Database = {
       }
       project_members: {
         Row: {
+          department_id: string | null
           id: string
           joined_at: string | null
           project_id: string
@@ -123,6 +134,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          department_id?: string | null
           id?: string
           joined_at?: string | null
           project_id: string
@@ -130,6 +142,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          department_id?: string | null
           id?: string
           joined_at?: string | null
           project_id?: string
@@ -137,6 +150,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_members_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_members_project_id_fkey"
             columns: ["project_id"]
@@ -150,6 +170,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          department_id: string | null
           description: string | null
           end_date: string | null
           id: string
@@ -162,6 +183,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          department_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -174,6 +196,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          department_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -183,12 +206,21 @@ export type Database = {
           status?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
           created_at: string
           created_by: string
+          department_id: string | null
           description: string | null
           due_date: string | null
           id: string
@@ -203,6 +235,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          department_id?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -217,6 +250,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          department_id?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -229,6 +263,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_milestone_id_fkey"
             columns: ["milestone_id"]
@@ -271,6 +312,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_department: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
