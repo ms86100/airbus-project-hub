@@ -36,6 +36,14 @@ export default {
 					accent: 'hsl(var(--brand-accent))'
 				},
 				
+				// Airbus Design System Colors
+				airbus: {
+					primary: 'hsl(var(--brand-primary))',
+					secondary: 'hsl(var(--secondary))',
+					'secondary-dark': 'hsl(var(--secondary-hover))',
+					light: 'hsl(var(--accent-light))'
+				},
+				
 				// Surface tokens
 				surface: {
 					default: 'hsl(var(--surface-default))',
@@ -53,7 +61,8 @@ export default {
 				status: {
 					success: 'hsl(var(--status-success))',
 					warning: 'hsl(var(--status-warning))',
-					info: 'hsl(var(--status-info))'
+					info: 'hsl(var(--status-info))',
+					error: 'hsl(var(--destructive))'
 				},
 				
 				primary: {
