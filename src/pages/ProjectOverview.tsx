@@ -237,7 +237,10 @@ const ProjectOverview = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Projects
             </Button>
-            <Button onClick={() => navigate(`/project/${id}/roadmap`)}>
+            <Button 
+              onClick={() => navigate(`/project/${id}/roadmap`)}
+              className="bg-airbus-primary text-white border border-airbus-primary shadow-professional hover:bg-airbus-primary/90"
+            >
               Open Workspace
             </Button>
           </div>
