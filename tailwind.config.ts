@@ -12,9 +12,9 @@ export default {
 	theme: {
 		container: {
 			center: true,
-			padding: '2rem',
+			padding: '1rem',
 			screens: {
-				'2xl': '1400px'
+				'2xl': '960px'
 			}
 		},
 		extend: {
@@ -132,54 +132,15 @@ export default {
 				'radius-lg': 'var(--radius-lg)'
 			},
 			boxShadow: {
-				'card': 'var(--shadow-sm)',
-				'elevated': 'var(--shadow-md)',
-				'airbus': 'var(--shadow-airbus)',
-				'professional': 'var(--shadow-lg)'
+				'card': '0 1px 2px 0 hsl(221 39% 11% / 0.05)',
+				'elevated': '0 2px 4px 0 hsl(221 39% 11% / 0.08)',
+				'professional': '0 1px 3px 0 hsl(221 39% 11% / 0.08)'
 			},
 			keyframes: {
-				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
-				},
-				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
-				},
-				'fade-in': {
-					'0%': {
-						opacity: '0',
-						transform: 'translateY(10px)'
-					},
-					'100%': {
-						opacity: '1',
-						transform: 'translateY(0)'
-					}
-				},
-				'scale-in': {
-					'0%': {
-						transform: 'scale(0.95)',
-						opacity: '0'
-					},
-					'100%': {
-						transform: 'scale(1)',
-						opacity: '1'
-					}
-				}
+				// No animations - only keeping required ones for accessibility
 			},
 			animation: {
-				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.4s ease-out',
-				'scale-in': 'scale-in 0.3s ease-out'
+				// No animations - keeping interface static and stable
 			}
 		}
 	},

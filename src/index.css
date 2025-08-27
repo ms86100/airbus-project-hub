@@ -18,15 +18,15 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 221 39% 11%;
 
-    /* Airbus Brand Colors */
-    --brand-primary: 221 100% 31%;
-    --brand-on-primary: 0 0% 98%;
-    --brand-accent: 199 89% 48%;
+    /* Airbus Brand Colors - High Contrast */
+    --brand-primary: 221 100% 25%;
+    --brand-on-primary: 0 0% 100%;
+    --brand-accent: 199 89% 45%;
 
     /* Primary System */
     --primary: var(--brand-primary);
     --primary-foreground: var(--brand-on-primary);
-    --primary-hover: 221 100% 36%;
+    --primary-hover: var(--brand-primary);
     --primary-light: 221 100% 90%;
 
     /* Surface System */
@@ -61,12 +61,12 @@ All colors MUST be HSL.
     --radius-md: 12px;
     --radius-lg: 16px;
 
-    /* Spacing */
-    --spacing-xs: 4px;
-    --spacing-sm: 8px;
-    --spacing-md: 16px;
-    --spacing-lg: 24px;
-    --spacing-xl: 32px;
+    /* Compact Spacing */
+    --spacing-xs: 2px;
+    --spacing-sm: 4px;
+    --spacing-md: 8px;
+    --spacing-lg: 12px;
+    --spacing-xl: 16px;
 
     /* Text System */
     --text-primary: 221 39% 11%;
@@ -161,14 +161,16 @@ All colors MUST be HSL.
     font-family: 'Inter', 'Source Sans Pro', system-ui, sans-serif;
   }
   
-  /* Professional Layout Enhancements */
+  /* Compact Layout */
   .container {
-    @apply max-w-7xl mx-auto px-8 lg:px-12;
+    @apply max-w-4xl mx-auto px-4 lg:px-6;
   }
   
-  /* Smooth Professional Transitions */
-  * {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* NO ANIMATIONS - Disable all transitions */
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
   }
   
   /* Beautiful Professional Scrollbars */
