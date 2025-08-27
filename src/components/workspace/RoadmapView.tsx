@@ -327,11 +327,13 @@ export function RoadmapView() {
                       </div>
                       <div className="col-span-9 relative h-8 bg-gray-800 rounded">
                         <div
-                          className={`absolute top-0 h-full ${colorClass} rounded flex items-center justify-center text-xs text-white font-medium transition-all hover:opacity-80 cursor-pointer`}
+                          className={`absolute top-0 h-full ${colorClass} rounded flex items-center justify-start text-xs text-white font-medium transition-all hover:opacity-80 cursor-pointer shadow-sm`}
                           style={position}
                           title={`${task.title} - ${task.status} - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}`}
                         >
-                          <span className="truncate px-2">{task.title}</span>
+                          <span className="px-2 text-white font-medium text-xs leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                            {task.title}
+                          </span>
                         </div>
                         
                         {/* Priority indicator */}
