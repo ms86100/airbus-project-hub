@@ -415,7 +415,7 @@ const ProjectOverview = () => {
 
               <TabsContent value="roadmap" className="p-0">
                 <div className="h-[700px] w-full">
-                  <RoadmapView projectId={id!} />
+                  <RoadmapView />
                 </div>
               </TabsContent>
 

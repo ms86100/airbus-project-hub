@@ -13,7 +13,7 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
   const renderModule = () => {
     switch (currentModule) {
       case 'roadmap':
-        return <RoadmapView projectId={projectId} />;
+        return <RoadmapView />;
       case 'kanban':
         return <KanbanView projectId={projectId} />;
       case 'stakeholders':
@@ -21,7 +21,7 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
       case 'status':
         return <StatusManagementView projectId={projectId} />;
       default:
-        return <RoadmapView projectId={projectId} />;
+        return <RoadmapView />;
     }
   };
 
