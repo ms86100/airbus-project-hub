@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SimpleSelect, SimpleSelectItem } from "@/components/ui/simple-select";
 import { Badge } from "@/components/ui/badge";
 
 interface Department {
@@ -113,20 +113,15 @@ export default function DepartmentSelectionDialog({
           ) : (
             <div className="space-y-3">
               <label className="text-sm font-medium">Available Departments:</label>
-              <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((department) => (
-                    <SelectItem key={department.id} value={department.id}>
-                      <Badge variant="outline" className="mr-2">
-                        {department.name}
-                      </Badge>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SimpleSelect value={selectedDepartmentId} onValueChange={setSelectedDepartmentId} placeholder="Select a department">
+                {departments.map((department) => (
+                  <SimpleSelectItem key={department.id} value={department.id}>
+                    <Badge variant="outline" className="mr-2">
+                      {department.name}
+                    </Badge>
+                  </SimpleSelectItem>
+                ))}
+              </SimpleSelect>
             </div>
           )}
         </div>

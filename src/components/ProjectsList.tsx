@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { Plus, Edit, Trash2, Calendar, User, FolderOpen } from 'lucide-react';
 
 interface Project {
@@ -263,30 +263,20 @@ const ProjectsList = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="status">Status</Label>
-                    <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="planning">Planning</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <SimpleSelect value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                        <SimpleSelectItem value="planning">Planning</SimpleSelectItem>
+                        <SimpleSelectItem value="active">Active</SimpleSelectItem>
+                        <SimpleSelectItem value="completed">Completed</SimpleSelectItem>
+                        <SimpleSelectItem value="cancelled">Cancelled</SimpleSelectItem>
+                    </SimpleSelect>
                   </div>
                   <div>
                     <Label htmlFor="priority">Priority</Label>
-                    <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <SimpleSelect value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+                        <SimpleSelectItem value="low">Low</SimpleSelectItem>
+                        <SimpleSelectItem value="medium">Medium</SimpleSelectItem>
+                        <SimpleSelectItem value="high">High</SimpleSelectItem>
+                    </SimpleSelect>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -456,30 +446,20 @@ const ProjectsList = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="planning">Planning</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SimpleSelect value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SimpleSelectItem value="planning">Planning</SimpleSelectItem>
+                    <SimpleSelectItem value="active">Active</SimpleSelectItem>
+                    <SimpleSelectItem value="completed">Completed</SimpleSelectItem>
+                    <SimpleSelectItem value="cancelled">Cancelled</SimpleSelectItem>
+                </SimpleSelect>
               </div>
               <div>
                 <Label htmlFor="edit-priority">Priority</Label>
-                <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SimpleSelect value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+                    <SimpleSelectItem value="low">Low</SimpleSelectItem>
+                    <SimpleSelectItem value="medium">Medium</SimpleSelectItem>
+                    <SimpleSelectItem value="high">High</SimpleSelectItem>
+                </SimpleSelect>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
