@@ -209,7 +209,7 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
 
   return (
     <Card className="bg-muted/50 hover:bg-muted/70 transition-colors">
-      <CardContent className="p-4">
+      <CardContent className="p-4 mt-2">
         <div className="flex flex-col gap-3">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -230,12 +230,12 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
                     <Edit className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
+                <DialogContent className="sm:max-w-[650px]">
                   <DialogHeader>
                     <DialogTitle>Edit Task</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleUpdate} className="space-y-4">
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="title">Task Title *</Label>
                       <Input
                         id="title"
@@ -246,7 +246,7 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
                       />
                     </div>
                     
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="description">Description</Label>
                       <Textarea
                         id="description"
@@ -258,7 +258,7 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="status">Status</Label>
                         <SimpleSelect
                           value={formData.status}
@@ -272,7 +272,7 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
                           ))}
                         </SimpleSelect>
                       </div>
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="priority">Priority</Label>
                         <SimpleSelect
                           value={formData.priority}
@@ -289,7 +289,7 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="due_date">Due Date</Label>
                         <Input
                           id="due_date"
@@ -298,7 +298,7 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
                           onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                         />
                       </div>
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="owner">Task Owner</Label>
                         <SimpleSelect
                           value={formData.owner_id}

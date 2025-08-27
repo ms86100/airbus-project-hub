@@ -324,8 +324,8 @@ const ProjectOverview = () => {
                     const milestoneTasks = tasks.filter(t => t.milestone_id === milestone.id);
                     
                     return (
-                      <Card key={milestone.id} className="border-l-4 border-l-airbus-primary mt-6">
-                        <CardHeader>
+                       <Card key={milestone.id} className="border-l-4 border-l-airbus-primary mt-6">
+                         <CardHeader className="pb-3">
                           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                             <div>
                               <CardTitle className="text-xl">{milestone.name}</CardTitle>
@@ -383,7 +383,7 @@ const ProjectOverview = () => {
                         <CardTitle className="text-xl text-muted-foreground">Unassigned Tasks</CardTitle>
                         <p className="text-sm text-muted-foreground">Tasks not yet assigned to a milestone</p>
                       </CardHeader>
-                      <CardContent>
+                         <CardContent className="pt-4">
                         <div className="space-y-3">
                           {tasks.filter(t => !t.milestone_id).map((task) => (
                             <TaskCard 

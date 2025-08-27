@@ -130,12 +130,12 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
           Add Task
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="title">Task Title *</Label>
             <Input
               id="title"
@@ -146,7 +146,7 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
             />
           </div>
           
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
@@ -158,7 +158,7 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <SimpleSelect
                 value={formData.status}
@@ -172,7 +172,7 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
                 ))}
               </SimpleSelect>
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
               <SimpleSelect
                 value={formData.priority}
@@ -189,7 +189,7 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="due_date">Due Date</Label>
               <Input
                 id="due_date"
@@ -198,7 +198,7 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
                 onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="owner">Task Owner</Label>
               <SimpleSelect
                 value={formData.owner_id}
