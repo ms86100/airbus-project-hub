@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X, AlertCircle, Lightbulb } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, X, AlertCircle, Lightbulb, Copy, Edit2 } from 'lucide-react';
 import { ProjectData, Task } from '../ProjectWizard';
 
 interface TaskCaptureStepProps {
@@ -48,12 +49,26 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
     });
   };
 
+  const duplicateTask = (task: Task) => {
+    const duplicatedTask: Task = {
+      ...task,
+      id: crypto.randomUUID(),
+      title: `${task.title} (Copy)`
+    };
+    
+    setProjectData({
+      ...projectData,
+      tasks: [...projectData.tasks, duplicatedTask]
+    });
+  };
+
   const useTemplate = (templateTasks: string[]) => {
     const newTasks: Task[] = templateTasks.map(title => ({
       id: crypto.randomUUID(),
       title,
       status: 'todo',
-      dueDate: projectData.endDate
+      dueDate: projectData.endDate,
+      sourceTag: 'template'
     }));
 
     setProjectData({
@@ -168,24 +183,77 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
 
           <div className="space-y-2">
             {projectData.tasks.map((task) => (
-              <Card key={task.id} className="p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1">
-                    <Input
-                      value={task.title}
-                      onChange={(e) => updateTask(task.id, { title: e.target.value })}
-                      className="border-none p-0 h-auto focus-visible:ring-0 font-medium"
-                    />
+              <Card key={task.id} className="p-3 group">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <Input
+                        value={task.title}
+                        onChange={(e) => updateTask(task.id, { title: e.target.value })}
+                        className="border-none p-0 h-auto focus-visible:ring-0 font-medium"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            setNewTaskTitle('');
+                            const newTask: Task = {
+                              id: crypto.randomUUID(),
+                              title: '',
+                              status: 'todo',
+                              dueDate: projectData.endDate
+                            };
+                            setProjectData({
+                              ...projectData,
+                              tasks: [...projectData.tasks, newTask]
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => duplicateTask(task)}
+                        title="Duplicate task"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeTask(task.id)}
+                        title="Delete task"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{task.status}</Badge>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => removeTask(task.id)}
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Select
+                      value={task.status}
+                      onValueChange={(value) => updateTask(task.id, { status: value as any })}
                     >
-                      <X className="h-4 w-4" />
-                    </Button>
+                      <SelectTrigger className="w-24 h-7">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todo">Todo</SelectItem>
+                        <SelectItem value="in-progress">In Progress</SelectItem>
+                        <SelectItem value="done">Done</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Input
+                      type="date"
+                      value={task.dueDate}
+                      onChange={(e) => updateTask(task.id, { dueDate: e.target.value })}
+                      className="w-32 h-7 text-sm"
+                    />
+                    
+                    {task.sourceTag === 'template' && (
+                      <Badge variant="secondary" className="text-xs">Template</Badge>
+                    )}
                   </div>
                 </div>
               </Card>

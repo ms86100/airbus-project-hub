@@ -22,6 +22,7 @@ export interface Task {
   ownerId?: string;
   dueDate?: string;
   status: string;
+  sourceTag?: string;
 }
 
 export interface Milestone {

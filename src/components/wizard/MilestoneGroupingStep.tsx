@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, AlertTriangle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Calendar, AlertTriangle, X, Edit2 } from 'lucide-react';
 import { ProjectData, Task, Milestone } from '../ProjectWizard';
 
 interface MilestoneGroupingStepProps {
@@ -17,7 +18,7 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
   const [newMilestoneName, setNewMilestoneName] = useState('');
   const [newMilestoneDueDate, setNewMilestoneDueDate] = useState(projectData.endDate);
 
-  // Initialize with ungrouped tasks if no milestones exist
+  // Initialize with default milestone if none exist
   useEffect(() => {
     if (projectData.milestones.length === 0 && projectData.tasks.length > 0) {
       const defaultMilestone: Milestone = {
@@ -33,6 +34,32 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
       });
     }
   }, [projectData.tasks.length]);
+
+  const updateTask = (taskId: string, updates: Partial<Task>) => {
+    const updatedMilestones = projectData.milestones.map(milestone => ({
+      ...milestone,
+      tasks: milestone.tasks.map(task => 
+        task.id === taskId ? { ...task, ...updates } : task
+      )
+    }));
+
+    setProjectData({
+      ...projectData,
+      milestones: updatedMilestones
+    });
+  };
+
+  const deleteTask = (taskId: string) => {
+    const updatedMilestones = projectData.milestones.map(milestone => ({
+      ...milestone,
+      tasks: milestone.tasks.filter(task => task.id !== taskId)
+    }));
+
+    setProjectData({
+      ...projectData,
+      milestones: updatedMilestones
+    });
+  };
 
   const addMilestone = () => {
     if (!newMilestoneName.trim()) return;
@@ -200,7 +227,14 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                 <Input
                   value={milestone.name}
                   onChange={(e) => updateMilestone(milestone.id, { name: e.target.value })}
+                  onBlur={() => {
+                    // Auto-save on blur - validation happens inline
+                    if (!milestone.name.trim()) {
+                      updateMilestone(milestone.id, { name: 'Unnamed Milestone' });
+                    }
+                  }}
                   className="font-semibold border-none p-0 h-auto focus-visible:ring-0"
+                  placeholder="Enter milestone name"
                 />
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
@@ -227,14 +261,50 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
                 milestone.tasks.map((task) => (
                   <Card 
                     key={task.id}
-                    className="p-2 cursor-move hover:shadow-md transition-shadow"
+                    className="p-3 cursor-move hover:shadow-md transition-shadow group"
                     draggable
                     onDragStart={() => handleDragStart(task)}
                   >
-                    <p className="text-sm font-medium">{task.title}</p>
-                    <Badge variant="outline" className="text-xs mt-1">
-                      {task.status}
-                    </Badge>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Input
+                          value={task.title}
+                          onChange={(e) => updateTask(task.id, { title: e.target.value })}
+                          className="border-none p-0 h-auto focus-visible:ring-0 font-medium text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteTask(task.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={task.status}
+                          onValueChange={(value) => updateTask(task.id, { status: value as any })}
+                        >
+                          <SelectTrigger className="w-20 h-6 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="todo">Todo</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="done">Done</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <Input
+                          type="date"
+                          value={task.dueDate}
+                          onChange={(e) => updateTask(task.id, { dueDate: e.target.value })}
+                          className="w-24 h-6 text-xs"
+                        />
+                      </div>
+                    </div>
                   </Card>
                 ))
               )}
