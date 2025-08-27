@@ -64,15 +64,7 @@ const ProjectOverview = () => {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingProject, setEditingProject] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
-
-  const [editForm, setEditForm] = useState({
-    name: '',
-    description: '',
-    start_date: '',
-    end_date: ''
-  });
 
   useEffect(() => {
     if (id) {
@@ -91,12 +83,6 @@ const ProjectOverview = () => {
 
       if (projectError) throw projectError;
       setProject(projectData);
-      setEditForm({
-        name: projectData.name,
-        description: projectData.description || '',
-        start_date: projectData.start_date || '',
-        end_date: projectData.end_date || ''
-      });
 
       // Fetch milestones
       const { data: milestonesData, error: milestonesError } = await supabase
@@ -130,44 +116,6 @@ const ProjectOverview = () => {
     }
   };
 
-  const updateProject = async () => {
-    if (!project || !user) return;
-
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          name: editForm.name,
-          description: editForm.description,
-          start_date: editForm.start_date || null,
-          end_date: editForm.end_date || null
-        })
-        .eq('id', project.id);
-
-      if (error) throw error;
-
-      setProject({
-        ...project,
-        name: editForm.name,
-        description: editForm.description,
-        start_date: editForm.start_date,
-        end_date: editForm.end_date
-      });
-
-      setEditingProject(false);
-      toast({
-        title: "Project Updated",
-        description: "Project details have been saved.",
-      });
-    } catch (error) {
-      console.error('Error updating project:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update project.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const deleteProject = async () => {
     if (!project || !user || deleteConfirmText !== project.name) return;
@@ -248,7 +196,7 @@ const ProjectOverview = () => {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => setEditingProject(true)}
+                  onClick={() => navigate(`/projects/${id}/edit`)}
                   className="w-full sm:w-auto"
                 >
                   <Edit3 className="h-4 w-4 mr-2" />
@@ -289,81 +237,25 @@ const ProjectOverview = () => {
             </div>
           </div>
 
-          {/* Project Header */}
           <div className="bg-card border border-border rounded-lg shadow-sm">
-            {editingProject ? (
-              <div className="p-6">
-                <div className="border-l-4 border-airbus-primary pl-4 mb-6">
-                  <h2 className="text-xl font-semibold text-foreground">Edit Project Details</h2>
-                  <p className="text-muted-foreground">Update your project information</p>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">Project Name</label>
-                      <Input
-                        value={editForm.name}
-                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        placeholder="Project name"
-                        className="w-full"
-                      />
+            <div className="p-6">
+              <div className="border-l-4 border-airbus-primary pl-4">
+                <h1 className="text-3xl font-bold text-foreground">{project.name}</h1>
+                <p className="text-muted-foreground mt-2 text-lg">{project.description}</p>
+                <div className="flex flex-wrap items-center gap-4 mt-4">
+                  <Badge variant={getStatusBadgeVariant(project.status)} className="text-sm">
+                    {React.createElement(getStatusIcon(project.status), { className: "h-3 w-3 mr-1" })}
+                    {project.status.replace('_', ' ')}
+                  </Badge>
+                  {project.start_date && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      {new Date(project.start_date).toLocaleDateString()} - {project.end_date ? new Date(project.end_date).toLocaleDateString() : 'Ongoing'}
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">Description</label>
-                      <Textarea
-                        value={editForm.description}
-                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                        placeholder="Project description"
-                        className="w-full min-h-[100px]"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">Start Date</label>
-                      <Input
-                        type="date"
-                        value={editForm.start_date}
-                        onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">End Date</label>
-                      <Input
-                        type="date"
-                        value={editForm.end_date}
-                        onChange={(e) => setEditForm({ ...editForm, end_date: e.target.value })}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-border">
-                  <Button onClick={updateProject} className="sm:w-auto">Save Changes</Button>
-                  <Button variant="outline" onClick={() => setEditingProject(false)} className="sm:w-auto">Cancel</Button>
+                  )}
                 </div>
               </div>
-            ) : (
-              <div className="p-6">
-                <div className="border-l-4 border-airbus-primary pl-4">
-                  <h1 className="text-3xl font-bold text-foreground">{project.name}</h1>
-                  <p className="text-muted-foreground mt-2 text-lg">{project.description}</p>
-                  <div className="flex flex-wrap items-center gap-4 mt-4">
-                    <Badge variant={getStatusBadgeVariant(project.status)} className="text-sm">
-                      {React.createElement(getStatusIcon(project.status), { className: "h-3 w-3 mr-1" })}
-                      {project.status.replace('_', ' ')}
-                    </Badge>
-                    {project.start_date && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(project.start_date).toLocaleDateString()} - {project.end_date ? new Date(project.end_date).toLocaleDateString() : 'Ongoing'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Tabs */}
