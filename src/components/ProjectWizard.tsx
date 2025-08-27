@@ -243,32 +243,42 @@ const ProjectWizard = () => {
       </div>
 
       {/* Sticky Footer Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 h-18 bg-surface-default border-t border-border shadow-professional z-[1000] flex items-center justify-end px-4 gap-3">
-        {currentStep === steps.length - 1 ? (
-          <Button 
-            onClick={createProject}
-            disabled={!canProceed() || isCreating}
-            className="min-w-[140px] h-10 font-semibold"
-          >
-            {isCreating ? (
-              <>Creating...</>
-            ) : (
-              <>
-                <Check className="h-4 w-4 mr-2" />
-                Create Project
-              </>
-            )}
-          </Button>
-        ) : (
-          <Button 
-            onClick={nextStep}
-            disabled={!canProceed()}
-            className="min-w-[140px] h-10 font-semibold"
-          >
-            Next
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        )}
+      <div className="fixed bottom-0 left-0 right-0 h-18 bg-surface-default border-t border-border shadow-professional z-[1000] flex items-center justify-between px-6 gap-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          Step {currentStep + 1} of {steps.length}
+        </div>
+        <div className="flex items-center gap-3">
+          {currentStep > 0 && (
+            <Button variant="outline" onClick={prevStep} className="min-w-[100px] h-10">
+              Back
+            </Button>
+          )}
+          {currentStep === steps.length - 1 ? (
+            <Button 
+              onClick={createProject}
+              disabled={!canProceed() || isCreating}
+              className="min-w-[140px] h-10 font-semibold bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
+            >
+              {isCreating ? (
+                <>Creating...</>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Create Project
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button 
+              onClick={nextStep}
+              disabled={!canProceed()}
+              className="min-w-[140px] h-10 font-semibold bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
+            >
+              Next
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Celebration Overlay */}
