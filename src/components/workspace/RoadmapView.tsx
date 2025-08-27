@@ -172,19 +172,20 @@ export function RoadmapView() {
     if (!startDate) return null;
     
     const taskStart = parseISO(startDate);
-    const taskEnd = endDate ? parseISO(endDate) : addDays(taskStart, 7); // Default 7 days if no end date
+    const taskEnd = endDate ? parseISO(endDate) : addDays(taskStart, 1); // Default 1 day if no end date
     
     const { start: timelineStart, end: timelineEnd } = timelineData;
     const totalDuration = differenceInDays(timelineEnd, timelineStart);
     
-    const startOffset = Math.max(0, differenceInDays(taskStart, timelineStart));
-    const duration = Math.min(
-      differenceInDays(taskEnd, taskStart),
-      differenceInDays(timelineEnd, taskStart) - startOffset
-    );
+    // Calculate position relative to timeline
+    const startOffset = differenceInDays(taskStart, timelineStart);
+    const taskDuration = differenceInDays(taskEnd, taskStart);
+    
+    // Ensure task is within timeline bounds
+    if (startOffset < 0 || startOffset > totalDuration) return null;
     
     const leftPosition = (startOffset / totalDuration) * 100;
-    const width = Math.max(2, (duration / totalDuration) * 100);
+    const width = Math.max(1, (taskDuration / totalDuration) * 100);
     
     return { left: `${leftPosition}%`, width: `${width}%` };
   };
