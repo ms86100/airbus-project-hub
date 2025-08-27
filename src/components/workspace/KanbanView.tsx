@@ -178,7 +178,16 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     }
 
     const taskId = active.id as string;
-    const newStatus = over.id as string;
+    const dropTargetId = over.id as string;
+
+    // Ensure we only accept valid status column IDs as drop targets
+    const validStatuses = statusColumns.map(col => col.key);
+    const newStatus = validStatuses.includes(dropTargetId) ? dropTargetId : null;
+
+    if (!newStatus) {
+      console.error('Invalid drop target:', dropTargetId, 'Valid targets:', validStatuses);
+      return;
+    }
 
     const task = tasks.find(t => t.id === taskId);
     if (!task) {
@@ -214,7 +223,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     }
   };
 
-  // Draggable Task Card Component
+  // Draggable Task Card Component  
   function DraggableTaskCard({ task }: { task: Task }) {
     const {
       attributes,
@@ -223,7 +232,13 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       transform,
       transition,
       isDragging,
-    } = useSortable({ id: task.id });
+    } = useSortable({ 
+      id: task.id,
+      data: {
+        type: 'task',
+        task,
+      },
+    });
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -282,6 +297,10 @@ export function KanbanView({ projectId }: KanbanViewProps) {
   function DroppableColumn({ column, tasks: columnTasks }: { column: typeof statusColumns[0], tasks: Task[] }) {
     const { isOver, setNodeRef } = useDroppable({
       id: column.key,
+      data: {
+        type: 'column',
+        status: column.key,
+      },
     });
 
     return (
@@ -295,37 +314,37 @@ export function KanbanView({ projectId }: KanbanViewProps) {
           </div>
         </div>
         
-        <SortableContext items={columnTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          <div 
-            ref={setNodeRef}
-            className={`flex-1 space-y-3 overflow-y-auto min-h-24 p-2 rounded-lg transition-all duration-200 ${
-              isOver
-                ? 'bg-primary/10 border-2 border-dashed border-primary/50' 
-                : activeTask && activeTask.status !== column.key 
-                ? 'bg-primary/5 border-2 border-dashed border-primary/30' 
-                : 'border-2 border-transparent'
-            }`}
-            style={{
-              minHeight: '200px',
-            }}
-          >
+        <div 
+          ref={setNodeRef}
+          className={`flex-1 space-y-3 overflow-y-auto min-h-24 p-2 rounded-lg transition-all duration-200 ${
+            isOver
+              ? 'bg-primary/10 border-2 border-dashed border-primary/50' 
+              : activeTask && activeTask.status !== column.key 
+              ? 'bg-primary/5 border-2 border-dashed border-primary/30' 
+              : 'border-2 border-transparent'
+          }`}
+          style={{
+            minHeight: '200px',
+          }}
+        >
+          <SortableContext items={columnTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {columnTasks.map((task) => (
               <DraggableTaskCard key={task.id} task={task} />
             ))}
-            
-            {columnTasks.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <p className="text-sm">No tasks</p>
-                {(isOver || (activeTask && activeTask.status !== column.key)) && (
-                  <p className="text-xs mt-1 text-primary font-medium">Drop here to move to {column.label}</p>
-                )}
-                {(!activeTask || activeTask.status === column.key) && !isOver && (
-                  <p className="text-xs mt-1">Drop tasks here</p>
-                )}
-              </div>
-            )}
-          </div>
-        </SortableContext>
+          </SortableContext>
+          
+          {columnTasks.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-sm">No tasks</p>
+              {(isOver || (activeTask && activeTask.status !== column.key)) && (
+                <p className="text-xs mt-1 text-primary font-medium">Drop here to move to {column.label}</p>
+              )}
+              {(!activeTask || activeTask.status === column.key) && !isOver && (
+                <p className="text-xs mt-1">Drop tasks here</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
