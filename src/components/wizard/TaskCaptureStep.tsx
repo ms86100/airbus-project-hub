@@ -121,9 +121,13 @@ const TaskCaptureStep: React.FC<TaskCaptureStepProps> = ({ projectData, setProje
           onKeyDown={(e) => e.key === 'Enter' && addTask()}
           className="flex-1"
         />
-        <Button onClick={addTask} disabled={!newTaskTitle.trim()}>
+        <Button 
+          onClick={addTask} 
+          disabled={!newTaskTitle.trim()}
+          className="bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary shrink-0"
+        >
           <Plus className="h-4 w-4 mr-2" />
-          Add Task
+          Add new Task
         </Button>
       </div>
 
