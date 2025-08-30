@@ -1187,6 +1187,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_module_permission_with_admin: {
+        Args: {
+          _module: Database["public"]["Enums"]["module_name"]
+          _project_id: string
+          _required_access: Database["public"]["Enums"]["access_level"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_project_module_permission: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean

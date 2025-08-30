@@ -24,6 +24,7 @@ export function useModulePermissions(projectId: string) {
   const { user } = useAuth();
   const [permissions, setPermissions] = useState<ModulePermissions>({});
   const [isProjectOwner, setIsProjectOwner] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export function useModulePermissions(projectId: string) {
     console.log('Checking permissions for user:', user.id, 'project:', projectId);
 
     try {
-      // Check if user is project owner or admin
+      // Check if user is project owner
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select('created_by')
@@ -58,9 +59,19 @@ export function useModulePermissions(projectId: string) {
       console.log('User is project owner:', isOwner);
       setIsProjectOwner(isOwner);
 
+      // Check if user is admin
+      const { data: userRoleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      const isAdminUser = userRoleData?.role === 'admin';
+      console.log('User is admin:', isAdminUser);
+      setIsAdmin(isAdminUser);
+
       // If user is project owner or admin, they have full access
-      if (isOwner) {
-        // Grant full access to all modules
+      if (isOwner || isAdminUser) {
         const fullPermissions: ModulePermissions = {
           overview: 'write',
           tasks_milestones: 'write',
@@ -106,7 +117,7 @@ export function useModulePermissions(projectId: string) {
   };
 
   const hasPermission = (module: ModuleName, requiredAccess: AccessLevel = 'read'): boolean => {
-    if (isProjectOwner) return true;
+    if (isProjectOwner || isAdmin) return true;
     
     const modulePermission = permissions[module];
     if (!modulePermission) return false;
@@ -124,6 +135,7 @@ export function useModulePermissions(projectId: string) {
   return {
     permissions,
     isProjectOwner,
+    isAdmin,
     loading,
     hasPermission,
     canRead,
