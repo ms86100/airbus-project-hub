@@ -417,6 +417,9 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
                     {item.source_type === 'action_item' && (
                       <Badge variant="outline">From Discussion</Badge>
                     )}
+                    {item.source_type === 'retrospective' && (
+                      <Badge variant="outline">From Retrospective</Badge>
+                    )}
                     {item.target_date && (
                       <div className="text-xs text-muted-foreground flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
