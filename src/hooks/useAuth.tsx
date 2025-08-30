@@ -49,51 +49,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log('🎯 Setting up auth state listener...');
+    console.log('🎯 Setting up auth from localStorage...');
     
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('🔄 Auth state change detected:', event);
-        console.log('📱 Session:', session?.user?.email || 'No session');
+    // Check for stored session in localStorage
+    const storedSession = localStorage.getItem('app_session');
+    const storedUser = localStorage.getItem('app_user');
+    
+    if (storedSession && storedUser) {
+      try {
+        const session = JSON.parse(storedSession);
+        const user = JSON.parse(storedUser);
+        console.log('📱 Found stored session for:', user.email);
         
         setSession(session);
-        setUser(session?.user ?? null);
+        setUser(user);
         
-        if (session?.user) {
-          console.log('👤 User found, fetching role...');
-          setTimeout(() => {
-            fetchUserRole(session.user.id);
-          }, 0);
-        } else {
-          console.log('👤 No user, clearing role');
-          setUserRole(null);
-        }
-        
-        setLoading(false);
-        console.log('✅ Auth state updated, loading:', false);
+        // Fetch user role
+        setTimeout(() => {
+          fetchUserRole(user.id);
+        }, 0);
+      } catch (err) {
+        console.log('❌ Error parsing stored session:', err);
+        localStorage.removeItem('app_session');
+        localStorage.removeItem('app_user');
       }
-    );
-
-    // Check for existing session
-    console.log('🔍 Checking for existing session...');
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('📱 Initial session check:', session?.user?.email || 'No session');
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        console.log('👤 Initial user found, fetching role...');
-        fetchUserRole(session.user.id);
-      }
-      setLoading(false);
-      console.log('✅ Initial auth check complete, loading:', false);
-    });
-
-    return () => {
-      console.log('🧹 Cleaning up auth listener');
-      subscription.unsubscribe();
-    };
+    } else {
+      console.log('📱 No stored session found');
+    }
+    
+    setLoading(false);
+    console.log('✅ Auth initialization complete');
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -102,15 +87,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('📧 Email:', email);
       
       cleanupAuthState();
-      console.log('🧹 Auth state cleaned');
-      
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-        console.log('🚪 Global signout completed');
-      } catch (err) {
-        console.log('⚠️ Global signout failed:', err);
-        // Continue even if this fails
-      }
+      // Clear app storage
+      localStorage.removeItem('app_session');
+      localStorage.removeItem('app_user');
+      console.log('🧹 Auth state and app storage cleaned');
 
       console.log('📡 Calling apiClient.login...');
       const response = await apiClient.login(email, password);
@@ -123,12 +103,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('✅ Login successful');
       console.log('👤 User data:', response.data?.user);
+      console.log('📱 Session data:', response.data?.session);
       
-      if (response.data?.user) {
-        console.log('🔄 Redirecting to /');
+      if (response.data?.user && response.data?.session) {
+        // Store session and user data in localStorage
+        localStorage.setItem('app_session', JSON.stringify(response.data.session));
+        localStorage.setItem('app_user', JSON.stringify(response.data.user));
+        
+        // Update state
+        setSession(response.data.session);
+        setUser(response.data.user);
+        
+        // Fetch user role
+        setTimeout(() => {
+          fetchUserRole(response.data.user.id);
+        }, 0);
+        
+        console.log('🔄 Auth state updated, redirecting to /');
         window.location.href = '/';
       } else {
-        console.log('⚠️ No user data in response');
+        console.log('⚠️ No user/session data in response');
+        return { error: 'Invalid response data' };
       }
       
       return { error: null };
@@ -156,18 +151,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      console.log('🚪 Signing out...');
+      
       // Use API service for logout
       await apiClient.logout();
       
+      // Clear app storage
+      localStorage.removeItem('app_session');
+      localStorage.removeItem('app_user');
+      
+      // Clear state
+      setSession(null);
+      setUser(null);
+      setUserRole(null);
+      
       cleanupAuthState();
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Ignore errors
-      }
+      console.log('✅ Logout complete, redirecting to auth');
       window.location.href = '/auth';
     } catch (error) {
       console.error('Error signing out:', error);
+      // Force cleanup even if there's an error
+      localStorage.removeItem('app_session');
+      localStorage.removeItem('app_user');
+      setSession(null);
+      setUser(null);
+      setUserRole(null);
+      cleanupAuthState();
+      window.location.href = '/auth';
     }
   };
 
