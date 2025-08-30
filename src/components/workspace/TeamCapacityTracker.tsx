@@ -64,6 +64,17 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [selectedIteration, setSelectedIteration] = useState<CapacityIteration | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showIterationDialog, setShowIterationDialog] = useState(false);
+  const [editingIteration, setEditingIteration] = useState<CapacityIteration | null>(null);
+  
+  // Form state for iteration
+  const [iterationForm, setIterationForm] = useState({
+    iteration_name: '',
+    start_date: '',
+    end_date: '',
+    working_days: 10,
+    committed_story_points: 0
+  });
 
   useEffect(() => {
     if (projectId) {
@@ -114,6 +125,54 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     }
   };
 
+  const resetIterationForm = () => {
+    setIterationForm({
+      iteration_name: '',
+      start_date: '',
+      end_date: '',
+      working_days: 10,
+      committed_story_points: 0
+    });
+    setEditingIteration(null);
+  };
+
+  const handleIterationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      const iterationData = {
+        type: 'iteration' as const,
+        iterationName: iterationForm.iteration_name,
+        startDate: iterationForm.start_date,
+        endDate: iterationForm.end_date,
+        workingDays: iterationForm.working_days,
+        committedStoryPoints: iterationForm.committed_story_points
+      };
+
+      const response = await apiClient.createCapacityIteration(projectId, iterationData);
+      
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Iteration created successfully'
+        });
+        setShowIterationDialog(false);
+        resetIterationForm();
+        fetchIterations();
+      } else {
+        throw new Error(response.error || 'Failed to create iteration');
+      }
+    } catch (error) {
+      console.error('Error creating iteration:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create iteration',
+        variant: 'destructive'
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -134,10 +193,89 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
             <Settings className="h-4 w-4 mr-2" />
             Settings
           </Button>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Iteration
-          </Button>
+          <Dialog open={showIterationDialog} onOpenChange={setShowIterationDialog}>
+            <DialogTrigger asChild>
+              <Button onClick={resetIterationForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Iteration
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Create New Iteration</DialogTitle>
+                <DialogDescription>
+                  Set up a new iteration for team capacity planning.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleIterationSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="iteration_name">Iteration Name</Label>
+                  <Input
+                    id="iteration_name"
+                    value={iterationForm.iteration_name}
+                    onChange={(e) => setIterationForm(prev => ({ ...prev, iteration_name: e.target.value }))}
+                    placeholder="e.g., Sprint 1, Iteration 2024-Q1"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="start_date">Start Date</Label>
+                    <Input
+                      id="start_date"
+                      type="date"
+                      value={iterationForm.start_date}
+                      onChange={(e) => setIterationForm(prev => ({ ...prev, start_date: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="end_date">End Date</Label>
+                    <Input
+                      id="end_date"
+                      type="date"
+                      value={iterationForm.end_date}
+                      onChange={(e) => setIterationForm(prev => ({ ...prev, end_date: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="working_days">Working Days</Label>
+                    <Input
+                      id="working_days"
+                      type="number"
+                      value={iterationForm.working_days}
+                      onChange={(e) => setIterationForm(prev => ({ ...prev, working_days: parseInt(e.target.value) || 0 }))}
+                      min="1"
+                      max="30"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="committed_story_points">Story Points</Label>
+                    <Input
+                      id="committed_story_points"
+                      type="number"
+                      value={iterationForm.committed_story_points}
+                      onChange={(e) => setIterationForm(prev => ({ ...prev, committed_story_points: parseInt(e.target.value) || 0 }))}
+                      min="0"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setShowIterationDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    Create Iteration
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -207,7 +345,10 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                 <p className="text-muted-foreground text-center mb-4">
                   Create your first iteration to start tracking team capacity.
                 </p>
-                <Button>
+                <Button onClick={() => {
+                  resetIterationForm();
+                  setShowIterationDialog(true);
+                }}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create First Iteration
                 </Button>
