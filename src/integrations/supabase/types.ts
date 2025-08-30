@@ -1159,6 +1159,10 @@ export type Database = {
         }
         Returns: number
       }
+      find_user_by_email: {
+        Args: { _email: string }
+        Returns: string
+      }
       get_user_department: {
         Args: { _user_id: string }
         Returns: string

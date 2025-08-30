@@ -132,14 +132,11 @@ export default function AccessControl() {
     setLoading(true);
 
     try {
-      // Check if user exists
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', userEmail)
-        .single();
+      // Check if user exists using the security definer function
+      const { data: userId, error: userError } = await supabase
+        .rpc('find_user_by_email', { _email: userEmail });
 
-      if (userError) {
+      if (userError || !userId) {
         toast({
           title: "Error",
           description: "User not found. They must sign up first.",
@@ -155,7 +152,7 @@ export default function AccessControl() {
           .from('module_permissions')
           .upsert({
             project_id: selectedProject,
-            user_id: userData.id,
+            user_id: userId,
             module: module as any,
             access_level: selectedAccess,
             granted_by: user?.id,
