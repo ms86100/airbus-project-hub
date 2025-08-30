@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
 import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
@@ -17,7 +17,7 @@ interface Project {
 }
 
 const TeamCapacity = () => {
-  const { user, loading } = useApiAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,7 +68,7 @@ interface Task {
 const ProjectOverview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useApiAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { canRead } = useModulePermissions(id || '');
 

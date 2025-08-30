@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useApiAuth } from "@/hooks/useApiAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ interface Department {
 }
 
 export default function DepartmentManagement() {
-  const { user } = useApiAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [newDepartmentName, setNewDepartmentName] = useState("");

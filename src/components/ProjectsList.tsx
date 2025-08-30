@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +38,7 @@ interface ProjectFormData {
 
 const ProjectsList = () => {
   const navigate = useNavigate();
-  const { user } = useApiAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const [projects, setProjects] = useState<Project[]>([]);

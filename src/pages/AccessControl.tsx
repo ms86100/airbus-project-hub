@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +43,7 @@ const MODULES = [
 ];
 
 export default function AccessControl() {
-  const { user } = useApiAuth();
+  const { user } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);

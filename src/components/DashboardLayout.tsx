@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -20,7 +20,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const { user, signOut } = useApiAuth();
+  const { user, signOut } = useAuth();
 
   const getRoleBadgeVariant = (role: string | null) => {
     switch (role) {

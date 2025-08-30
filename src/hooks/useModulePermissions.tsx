@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api';
-import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuth } from '@/hooks/useAuth';
 
 export type ModuleName = 
   | 'overview'
@@ -21,7 +21,7 @@ interface ModulePermissions {
 }
 
 export function useModulePermissions(projectId: string) {
-  const { user } = useApiAuth();
+  const { user } = useAuth();
   const [permissions, setPermissions] = useState<ModulePermissions>({});
   const [isProjectOwner, setIsProjectOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
