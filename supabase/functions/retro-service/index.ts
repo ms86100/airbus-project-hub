@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
   const path = url.pathname;
   const method = req.method;
 
-  logRequest(method, path);
+  // logRequest moved after authentication to include user context
 
   try {
     // All endpoints require authentication
@@ -89,6 +89,15 @@ Deno.serve(async (req) => {
     if (authError || !user) {
       return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
     }
+    // Create a user-scoped client so RLS and auth.uid() work in triggers
+    const db = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: {
+        headers: {
+          Authorization: req.headers.get('Authorization') || '',
+        },
+      },
+    });
+    logRequest(method, path, user);
 
     // GET /retro-service/projects/:id/retrospectives
     if (method === 'GET' && path.includes('/projects/') && path.endsWith('/retrospectives')) {
@@ -102,7 +111,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: retrospectives, error } = await supabase
+      const { data: retrospectives, error } = await db
         .from('retrospectives')
         .select(`
           id, project_id, iteration_id, framework, status, created_at, updated_at, created_by,
@@ -139,7 +148,7 @@ Deno.serve(async (req) => {
       const body: CreateRetrospectiveBody = await parseRequestBody(req);
       const framework = body.framework || 'Classic';
 
-      const { data: retrospective, error: createError } = await supabase
+      const { data: retrospective, error: createError } = await db
         .from('retrospectives')
         .insert({
           project_id: projectId,
@@ -170,7 +179,7 @@ Deno.serve(async (req) => {
         column_order: idx,
       }));
 
-      const { error: colError } = await supabase
+      const { error: colError } = await db
         .from('retrospective_columns')
         .insert(toInsert);
 
@@ -193,7 +202,7 @@ Deno.serve(async (req) => {
       if (!retrospectiveId) return createErrorResponse('Retrospective ID is required', 'MISSING_RETRO_ID');
 
       // Find project for access check
-      const { data: retro } = await supabase
+      const { data: retro } = await db
         .from('retrospectives')
         .select('id, project_id')
         .eq('id', retrospectiveId)
@@ -207,7 +216,7 @@ Deno.serve(async (req) => {
       const body: CreateRetroActionBody = await parseRequestBody(req);
       if (!body.what_task) return createErrorResponse('what_task is required', 'MISSING_FIELDS');
 
-      const { data: action, error } = await supabase
+      const { data: action, error } = await db
         .from('retrospective_action_items')
         .insert({
           retrospective_id: retrospectiveId,
