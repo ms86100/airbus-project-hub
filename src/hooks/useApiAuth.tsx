@@ -22,32 +22,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+    console.log('🎯 AUTH HOOK V2 - Setting up auth from localStorage...');
+    
+    // Check for stored session first
+    const storedSession = localStorage.getItem('auth_session');
+    const storedUser = localStorage.getItem('auth_user');
+    
+    if (storedSession && storedUser) {
+      try {
+        const session = JSON.parse(storedSession);
+        const user = JSON.parse(storedUser);
+        console.log('📱 Found stored session for:', user.email);
         
-        if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setUser(null);
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setSession(session);
-          setUser(session?.user ?? null);
-        }
-        
-        setLoading(false);
+        setSession(session);
+        setUser(user);
+      } catch (error) {
+        console.error('Error parsing stored auth:', error);
+        localStorage.removeItem('auth_session');
+        localStorage.removeItem('auth_user');
       }
-    );
-
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    }
+    
+    setLoading(false);
+    console.log('✅ Auth initialization complete');
   }, []);
 
   // Auth state cleanup utility
@@ -68,25 +65,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
-      // Clean up existing state first
-      cleanupAuthState();
+      console.log('🔐 Starting microservice login for:', email);
       
-      // Attempt global sign out to clear any existing sessions
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continue even if this fails
-        console.log('Global signout failed, continuing with login');
-      }
-
       const response = await apiClient.login(email, password);
+      console.log('📡 Login response:', response);
       
       if (!response.success) {
+        console.log('❌ Login failed:', response.error);
         return { error: response.error || 'Login failed' };
       }
 
-      // Force page refresh for clean state
-      if (response.data?.user) {
+      // Set auth state from API response
+      if (response.data?.session && response.data?.user) {
+        console.log('✅ Setting auth state for user:', response.data.user.email);
+        setSession(response.data.session);
+        setUser(response.data.user);
+        
+        // Store session in localStorage for persistence
+        localStorage.setItem('auth_session', JSON.stringify(response.data.session));
+        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+        
+        console.log('🏠 Redirecting to dashboard');
         window.location.href = '/';
       }
 
@@ -120,33 +119,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async (): Promise<void> => {
     try {
-      // Clean up auth state first
-      cleanupAuthState();
+      console.log('🚪 Starting microservice logout...');
       
-      // Clear local state
+      // Clear local state first
       setSession(null);
       setUser(null);
+      
+      // Remove from localStorage
+      localStorage.removeItem('auth_session');
+      localStorage.removeItem('auth_user');
       
       // Attempt API logout
       try {
         await apiClient.logout();
+        console.log('✅ API logout successful');
       } catch (err) {
-        console.log('API logout failed, continuing with cleanup');
+        console.log('⚠️ API logout failed, continuing with cleanup');
       }
       
-      // Also sign out from Supabase client with global scope
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        console.log('Supabase signout failed, continuing with cleanup');
-      }
-      
-      // Force page refresh for clean state
+      // Force redirect to auth page
       window.location.href = '/auth';
     } catch (error) {
       console.error('Sign out error:', error);
       // Force cleanup even if there's an error
-      cleanupAuthState();
+      localStorage.removeItem('auth_session');
+      localStorage.removeItem('auth_user');
       window.location.href = '/auth';
     }
   };
