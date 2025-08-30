@@ -728,8 +728,9 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
             <p className="text-muted-foreground">Reflect and improve with structured retrospectives</p>
           </div>
           <Button onClick={() => {
-            console.log('New Retrospective clicked');
+            console.log('About to set showCreateDialog to true, current value:', showCreateDialog);
             setShowCreateDialog(true);
+            console.log('After setShowCreateDialog call');
           }}>
             <Plus className="h-4 w-4 mr-2" />
             New Retrospective
@@ -741,10 +742,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2">No retrospectives yet</h3>
               <p className="text-muted-foreground mb-4">Create your first retrospective to start reflecting on your team's performance</p>
-            <Button onClick={() => {
-              console.log('Create Retrospective clicked');
-              setShowCreateDialog(true);
-            }}>
+            <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Retrospective
             </Button>
@@ -850,10 +848,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           <Button variant="outline" onClick={() => setShowRetrospectivesList(true)}>
             View All
           </Button>
-          <Button onClick={() => {
-            console.log('New Retrospective clicked (main view)');
-            setShowCreateDialog(true);
-          }}>
+          <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Retrospective
           </Button>
@@ -865,10 +860,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           <div className="text-center">
             <h3 className="text-lg font-semibold mb-2">No retrospectives yet</h3>
             <p className="text-muted-foreground mb-4">Create your first retrospective to start reflecting on your team's performance</p>
-            <Button onClick={() => {
-              console.log('Create Retrospective clicked (empty state)');
-              setShowCreateDialog(true);
-            }}>
+            <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Retrospective
             </Button>
@@ -1220,7 +1212,10 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
       )}
 
       {/* Create Retrospective Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      <Dialog open={showCreateDialog} onOpenChange={(open) => {
+        console.log('Dialog open state changed to:', open);
+        setShowCreateDialog(open);
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Retrospective</DialogTitle>
