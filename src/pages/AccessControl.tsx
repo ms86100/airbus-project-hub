@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
+import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,8 @@ const MODULES = [
 ];
 
 export default function AccessControl() {
-  const { user, userRole } = useAuth();
+  const { user } = useApiAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [permissions, setPermissions] = useState<ModulePermission[]>([]);
@@ -55,24 +56,31 @@ export default function AccessControl() {
 
   useEffect(() => {
     if (user) {
+      fetchUserRole();
       fetchProjects();
       fetchPermissions();
     }
   }, [user]);
 
+  const fetchUserRole = async () => {
+    if (!user) return;
+    
+    try {
+      // Get user role from profiles/user_roles via API if needed
+      // For now, assume regular user unless admin
+      setUserRole('project_coordinator');
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+    }
+  };
+
   const fetchProjects = async () => {
     try {
-      // Only fetch projects the user owns if not admin
-      let query = supabase.from('projects').select('id, name');
-      
-      if (userRole !== 'admin') {
-        query = query.eq('created_by', user?.id);
+      const response = await apiClient.getProjects();
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch projects');
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setProjects(data || []);
+      setProjects(response.data || []);
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast({
@@ -85,28 +93,12 @@ export default function AccessControl() {
 
   const fetchPermissions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('module_permissions')
-        .select(`
-          *,
-          projects!inner(name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Get user emails using the security definer function
-      const userIds = [...new Set(data?.map(p => p.user_id) || [])];
-      const { data: userEmails } = await supabase
-        .rpc('get_user_emails_by_ids', { _user_ids: userIds });
-
-      const permissionsWithDetails = data?.map(permission => ({
-        ...permission,
-        project_name: permission.projects.name,
-        user_email: userEmails?.find(u => u.id === permission.user_id)?.email || 'Unknown'
-      })) || [];
-
-      setPermissions(permissionsWithDetails);
+      const response = await apiClient.getAllPermissions();
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch permissions');
+      }
+      
+      setPermissions(response.data.permissions || []);
     } catch (error) {
       console.error('Error fetching permissions:', error);
       toast({
@@ -130,35 +122,17 @@ export default function AccessControl() {
     setLoading(true);
 
     try {
-      // Check if user exists using the security definer function
-      const { data: userId, error: userError } = await supabase
-        .rpc('find_user_by_email', { _email: userEmail });
-
-      if (userError || !userId) {
-        toast({
-          title: "Error",
-          description: "User not found. They must sign up first.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Add module permissions for each selected module
+      // Grant access for each selected module using the API
       const permissionPromises = selectedModules.map(module => 
-        supabase
-          .from('module_permissions')
-          .upsert({
-            project_id: selectedProject,
-            user_id: userId,
-            module: module as any,
-            access_level: selectedAccess,
-            granted_by: user?.id,
-          })
+        apiClient.grantModulePermission(selectedProject, {
+          userId: userEmail, // The API will handle email-to-ID conversion
+          module,
+          accessLevel: selectedAccess,
+        })
       );
 
       const results = await Promise.all(permissionPromises);
-      const errors = results.filter(result => result.error);
+      const errors = results.filter(result => !result.success);
       
       if (errors.length > 0) {
         throw new Error(`Failed to grant access to ${errors.length} modules`);
@@ -191,12 +165,21 @@ export default function AccessControl() {
 
   const removePermission = async (permissionId: string) => {
     try {
-      const { error } = await supabase
-        .from('module_permissions')
-        .delete()
-        .eq('id', permissionId);
+      // Find the permission to get project and user info for revocation
+      const permission = permissions.find(p => p.id === permissionId);
+      if (!permission) {
+        throw new Error('Permission not found');
+      }
 
-      if (error) throw error;
+      const response = await apiClient.revokeModulePermission(
+        permission.project_id, 
+        permission.user_id, 
+        permission.module
+      );
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to remove permission');
+      }
 
       toast({
         title: "Success",

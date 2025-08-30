@@ -161,6 +161,10 @@ class ApiClient {
     });
   }
 
+  async getAllPermissions(): Promise<ApiResponse<{ permissions: any[] }>> {
+    return this.makeRequest('/access-service/permissions', { method: 'GET' });
+  }
+
   // Team Capacity Service Methods
   async getProjectCapacity(projectId: string): Promise<ApiResponse<{
     projectId: string;
