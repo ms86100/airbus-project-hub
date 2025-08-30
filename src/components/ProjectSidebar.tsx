@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, LayoutGrid, Users, Settings, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Calendar, LayoutGrid, Users, Settings, ArrowLeft, AlertTriangle, MessageCircle } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -40,6 +40,13 @@ const sidebarItems = [
     icon: Users, 
     path: 'stakeholders',
     description: 'Project stakeholder registry'
+  },
+  { 
+    id: 'discussions', 
+    title: 'Discussions', 
+    icon: MessageCircle, 
+    path: 'discussions',
+    description: 'Meeting logs and action items'
   },
   { 
     id: 'status', 

@@ -35,6 +35,86 @@ export type Database = {
         }
         Relationships: []
       }
+      discussion_action_items: {
+        Row: {
+          created_at: string
+          created_by: string
+          discussion_id: string
+          id: string
+          owner_id: string | null
+          status: string
+          target_date: string | null
+          task_description: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          discussion_id: string
+          id?: string
+          owner_id?: string | null
+          status?: string
+          target_date?: string | null
+          task_description: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          discussion_id?: string
+          id?: string
+          owner_id?: string | null
+          status?: string
+          target_date?: string | null
+          task_description?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_action_items_discussion_id_fkey"
+            columns: ["discussion_id"]
+            isOneToOne: false
+            referencedRelation: "project_discussions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussion_change_log: {
+        Row: {
+          action_item_id: string | null
+          change_type: string
+          changed_by: string
+          created_at: string
+          discussion_id: string | null
+          field_name: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          action_item_id?: string | null
+          change_type: string
+          changed_by: string
+          created_at?: string
+          discussion_id?: string | null
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          action_item_id?: string | null
+          change_type?: string
+          changed_by?: string
+          created_at?: string
+          discussion_id?: string | null
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: []
+      }
       milestones: {
         Row: {
           created_at: string
@@ -123,6 +203,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      project_discussions: {
+        Row: {
+          attendees: Json | null
+          created_at: string
+          created_by: string
+          id: string
+          meeting_date: string
+          meeting_title: string
+          project_id: string
+          summary_notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          attendees?: Json | null
+          created_at?: string
+          created_by: string
+          id?: string
+          meeting_date: string
+          meeting_title: string
+          project_id: string
+          summary_notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attendees?: Json | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          meeting_date?: string
+          meeting_title?: string
+          project_id?: string
+          summary_notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       project_members: {
         Row: {
