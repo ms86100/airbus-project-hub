@@ -219,6 +219,42 @@ export type Database = {
           },
         ]
       }
+      module_access_audit: {
+        Row: {
+          access_level: Database["public"]["Enums"]["access_level"] | null
+          access_type: string
+          granted_by: string | null
+          id: string
+          metadata: Json | null
+          module: Database["public"]["Enums"]["module_name"]
+          project_id: string
+          timestamp: string | null
+          user_id: string
+        }
+        Insert: {
+          access_level?: Database["public"]["Enums"]["access_level"] | null
+          access_type: string
+          granted_by?: string | null
+          id?: string
+          metadata?: Json | null
+          module: Database["public"]["Enums"]["module_name"]
+          project_id: string
+          timestamp?: string | null
+          user_id: string
+        }
+        Update: {
+          access_level?: Database["public"]["Enums"]["access_level"] | null
+          access_type?: string
+          granted_by?: string | null
+          id?: string
+          metadata?: Json | null
+          module?: Database["public"]["Enums"]["module_name"]
+          project_id?: string
+          timestamp?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       module_permissions: {
         Row: {
           access_level: Database["public"]["Enums"]["access_level"]
@@ -1210,6 +1246,17 @@ export type Database = {
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_module_access: {
+        Args: {
+          _access_level?: Database["public"]["Enums"]["access_level"]
+          _access_type: string
+          _granted_by?: string
+          _module: Database["public"]["Enums"]["module_name"]
+          _project_id: string
+          _user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
