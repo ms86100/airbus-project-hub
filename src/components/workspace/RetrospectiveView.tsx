@@ -446,7 +446,9 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     if (!over) return;
 
     const cardId = active.id as string;
-    const targetColumnId = over.id as string;
+    const overId = over.id as string;
+    const overCard = cards.find(c => c.id === overId);
+    const targetColumnId = overCard ? overCard.column_id : overId;
     const card = cards.find(c => c.id === cardId);
 
     if (!card || card.column_id === targetColumnId) return;
