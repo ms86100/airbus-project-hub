@@ -1208,7 +1208,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           </Dialog>
 
           <Dialog open={showMemberDialog} onOpenChange={setShowMemberDialog}>
-            <DialogContent>
+            <DialogContent className="z-[50] max-w-md">
               <DialogHeader>
                 <DialogTitle>{editingMember ? 'Edit' : 'Add'} Team Member</DialogTitle>
               </DialogHeader>
@@ -1219,7 +1219,14 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     <SelectTrigger className="bg-background border">
                       <SelectValue placeholder="Select a team member" />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover border z-[100] max-h-[200px] overflow-y-auto" position="popper" sideOffset={5}>
+                    <SelectContent 
+                      className="bg-popover border z-[9999] max-h-[200px] overflow-y-auto" 
+                      position="popper" 
+                      side="bottom"
+                      align="start"
+                      avoidCollisions={true}
+                      sticky="always"
+                    >
                       {stakeholders.map((stakeholder) => (
                         <SelectItem key={stakeholder.id} value={stakeholder.id} className="hover:bg-accent cursor-pointer">
                           {stakeholder.name} {stakeholder.department && `(${stakeholder.department})`}
