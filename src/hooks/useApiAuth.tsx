@@ -26,14 +26,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
+        
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+        
         setLoading(false);
       }
     );
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -42,8 +50,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Auth state cleanup utility
+  const cleanupAuthState = () => {
+    // Remove all Supabase auth keys from localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    // Remove from sessionStorage if in use
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
+
   const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
+      // Clean up existing state first
+      cleanupAuthState();
+      
+      // Attempt global sign out to clear any existing sessions
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.log('Global signout failed, continuing with login');
+      }
+
       const response = await apiClient.login(email, password);
       
       if (!response.success) {
@@ -85,24 +120,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async (): Promise<void> => {
     try {
-      await apiClient.logout();
+      // Clean up auth state first
+      cleanupAuthState();
       
       // Clear local state
       setSession(null);
       setUser(null);
       
-      // Also sign out from Supabase client to clear local storage
-      await supabase.auth.signOut();
+      // Attempt API logout
+      try {
+        await apiClient.logout();
+      } catch (err) {
+        console.log('API logout failed, continuing with cleanup');
+      }
+      
+      // Also sign out from Supabase client with global scope
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.log('Supabase signout failed, continuing with cleanup');
+      }
       
       // Force page refresh for clean state
       window.location.href = '/auth';
     } catch (error) {
       console.error('Sign out error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to sign out properly",
-        variant: "destructive",
-      });
+      // Force cleanup even if there's an error
+      cleanupAuthState();
+      window.location.href = '/auth';
     }
   };
 
