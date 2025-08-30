@@ -352,8 +352,58 @@ const ProjectOverview = () => {
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-semibold">Tasks & Milestones</h2>
                     </div>
-                    {/* Simplified view for tasks - you can expand this */}
-                    <div className="text-muted-foreground">Tasks and Milestones content</div>
+                    
+                    {/* Recent Tasks */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Recent Tasks</h3>
+                      {workspaceData?.recentTasks?.length > 0 ? (
+                        <div className="grid gap-3">
+                          {workspaceData.recentTasks.map((task: Task) => (
+                            <Card key={task.id} className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium">{task.title}</h4>
+                                  <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                                </div>
+                                <Badge variant={getStatusBadgeVariant(task.status)}>
+                                  {task.status.replace('_', ' ')}
+                                </Badge>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No recent tasks found</p>
+                      )}
+                    </div>
+
+                    {/* Upcoming Milestones */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Upcoming Milestones</h3>
+                      {workspaceData?.upcomingMilestones?.length > 0 ? (
+                        <div className="grid gap-3">
+                          {workspaceData.upcomingMilestones.map((milestone: Milestone) => (
+                            <Card key={milestone.id} className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium">{milestone.name}</h4>
+                                  <p className="text-sm text-muted-foreground mt-1">{milestone.description}</p>
+                                  <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                                    <Calendar className="h-4 w-4" />
+                                    {new Date(milestone.due_date).toLocaleDateString()}
+                                  </div>
+                                </div>
+                                <Badge variant={getStatusBadgeVariant(milestone.status)}>
+                                  {milestone.status.replace('_', ' ')}
+                                </Badge>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No upcoming milestones found</p>
+                      )}
+                    </div>
                   </div>
                 </TabsContent>
               )}
