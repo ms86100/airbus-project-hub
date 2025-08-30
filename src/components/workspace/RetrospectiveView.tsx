@@ -581,24 +581,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     if (!user || !selectedRetrospective || !selectedCardForAction) return;
 
     try {
-      // Create task in backlog first
-      const { data: taskData, error: taskError } = await supabase
-        .from('task_backlog')
-        .insert([{
-          project_id: projectId,
-          title: actionForm.what_task,
-          description: `From Retrospective: ${selectedCardForAction.text}\n\nApproach: ${actionForm.how_approach}`,
-          source_type: 'retrospective',
-          source_id: selectedCardForAction.id,
-          created_by: user.id,
-          priority: 'medium'
-        }])
-        .select()
-        .single();
-
-      if (taskError) throw taskError;
-
-      // Create action item with task reference
+      // Only create action item, don't automatically create task
       const { error: actionError } = await supabase
         .from('retrospective_action_items')
         .insert([{
@@ -610,15 +593,15 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           how_approach: actionForm.how_approach,
           backlog_ref_id: actionForm.backlog_ref_id,
           created_by: user.id,
-          converted_to_task: true,
-          task_id: taskData.id
+          converted_to_task: false,
+          task_id: null
         }]);
 
       if (actionError) throw actionError;
 
       toast({
         title: 'Success',
-        description: 'Action item created and added to backlog successfully'
+        description: 'Action item created successfully'
       });
 
       setShowActionDialog(false);
@@ -812,8 +795,8 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                             <Badge variant={retro.status === 'active' ? 'default' : 'secondary'}>
                               {retro.status}
                             </Badge>
-                            <Badge variant="outline">
-                              {retro.framework}
+                            <Badge variant="outline" className="font-medium">
+                              {retro.framework} Template
                             </Badge>
                           </div>
                           
@@ -975,12 +958,12 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           </div>
         </Card>
       ) : (
-        <Tabs defaultValue="board" className="space-y-4">
+        <Tabs defaultValue="history" className="space-y-4">
           <div className="flex items-center justify-between">
             <TabsList>
+              <TabsTrigger value="history">All Retrospectives</TabsTrigger>
               <TabsTrigger value="board">Kanban Board</TabsTrigger>
               <TabsTrigger value="actions">Action Items</TabsTrigger>
-              <TabsTrigger value="history">All Retrospectives</TabsTrigger>
             </TabsList>
             
             <div className="flex items-center gap-4">
