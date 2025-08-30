@@ -6,6 +6,8 @@ import { StatusManagementView } from '@/components/workspace/StatusManagementVie
 import { RiskRegisterView } from '@/components/workspace/RiskRegisterView';
 import { DiscussionLog } from '@/components/workspace/DiscussionLog';
 import { TaskBacklog } from '@/components/workspace/TaskBacklog';
+import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
+import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
 
 interface ProjectWorkspaceContentProps {
   projectId: string;
@@ -29,6 +31,10 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
         return <StatusManagementView projectId={projectId} />;
       case 'risks':
         return <RiskRegisterView projectId={projectId} />;
+      case 'capacity':
+        return <TeamCapacityTracker projectId={projectId} />;
+      case 'retrospective':
+        return <RetrospectiveView projectId={projectId} />;
       default:
         return <RoadmapView />;
     }

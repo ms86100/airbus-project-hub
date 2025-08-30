@@ -332,6 +332,150 @@ export type Database = {
           },
         ]
       }
+      retrospective_action_items: {
+        Row: {
+          backlog_ref_id: string | null
+          backlog_status: string | null
+          created_at: string
+          created_by: string
+          from_card_id: string | null
+          how_approach: string | null
+          id: string
+          retrospective_id: string
+          updated_at: string
+          what_task: string
+          when_sprint: string | null
+          who_responsible: string | null
+        }
+        Insert: {
+          backlog_ref_id?: string | null
+          backlog_status?: string | null
+          created_at?: string
+          created_by: string
+          from_card_id?: string | null
+          how_approach?: string | null
+          id?: string
+          retrospective_id: string
+          updated_at?: string
+          what_task: string
+          when_sprint?: string | null
+          who_responsible?: string | null
+        }
+        Update: {
+          backlog_ref_id?: string | null
+          backlog_status?: string | null
+          created_at?: string
+          created_by?: string
+          from_card_id?: string | null
+          how_approach?: string | null
+          id?: string
+          retrospective_id?: string
+          updated_at?: string
+          what_task?: string
+          when_sprint?: string | null
+          who_responsible?: string | null
+        }
+        Relationships: []
+      }
+      retrospective_cards: {
+        Row: {
+          card_order: number
+          column_id: string
+          created_at: string
+          created_by: string
+          id: string
+          text: string
+          updated_at: string
+          votes: number
+        }
+        Insert: {
+          card_order?: number
+          column_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          text: string
+          updated_at?: string
+          votes?: number
+        }
+        Update: {
+          card_order?: number
+          column_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          text?: string
+          updated_at?: string
+          votes?: number
+        }
+        Relationships: []
+      }
+      retrospective_columns: {
+        Row: {
+          column_order: number
+          created_at: string
+          id: string
+          retrospective_id: string
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          column_order?: number
+          created_at?: string
+          id?: string
+          retrospective_id: string
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          column_order?: number
+          created_at?: string
+          id?: string
+          retrospective_id?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      retrospectives: {
+        Row: {
+          created_at: string
+          created_by: string
+          department_id: string | null
+          framework: string
+          id: string
+          iteration_id: string
+          project_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          department_id?: string | null
+          framework?: string
+          id?: string
+          iteration_id: string
+          project_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          framework?: string
+          id?: string
+          iteration_id?: string
+          project_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       risk_register: {
         Row: {
           category: string | null
