@@ -49,6 +49,13 @@ const sidebarItems = [
     description: 'Meeting logs and action items'
   },
   { 
+    id: 'backlog', 
+    title: 'Task Backlog', 
+    icon: LayoutGrid, 
+    path: 'backlog',
+    description: 'Manage task backlog and convert to milestones'
+  },
+  { 
     id: 'status', 
     title: 'Status Management', 
     icon: Settings, 

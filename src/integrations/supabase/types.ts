@@ -472,6 +472,57 @@ export type Database = {
           },
         ]
       }
+      task_backlog: {
+        Row: {
+          created_at: string
+          created_by: string
+          department_id: string | null
+          description: string | null
+          id: string
+          owner_id: string | null
+          priority: string | null
+          project_id: string
+          source_id: string | null
+          source_type: string | null
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          owner_id?: string | null
+          priority?: string | null
+          project_id: string
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          owner_id?: string | null
+          priority?: string | null
+          project_id?: string
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       task_status_history: {
         Row: {
           changed_at: string

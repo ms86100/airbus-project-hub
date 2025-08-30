@@ -5,6 +5,7 @@ import { StakeholdersView } from '@/components/workspace/StakeholdersView';
 import { StatusManagementView } from '@/components/workspace/StatusManagementView';
 import { RiskRegisterView } from '@/components/workspace/RiskRegisterView';
 import { DiscussionLog } from '@/components/workspace/DiscussionLog';
+import { TaskBacklog } from '@/components/workspace/TaskBacklog';
 
 interface ProjectWorkspaceContentProps {
   projectId: string;
@@ -22,6 +23,8 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
         return <StakeholdersView projectId={projectId} />;
       case 'discussions':
         return <DiscussionLog projectId={projectId} projectName="Current Project" />;
+      case 'backlog':
+        return <TaskBacklog projectId={projectId} />;
       case 'status':
         return <StatusManagementView projectId={projectId} />;
       case 'risks':

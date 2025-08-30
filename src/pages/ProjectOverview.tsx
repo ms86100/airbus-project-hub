@@ -19,6 +19,7 @@ import { RiskRegisterView } from '@/components/workspace/RiskRegisterView';
 import { TaskCard } from '@/components/workspace/TaskManagement';
 import { TasksTableView } from '@/components/workspace/TasksTableView';
 import { AddTaskDialog } from '@/components/workspace/AddTaskDialog';
+import { AddTaskFromBacklogDialog } from '@/components/workspace/AddTaskFromBacklogDialog';
 
 interface Project {
   id: string;
@@ -360,11 +361,18 @@ const ProjectOverview = () => {
                                 </Badge>
                               </div>
                             </div>
-                            <AddTaskDialog 
-                              milestoneId={milestone.id}
-                              projectId={id!}
-                              onTaskAdded={fetchProjectData}
-                            />
+                            <div className="flex gap-2">
+                              <AddTaskDialog 
+                                milestoneId={milestone.id}
+                                projectId={id!}
+                                onTaskAdded={fetchProjectData}
+                              />
+                              <AddTaskFromBacklogDialog
+                                milestoneId={milestone.id}
+                                projectId={id!}
+                                onTaskAdded={fetchProjectData}
+                              />
+                            </div>
                           </div>
                         </CardHeader>
                         <CardContent>

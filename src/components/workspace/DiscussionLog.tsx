@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { MessageSquare, Plus, Edit2, Clock, CheckCircle, Trash2, Users, X } from 'lucide-react';
+import { MessageSquare, Plus, Edit2, Clock, CheckCircle, Trash2, Users, X, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Discussion {
@@ -290,7 +290,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
 
   const handleActionItemSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !selectedDiscussion) return;
+    if (!user || !selectedDiscussion || !actionItemForm.task_description.trim()) return;
 
     try {
       const actionItemData = {
@@ -388,6 +388,47 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
     }
   };
 
+  const convertToBacklog = async (actionItem: ActionItem) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('task_backlog')
+        .insert({
+          title: actionItem.task_description,
+          description: `Converted from action item - Discussion: ${selectedDiscussion?.meeting_title}`,
+          project_id: projectId,
+          created_by: user.id,
+          owner_id: actionItem.owner_id || null,
+          target_date: actionItem.target_date || null,
+          priority: 'medium',
+          source_type: 'action_item',
+          source_id: actionItem.id
+        });
+
+      if (error) throw error;
+      
+      toast({
+        title: 'Success',
+        description: 'Action item converted to backlog item successfully'
+      });
+      
+      // Optionally mark the action item as completed
+      await supabase
+        .from('discussion_action_items')
+        .update({ status: 'completed' })
+        .eq('id', actionItem.id);
+        
+      fetchActionItems();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Failed to convert action item to backlog',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const openEditDiscussion = (discussion: Discussion) => {
     setEditingDiscussion(discussion);
     setDiscussionForm({
@@ -416,7 +457,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
     stakeholders.forEach(stakeholder => {
       options.push({
         value: stakeholder.id,
-        label: `${stakeholder.name} (${stakeholder.email})`
+        label: `${stakeholder.name} (${stakeholder.email || 'No email'})`
       });
     });
     
@@ -424,7 +465,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
       if (member.profiles) {
         options.push({
           value: member.user_id,
-          label: `${member.profiles.full_name} (${member.profiles.email})`
+          label: `${member.profiles.full_name || 'Unknown'} (${member.profiles.email || 'No email'})`
         });
       }
     });
@@ -752,14 +793,22 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openEditActionItem(actionItem)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
+                           <div className="flex items-center gap-2">
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => convertToBacklog(actionItem)}
+                               title="Convert to Backlog Item"
+                             >
+                               <ArrowRight className="h-4 w-4" />
+                             </Button>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => openEditActionItem(actionItem)}
+                             >
+                               <Edit2 className="h-4 w-4" />
+                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm">
