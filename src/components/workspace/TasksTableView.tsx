@@ -1,12 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, Search, Filter, Eye, Edit, Trash2, Clock, CheckCircle, AlertCircle, Target } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Calendar, Search, Filter, Eye, Edit, Trash2, Clock, CheckCircle, AlertCircle, Target, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface Task {
   id: string;
@@ -46,43 +53,103 @@ type TableItem = (Task | Milestone) & { type: ItemType; milestone_name?: string 
 export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpdate }: TasksTableViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set(milestones.map(m => m.id)));
 
-  // Combine tasks and milestones into a single array for table display
-  const tableItems: TableItem[] = useMemo(() => {
-    const taskItems: TableItem[] = tasks.map(task => ({
-      ...task,
-      type: 'task' as ItemType,
-      milestone_name: milestones.find(m => m.id === task.milestone_id)?.name || 'Unassigned'
-    }));
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-    const milestoneItems: TableItem[] = milestones.map(milestone => ({
-      ...milestone,
-      type: 'milestone' as ItemType,
-      title: milestone.name,
-      priority: 'high' // Milestones are typically high priority
-    }));
-
-    return [...milestoneItems, ...taskItems];
-  }, [tasks, milestones]);
-
-  // Filter items based on search and filters
-  const filteredItems = useMemo(() => {
-    return tableItems.filter(item => {
-      const title = item.type === 'task' ? (item as Task).title : (item as Milestone).name;
-      const matchesSearch = title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-      const matchesType = typeFilter === 'all' || item.type === typeFilter;
-      const matchesPriority = priorityFilter === 'all' || 
-                             (item.type === 'task' && (item as Task).priority === priorityFilter) ||
-                             (item.type === 'milestone' && priorityFilter === 'high');
-
-      return matchesSearch && matchesStatus && matchesType && matchesPriority;
+  // Group tasks by milestone
+  const groupedData = useMemo(() => {
+    const groups = milestones.map(milestone => {
+      const milestoneTasks = tasks.filter(task => task.milestone_id === milestone.id);
+      return {
+        milestone,
+        tasks: milestoneTasks.filter(task => {
+          const matchesSearch = task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                               task.description?.toLowerCase().includes(searchTerm.toLowerCase());
+          const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+          const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
+          return matchesSearch && matchesStatus && matchesPriority;
+        })
+      };
     });
-  }, [tableItems, searchTerm, statusFilter, typeFilter, priorityFilter]);
+
+    // Add unassigned tasks group
+    const unassignedTasks = tasks.filter(task => !task.milestone_id).filter(task => {
+      const matchesSearch = task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           task.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+
+    if (unassignedTasks.length > 0) {
+      groups.push({
+        milestone: {
+          id: 'unassigned',
+          name: 'Unassigned Tasks',
+          description: 'Tasks not assigned to any milestone',
+          status: 'planning',
+          due_date: '',
+          project_id: '',
+          created_by: '',
+          created_at: ''
+        },
+        tasks: unassignedTasks
+      });
+    }
+
+    return groups;
+  }, [tasks, milestones, searchTerm, statusFilter, priorityFilter]);
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+
+    const taskId = active.id as string;
+    const newMilestoneId = over.id === 'unassigned' ? null : over.id as string;
+    
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ milestone_id: newMilestoneId })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Task moved successfully",
+      });
+
+      onTaskUpdate?.();
+    } catch (error) {
+      console.error('Error moving task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to move task",
+        variant: "destructive",
+      });
+    }
+  }, [onTaskUpdate]);
+
+  const toggleMilestone = (milestoneId: string) => {
+    setExpandedMilestones(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(milestoneId)) {
+        newSet.delete(milestoneId);
+      } else {
+        newSet.add(milestoneId);
+      }
+      return newSet;
+    });
+  };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -111,20 +178,6 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
     }
   };
 
-  const getTypeBadge = (type: ItemType) => {
-    return type === 'milestone' ? (
-      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-        <Target className="h-3 w-3 mr-1" />
-        Milestone
-      </Badge>
-    ) : (
-      <Badge variant="outline" className="bg-secondary/10 text-secondary-foreground border-secondary/20">
-        <CheckCircle className="h-3 w-3 mr-1" />
-        Task
-      </Badge>
-    );
-  };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'No date';
     try {
@@ -134,10 +187,9 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
     }
   };
 
-  const handleRowClick = (item: TableItem) => {
-    // TODO: Implement row click to show details or edit
-    console.log('Row clicked:', item);
-  };
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.status === 'completed').length;
+  const inProgressTasks = tasks.filter(t => t.status === 'in_progress').length;
 
   return (
     <div className="space-y-6">
@@ -147,8 +199,8 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Items</p>
-                <p className="text-2xl font-bold">{tableItems.length}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Tasks</p>
+                <p className="text-2xl font-bold">{totalTasks}</p>
               </div>
               <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
                 <CheckCircle className="h-4 w-4 text-primary" />
@@ -162,9 +214,7 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold">
-                  {tableItems.filter(item => item.status === 'completed').length}
-                </p>
+                <p className="text-2xl font-bold">{completedTasks}</p>
               </div>
               <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
                 <CheckCircle className="h-4 w-4 text-green-600" />
@@ -178,9 +228,7 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">In Progress</p>
-                <p className="text-2xl font-bold">
-                  {tableItems.filter(item => item.status === 'in_progress').length}
-                </p>
+                <p className="text-2xl font-bold">{inProgressTasks}</p>
               </div>
               <div className="h-8 w-8 bg-yellow-100 rounded-lg flex items-center justify-center">
                 <Clock className="h-4 w-4 text-yellow-600" />
@@ -213,33 +261,22 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search tasks and milestones..."
+                placeholder="Search tasks..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
 
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="task">Tasks</SelectItem>
-                <SelectItem value="milestone">Milestones</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border border-border shadow-lg z-[9999]">
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="planning">Planning</SelectItem>
                 <SelectItem value="todo">To Do</SelectItem>
@@ -252,7 +289,7 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
               <SelectTrigger>
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border border-border shadow-lg z-[9999]">
                 <SelectItem value="all">All Priority</SelectItem>
                 <SelectItem value="low">Low</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
@@ -265,7 +302,6 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
               onClick={() => {
                 setSearchTerm('');
                 setStatusFilter('all');
-                setTypeFilter('all');
                 setPriorityFilter('all');
               }}
             >
@@ -275,112 +311,222 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            Tasks & Milestones ({filteredItems.length} items)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="w-[80px]">Type</TableHead>
-                  <TableHead className="min-w-[200px]">Title</TableHead>
-                  <TableHead className="min-w-[300px]">Description</TableHead>
-                  <TableHead className="w-[120px]">Status</TableHead>
-                  <TableHead className="w-[100px]">Priority</TableHead>
-                  <TableHead className="w-[130px]">Due Date</TableHead>
-                  <TableHead className="w-[150px]">Milestone</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.map((item) => (
-                  <TableRow 
-                    key={`${item.type}-${item.id}`}
-                    className="hover:bg-muted/30 cursor-pointer transition-colors"
-                    onClick={() => handleRowClick(item)}
-                  >
-                    <TableCell>
-                      {getTypeBadge(item.type)}
-                    </TableCell>
-                    <TableCell className="font-medium">
+      {/* Grouped Table */}
+      <DndContext 
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="space-y-4">
+          {groupedData.map((group) => (
+            <Card key={group.milestone.id} className="overflow-hidden">
+              <Collapsible 
+                open={expandedMilestones.has(group.milestone.id)}
+                onOpenChange={() => toggleMilestone(group.milestone.id)}
+              >
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors border-b">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {expandedMilestones.has(group.milestone.id) ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Target className="h-5 w-5 text-primary" />
+                          <h3 className="text-lg font-semibold">{group.milestone.name}</h3>
+                          <Badge variant="outline" className="ml-2">
+                            {group.tasks.length} tasks
+                          </Badge>
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
-                        {React.createElement(getStatusIcon(item.status), { 
-                          className: "h-4 w-4 text-muted-foreground" 
-                        })}
-                        <span className="truncate">{item.type === 'task' ? (item as Task).title : (item as Milestone).name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-[300px] truncate text-muted-foreground">
-                        {item.description || 'No description'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusBadgeVariant(item.status)}>
-                        {item.status.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {item.type === 'task' ? (
-                        <Badge variant={getPriorityBadgeVariant((item as Task).priority)}>
-                          {(item as Task).priority}
+                        {group.milestone.due_date && (
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {formatDate(group.milestone.due_date)}
+                          </div>
+                        )}
+                        <Badge variant={getStatusBadgeVariant(group.milestone.status)}>
+                          {group.milestone.status.replace('_', ' ')}
                         </Badge>
+                      </div>
+                    </div>
+                    {group.milestone.description && (
+                      <p className="text-sm text-muted-foreground mt-2 ml-7">
+                        {group.milestone.description}
+                      </p>
+                    )}
+                  </CardHeader>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent>
+                  <MilestoneDropZone milestoneId={group.milestone.id}>
+                    <CardContent className="p-0">
+                      {group.tasks.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/30">
+                              <TableHead className="w-[40px]"></TableHead>
+                              <TableHead className="min-w-[200px]">Task</TableHead>
+                              <TableHead className="min-w-[300px]">Description</TableHead>
+                              <TableHead className="w-[120px]">Status</TableHead>
+                              <TableHead className="w-[100px]">Priority</TableHead>
+                              <TableHead className="w-[130px]">Due Date</TableHead>
+                              <TableHead className="w-[100px]">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.tasks.map((task) => (
+                              <DraggableTaskRow 
+                                key={task.id} 
+                                task={task} 
+                                getStatusIcon={getStatusIcon}
+                                getStatusBadgeVariant={getStatusBadgeVariant}
+                                getPriorityBadgeVariant={getPriorityBadgeVariant}
+                                formatDate={formatDate}
+                              />
+                            ))}
+                          </TableBody>
+                        </Table>
                       ) : (
-                        <Badge variant="destructive">High</Badge>
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p className="text-sm">No tasks in this milestone</p>
+                          <p className="text-xs">Drag tasks here to assign them</p>
+                        </div>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(item.due_date)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {item.type === 'task' ? (
-                        <Badge variant="outline" className="text-xs">
-                          {(item as TableItem).milestone_name}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">N/A</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive">
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredItems.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <Search className="h-8 w-8" />
-                        <p>No items found matching your filters</p>
-                        <p className="text-sm">Try adjusting your search criteria</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                    </CardContent>
+                  </MilestoneDropZone>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+          ))}
+          
+          {groupedData.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Search className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No items found</h3>
+                <p className="text-muted-foreground text-center">
+                  Try adjusting your search criteria
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </DndContext>
+    </div>
+  );
+}
+
+// Draggable task row component
+interface DraggableTaskRowProps {
+  task: Task;
+  getStatusIcon: (status: string) => any;
+  getStatusBadgeVariant: (status: string) => any;
+  getPriorityBadgeVariant: (priority: string) => any;
+  formatDate: (date: string) => string;
+}
+
+function DraggableTaskRow({ 
+  task, 
+  getStatusIcon, 
+  getStatusBadgeVariant, 
+  getPriorityBadgeVariant, 
+  formatDate 
+}: DraggableTaskRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow 
+      ref={setNodeRef} 
+      style={style}
+      className={`hover:bg-muted/30 transition-colors ${isDragging ? 'z-50' : ''}`}
+    >
+      <TableCell>
+        <div 
+          {...attributes} 
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">
+        <div className="flex items-center gap-2">
+          {React.createElement(getStatusIcon(task.status), { 
+            className: "h-4 w-4 text-muted-foreground" 
+          })}
+          <span className="truncate">{task.title}</span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="max-w-[300px] truncate text-muted-foreground">
+          {task.description || 'No description'}
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant={getStatusBadgeVariant(task.status)}>
+          {task.status.replace('_', ' ')}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <Badge variant={getPriorityBadgeVariant(task.priority)}>
+          {task.priority}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1 text-sm">
+          <Calendar className="h-3 w-3" />
+          {formatDate(task.due_date)}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+            <Eye className="h-3 w-3" />
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+            <Edit className="h-3 w-3" />
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive">
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+// Milestone drop zone component
+interface MilestoneDropZoneProps {
+  children: React.ReactNode;
+  milestoneId: string;
+}
+
+function MilestoneDropZone({ children, milestoneId }: MilestoneDropZoneProps) {
+  const { isOver, setNodeRef } = useSortable({ id: milestoneId });
+
+  return (
+    <div 
+      ref={setNodeRef}
+      className={`${isOver ? 'bg-primary/10 border-2 border-primary border-dashed' : ''} transition-colors`}
+    >
+      {children}
     </div>
   );
 }
