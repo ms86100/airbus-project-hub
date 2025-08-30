@@ -1,8 +1,25 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/services/api';
+
+// Define custom User interface for microservice auth
+interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Define custom Session interface for microservice auth
+interface Session {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  expires_at?: number;
+  refresh_token?: string;
+  user: User;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -22,45 +39,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log('🎯 AUTH HOOK V2 - Setting up auth from localStorage...');
-    
-    // Check for stored session first
-    const storedSession = localStorage.getItem('auth_session');
-    const storedUser = localStorage.getItem('auth_user');
-    
-    if (storedSession && storedUser) {
-      try {
-        const session = JSON.parse(storedSession);
-        const user = JSON.parse(storedUser);
-        console.log('📱 Found stored session for:', user.email);
-        
-        setSession(session);
-        setUser(user);
-      } catch (error) {
-        console.error('Error parsing stored auth:', error);
-        localStorage.removeItem('auth_session');
-        localStorage.removeItem('auth_user');
-      }
-    }
-    
-    setLoading(false);
-    console.log('✅ Auth initialization complete');
+    console.log('🎯 AUTH HOOK V3 - Initializing microservice auth...');
+    initializeAuth();
   }, []);
 
-  // Auth state cleanup utility
-  const cleanupAuthState = () => {
-    // Remove all Supabase auth keys from localStorage
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
+  const initializeAuth = async () => {
+    try {
+      // Check for stored session first
+      const storedSession = localStorage.getItem('auth_session');
+      const storedUser = localStorage.getItem('auth_user');
+      
+      console.log('📱 Checking stored auth...', { 
+        hasSession: !!storedSession, 
+        hasUser: !!storedUser 
+      });
+      
+      if (storedSession && storedUser) {
+        try {
+          const sessionData = JSON.parse(storedSession);
+          const userData = JSON.parse(storedUser);
+          
+          console.log('✅ Found stored auth for:', userData.email);
+          
+          setSession(sessionData);
+          setUser(userData);
+        } catch (error) {
+          console.error('❌ Error parsing stored auth:', error);
+          localStorage.removeItem('auth_session');
+          localStorage.removeItem('auth_user');
+        }
+      } else {
+        console.log('❌ No stored authentication found');
       }
-    });
-    // Remove from sessionStorage if in use
-    Object.keys(sessionStorage || {}).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        sessionStorage.removeItem(key);
-      }
-    });
+    } catch (error) {
+      console.error('❌ Auth initialization error:', error);
+    } finally {
+      setLoading(false);
+      console.log('✅ Auth initialization complete');
+    }
   };
 
   const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
@@ -78,14 +94,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Set auth state from API response
       if (response.data?.session && response.data?.user) {
         console.log('✅ Setting auth state for user:', response.data.user.email);
-        setSession(response.data.session);
-        setUser(response.data.user);
+        
+        const sessionData = response.data.session;
+        const userData = response.data.user;
+        
+        setSession(sessionData);
+        setUser(userData);
         
         // Store session in localStorage for persistence
-        console.log('💾 Storing session:', response.data.session);
-        console.log('💾 Storing user:', response.data.user);
-        localStorage.setItem('auth_session', JSON.stringify(response.data.session));
-        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+        console.log('💾 Storing session and user data');
+        localStorage.setItem('auth_session', JSON.stringify(sessionData));
+        localStorage.setItem('auth_user', JSON.stringify(userData));
         
         console.log('🏠 Redirecting to dashboard');
         window.location.href = '/';
@@ -110,6 +129,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.data?.session) {
         setSession(response.data.session);
         setUser(response.data.user);
+        
+        // Store session in localStorage
+        localStorage.setItem('auth_session', JSON.stringify(response.data.session));
+        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
       }
 
       return { message: response.data?.message };
