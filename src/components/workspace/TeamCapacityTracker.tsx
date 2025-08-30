@@ -38,12 +38,17 @@ interface CapacityIteration {
 interface CapacityMember {
   id: string;
   iteration_id: string;
-  member_name: string;
-  role: string;
-  work_mode: 'office' | 'wfh' | 'hybrid';
+  stakeholder_id: string;
   leaves: number;
   availability_percent: number;
   effective_capacity_days: number;
+}
+
+interface Stakeholder {
+  id: string;
+  name: string;
+  email?: string;
+  department?: string;
 }
 
 interface TeamCapacityTrackerProps {
@@ -57,6 +62,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const [settings, setSettings] = useState<CapacitySettings | null>(null);
   const [iterations, setIterations] = useState<CapacityIteration[]>([]);
   const [members, setMembers] = useState<CapacityMember[]>([]);
+  const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [selectedIteration, setSelectedIteration] = useState<CapacityIteration | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -85,15 +91,11 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   });
 
   const [memberForm, setMemberForm] = useState<{
-    member_name: string;
-    role: string;
-    work_mode: 'office' | 'wfh' | 'hybrid';
+    stakeholder_id: string;
     leaves: number;
     availability_percent: number;
   }>({
-    member_name: '',
-    role: '',
-    work_mode: 'office',
+    stakeholder_id: '',
     leaves: 0,
     availability_percent: 100
   });
@@ -102,6 +104,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     if (projectId) {
       fetchSettings();
       fetchIterations();
+      fetchStakeholders();
     }
   }, [projectId]);
 
@@ -157,13 +160,27 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     }
   };
 
+  const fetchStakeholders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('stakeholders')
+        .select('id, name, email, department')
+        .eq('project_id', projectId)
+        .order('name');
+
+      if (error) throw error;
+      setStakeholders(data || []);
+    } catch (error) {
+      console.error('Error fetching stakeholders:', error);
+    }
+  };
+
   const fetchMembers = async (iterationId: string) => {
     try {
       const { data, error } = await supabase
         .from('team_capacity_members')
         .select('*')
-        .eq('iteration_id', iterationId)
-        .order('member_name');
+        .eq('iteration_id', iterationId);
 
       if (error) throw error;
       setMembers((data || []) as CapacityMember[]);
@@ -173,16 +190,11 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   };
 
   const calculateEffectiveCapacity = (
-    member: { work_mode: 'office' | 'wfh' | 'hybrid'; leaves: number; availability_percent: number }, 
+    member: { leaves: number; availability_percent: number }, 
     iteration: CapacityIteration
   ): number => {
-    if (!settings) return 0;
-    
-    const modeWeight = member.work_mode === 'office' ? settings.office_weight :
-                     member.work_mode === 'wfh' ? settings.wfh_weight :
-                     settings.hybrid_weight;
-    
-    return (iteration.working_days - member.leaves) * (member.availability_percent / 100) * modeWeight;
+    // Simplified formula: (working_days - leaves) * (availability_percent/100)
+    return (iteration.working_days - member.leaves) * (member.availability_percent / 100);
   };
 
   const handleSettingsSubmit = async (e: React.FormEvent) => {
@@ -278,7 +290,9 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       const effectiveCapacity = calculateEffectiveCapacity(memberForm, selectedIteration);
       
       const memberData = {
-        ...memberForm,
+        stakeholder_id: memberForm.stakeholder_id,
+        leaves: memberForm.leaves,
+        availability_percent: memberForm.availability_percent,
         iteration_id: selectedIteration.id,
         effective_capacity_days: effectiveCapacity,
         created_by: user.id
@@ -384,9 +398,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
   const resetMemberForm = () => {
     setMemberForm({
-      member_name: '',
-      role: '',
-      work_mode: 'office',
+      stakeholder_id: '',
       leaves: 0,
       availability_percent: 100
     });
@@ -408,13 +420,16 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const openEditMember = (member: CapacityMember) => {
     setEditingMember(member);
     setMemberForm({
-      member_name: member.member_name,
-      role: member.role,
-      work_mode: member.work_mode,
+      stakeholder_id: member.stakeholder_id,
       leaves: member.leaves,
       availability_percent: member.availability_percent
     });
     setShowMemberDialog(true);
+  };
+
+  const getStakeholderName = (stakeholderId: string) => {
+    const stakeholder = stakeholders.find(s => s.id === stakeholderId);
+    return stakeholder?.name || 'Unknown';
   };
 
   const getTotalCapacity = () => {
@@ -433,14 +448,6 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     return 'text-muted-foreground';
   };
 
-  const getWorkModeIcon = (mode: string) => {
-    switch (mode) {
-      case 'office': return '🏢';
-      case 'wfh': return '🏠';
-      case 'hybrid': return '🔄';
-      default: return '👤';
-    }
-  };
 
   if (loading) {
     return (
@@ -770,40 +777,22 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                       <DialogTitle>{editingMember ? 'Edit' : 'Add'} Team Member</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleMemberSubmit} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="member_name">Name</Label>
-                          <Input
-                            id="member_name"
-                            value={memberForm.member_name}
-                            onChange={(e) => setMemberForm({ ...memberForm, member_name: e.target.value })}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="role">Role</Label>
-                          <Input
-                            id="role"
-                            value={memberForm.role}
-                            onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
-                            required
-                          />
-                        </div>
+                      <div>
+                        <Label htmlFor="stakeholder">Team Member</Label>
+                        <Select value={memberForm.stakeholder_id} onValueChange={(value) => setMemberForm({ ...memberForm, stakeholder_id: value })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a team member" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {stakeholders.map((stakeholder) => (
+                              <SelectItem key={stakeholder.id} value={stakeholder.id}>
+                                {stakeholder.name} {stakeholder.department && `(${stakeholder.department})`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="work_mode">Work Mode</Label>
-                          <Select value={memberForm.work_mode} onValueChange={(value: 'office' | 'wfh' | 'hybrid') => setMemberForm({ ...memberForm, work_mode: value })}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="office">🏢 Office</SelectItem>
-                              <SelectItem value="wfh">🏠 Work from Home</SelectItem>
-                              <SelectItem value="hybrid">🔄 Hybrid</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="leaves">Leave Days</Label>
                           <Input
@@ -840,75 +829,66 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
               </div>
 
               <div className="grid gap-4">
-                {members.map((member) => (
-                  <Card key={member.id}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="text-2xl">{getWorkModeIcon(member.work_mode)}</div>
-                          <div>
-                            <CardTitle className="text-lg">{member.member_name}</CardTitle>
-                            <p className="text-sm text-muted-foreground">{member.role}</p>
+                {members.map((member) => {
+                  const stakeholder = stakeholders.find(s => s.id === member.stakeholder_id);
+                  return (
+                    <Card key={member.id}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="text-2xl">👤</div>
+                            <div>
+                              <CardTitle className="text-lg">{stakeholder?.name || 'Unknown Member'}</CardTitle>
+                              <p className="text-sm text-muted-foreground">{stakeholder?.department || 'No Department'}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEditMember(member)}>
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="text-status-error hover:bg-status-error hover:text-white">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to remove {stakeholder?.name || 'this member'} from this iteration?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteMember(member.id)} className="bg-status-error hover:bg-status-error/90">
+                                    Remove
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => openEditMember(member)}>
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm" className="text-status-error hover:bg-status-error hover:text-white">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to remove {member.member_name} from this iteration?
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteMember(member.id)} className="bg-status-error hover:bg-status-error/90">
-                                  Remove
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Leave Days</Label>
+                            <p className="font-medium">{member.leaves}</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Availability</Label>
+                            <p className="font-medium">{member.availability_percent}%</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Effective Capacity</Label>
+                            <p className="font-medium text-primary">{member.effective_capacity_days.toFixed(1)} days</p>
+                          </div>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Work Mode</Label>
-                          <p className="font-medium capitalize">{member.work_mode.replace('_', ' ')}</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Leave Days</Label>
-                          <p className="font-medium">{member.leaves}</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Availability</Label>
-                          <p className="font-medium">{member.availability_percent}%</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Effective Capacity</Label>
-                          <p className="font-medium text-primary">{member.effective_capacity_days.toFixed(1)} days</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Weight Applied</Label>
-                          <p className="font-medium">
-                            {member.work_mode === 'office' ? settings?.office_weight :
-                             member.work_mode === 'wfh' ? settings?.wfh_weight :
-                             settings?.hybrid_weight}x
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
 
                 {members.length === 0 && (
                   <Card>
