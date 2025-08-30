@@ -49,36 +49,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    console.log('🎯 Setting up auth state listener...');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('🔄 Auth state change detected:', event);
+        console.log('📱 Session:', session?.user?.email || 'No session');
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('👤 User found, fetching role...');
           setTimeout(() => {
             fetchUserRole(session.user.id);
           }, 0);
         } else {
+          console.log('👤 No user, clearing role');
           setUserRole(null);
         }
         
         setLoading(false);
+        console.log('✅ Auth state updated, loading:', false);
       }
     );
 
     // Check for existing session
+    console.log('🔍 Checking for existing session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('📱 Initial session check:', session?.user?.email || 'No session');
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('👤 Initial user found, fetching role...');
         fetchUserRole(session.user.id);
       }
       setLoading(false);
+      console.log('✅ Initial auth check complete, loading:', false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('🧹 Cleaning up auth listener');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

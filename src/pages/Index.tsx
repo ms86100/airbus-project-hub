@@ -9,7 +9,12 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('🏠 Index page loaded');
+    console.log('👤 Current user:', user?.email || 'No user');
+    console.log('⏳ Loading state:', loading);
+    
     if (!loading && !user) {
+      console.log('🔄 No user detected, redirecting to auth');
       navigate('/auth');
     }
   }, [user, loading, navigate]);
