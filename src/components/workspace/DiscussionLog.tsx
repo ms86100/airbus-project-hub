@@ -621,7 +621,14 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSelectedDiscussion(discussion)}
+                        onClick={() => {
+                          setSelectedDiscussion(discussion);
+                          // Switch to action-items tab
+                          const actionItemsTab = document.querySelector('[data-value="action-items"]') as HTMLElement;
+                          if (actionItemsTab) {
+                            actionItemsTab.click();
+                          }
+                        }}
                       >
                         <Users className="h-4 w-4 mr-1" />
                         Action Items
