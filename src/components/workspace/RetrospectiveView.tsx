@@ -86,6 +86,16 @@ interface ActionItem {
   how_approach: string;
   backlog_ref_id: string;
   backlog_status: string;
+  converted_to_task: boolean;
+  task_id: string | null;
+  created_at?: string;
+}
+
+interface CardVote {
+  id: string;
+  card_id: string;
+  user_id: string;
+  created_at: string;
 }
 
 const FRAMEWORK_TEMPLATES = {
@@ -135,8 +145,10 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   const [selectedRetrospective, setSelectedRetrospective] = useState<Retrospective | null>(null);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [cardVotes, setCardVotes] = useState<CardVote[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [showRetrospectivesList, setShowRetrospectivesList] = useState(false);
 
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -177,6 +189,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
       fetchColumns();
       fetchCards();
       fetchActionItems();
+      fetchCardVotes();
     }
   }, [selectedRetrospective]);
 
@@ -206,7 +219,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
       if (error) throw error;
       setRetrospectives(data || []);
       
-      if (data && data.length > 0 && !selectedRetrospective) {
+      if (data && data.length > 0 && !selectedRetrospective && !showRetrospectivesList) {
         setSelectedRetrospective(data[0]);
       }
       setLoading(false);
@@ -290,6 +303,25 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
       setProfiles(data || []);
     } catch (error) {
       console.error('Error fetching profiles:', error);
+    }
+  };
+
+  const fetchCardVotes = async () => {
+    if (!selectedRetrospective) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('retrospective_card_votes')
+        .select(`
+          *,
+          profiles!retrospective_card_votes_user_id_fkey(full_name, email)
+        `)
+        .in('card_id', cards.map(c => c.id));
+
+      if (error) throw error;
+      setCardVotes(data || []);
+    } catch (error) {
+      console.error('Error fetching card votes:', error);
     }
   };
 
@@ -381,39 +413,52 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   };
 
   const handleVoteCard = async (cardId: string) => {
-    const card = cards.find(c => c.id === cardId);
-    if (!card) return;
-
-    console.log('Voting on card:', cardId, 'Current votes:', card.votes);
+    if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('retrospective_cards')
-        .update({ votes: card.votes + 1 })
-        .eq('id', cardId)
-        .select();
-
-      if (error) {
-        console.error('Error voting on card:', error);
+      // Check if user already voted
+      const existingVote = cardVotes.find(v => v.card_id === cardId && v.user_id === user.id);
+      if (existingVote) {
         toast({
-          title: 'Error',
-          description: 'Failed to vote on card: ' + error.message,
-          variant: 'destructive'
+          title: 'Info',
+          description: 'You have already voted on this card',
+          variant: 'default'
         });
         return;
       }
-      
-      console.log('Vote successful, data:', data);
+
+      // Add vote to votes table
+      const { error: voteError } = await supabase
+        .from('retrospective_card_votes')
+        .insert([{
+          card_id: cardId,
+          user_id: user.id
+        }]);
+
+      if (voteError) throw voteError;
+
+      // Update card vote count
+      const card = cards.find(c => c.id === cardId);
+      if (card) {
+        const { error: updateError } = await supabase
+          .from('retrospective_cards')
+          .update({ votes: card.votes + 1 })
+          .eq('id', cardId);
+
+        if (updateError) throw updateError;
+      }
+
       fetchCards();
+      fetchCardVotes();
       toast({
         title: 'Success',
         description: 'Vote added successfully!'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error voting card:', error);
       toast({
         title: 'Error',
-        description: 'Failed to vote on card',
+        description: 'Failed to vote on card: ' + error.message,
         variant: 'destructive'
       });
     }
@@ -509,7 +554,24 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     if (!user || !selectedRetrospective || !selectedCardForAction) return;
 
     try {
-      // Create action item
+      // Create task in backlog first
+      const { data: taskData, error: taskError } = await supabase
+        .from('task_backlog')
+        .insert([{
+          project_id: projectId,
+          title: actionForm.what_task,
+          description: `From Retrospective: ${selectedCardForAction.text}\n\nApproach: ${actionForm.how_approach}`,
+          source_type: 'retrospective',
+          source_id: selectedCardForAction.id,
+          created_by: user.id,
+          priority: 'medium'
+        }])
+        .select()
+        .single();
+
+      if (taskError) throw taskError;
+
+      // Create action item with task reference
       const { error: actionError } = await supabase
         .from('retrospective_action_items')
         .insert([{
@@ -520,25 +582,12 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           who_responsible: actionForm.who_responsible,
           how_approach: actionForm.how_approach,
           backlog_ref_id: actionForm.backlog_ref_id,
-          created_by: user.id
+          created_by: user.id,
+          converted_to_task: true,
+          task_id: taskData.id
         }]);
 
       if (actionError) throw actionError;
-
-      // Create task in backlog
-      const { error: taskError } = await supabase
-        .from('task_backlog')
-        .insert([{
-          project_id: projectId,
-          title: actionForm.what_task,
-          description: `From Retrospective: ${selectedCardForAction.text}\n\nApproach: ${actionForm.how_approach}`,
-          source_type: 'retrospective',
-          source_id: selectedCardForAction.id,
-          created_by: user.id,
-          priority: 'medium'
-        }]);
-
-      if (taskError) throw taskError;
 
       toast({
         title: 'Success',
@@ -565,6 +614,59 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     }
   };
 
+  const convertActionItemToTask = async (actionItem: ActionItem) => {
+    if (!user || actionItem.converted_to_task) return;
+
+    try {
+      // Create task in backlog
+      const { data: taskData, error: taskError } = await supabase
+        .from('task_backlog')
+        .insert([{
+          project_id: projectId,
+          title: actionItem.what_task,
+          description: `Retrospective Action Item: ${actionItem.what_task}\n\nApproach: ${actionItem.how_approach}`,
+          source_type: 'retrospective',
+          source_id: actionItem.from_card_id,
+          created_by: user.id,
+          priority: 'medium'
+        }])
+        .select()
+        .single();
+
+      if (taskError) throw taskError;
+
+      // Update action item
+      const { error: updateError } = await supabase
+        .from('retrospective_action_items')
+        .update({
+          converted_to_task: true,
+          task_id: taskData.id,
+          backlog_status: 'Converted'
+        })
+        .eq('id', actionItem.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: 'Success',
+        description: 'Action item converted to task successfully'
+      });
+
+      fetchActionItems();
+    } catch (error) {
+      console.error('Error converting action item:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to convert action item to task',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const getCardVoters = (cardId: string) => {
+    return cardVotes.filter(v => v.card_id === cardId);
+  };
+
   const getUserDisplayName = (userId: string) => {
     const profile = profiles.find(p => p.id === userId);
     return profile?.full_name || profile?.email || 'Unknown User';
@@ -578,6 +680,107 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     );
   }
 
+  // Show retrospectives list by default
+  if (retrospectives.length === 0 || showRetrospectivesList) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Retrospectives</h1>
+            <p className="text-muted-foreground">Reflect and improve with structured retrospectives</p>
+          </div>
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Retrospective
+          </Button>
+        </div>
+
+        {retrospectives.length === 0 ? (
+          <Card className="p-8">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">No retrospectives yet</h3>
+              <p className="text-muted-foreground mb-4">Create your first retrospective to start reflecting on your team's performance</p>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Retrospective
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>All Retrospectives ({retrospectives.length})</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Select a retrospective to view and manage its content
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {retrospectives.map((retro) => {
+                  const iteration = iterations.find(i => i.id === retro.iteration_id);
+                  const retroActionItems = actionItems.filter(item => item.retrospective_id === retro.id);
+                  const convertedTasks = retroActionItems.filter(item => item.converted_to_task).length;
+                  
+                  return (
+                    <div key={retro.id} className="p-4 border rounded-lg hover:border-primary/50 hover:bg-muted/20 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h4 className="font-semibold text-lg">
+                              {iteration?.iteration_name || 'Unknown Iteration'}
+                            </h4>
+                            <Badge variant={retro.status === 'active' ? 'default' : 'secondary'}>
+                              {retro.status}
+                            </Badge>
+                            <Badge variant="outline">
+                              {retro.framework}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <div className="text-muted-foreground">Created</div>
+                              <div className="font-medium">{new Date(retro.created_at || '').toLocaleDateString()}</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">Action Items</div>
+                              <div className="font-medium">{retroActionItems.length} total</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">Tasks Created</div>
+                              <div className="font-medium">{convertedTasks} converted</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">Progress</div>
+                              <div className="font-medium">
+                                {retroActionItems.length > 0 ? Math.round((convertedTasks / retroActionItems.length) * 100) : 0}%
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <Button
+                          onClick={() => {
+                            setSelectedRetrospective(retro);
+                            setShowRetrospectivesList(false);
+                          }}
+                        >
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Create Retrospective Dialog remains the same */}
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -585,10 +788,15 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           <h1 className="text-3xl font-bold">Retrospectives</h1>
           <p className="text-muted-foreground">Reflect and improve with structured retrospectives</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Retrospective
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowRetrospectivesList(true)}>
+            View All
+          </Button>
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Retrospective
+          </Button>
+        </div>
       </div>
 
       {retrospectives.length === 0 ? (
@@ -751,27 +959,80 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {actionItems.map((item) => (
-                        <div key={item.id} className="p-4 border rounded-lg">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-semibold">{item.what_task}</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 text-sm text-muted-foreground">
-                                <div><strong>When:</strong> {item.when_sprint}</div>
-                                <div><strong>Who:</strong> {item.who_responsible}</div>
-                                <div><strong>Status:</strong> 
-                                  <Badge variant={item.backlog_status === 'Open' ? 'default' : 'secondary'} className="ml-1">
-                                    {item.backlog_status}
-                                  </Badge>
+                      {actionItems.map((item) => {
+                        const sourceCard = cards.find(c => c.id === item.from_card_id);
+                        const cardVoters = sourceCard ? getCardVoters(sourceCard.id) : [];
+                        
+                        return (
+                          <div key={item.id} className="p-4 border rounded-lg">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-semibold">{item.what_task}</h4>
+                                
+                                {/* Source card info with votes */}
+                                {sourceCard && (
+                                  <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                                    <div className="text-sm font-medium mb-1">Source Card:</div>
+                                    <div className="text-sm text-muted-foreground mb-2">{sourceCard.text}</div>
+                                    <div className="flex items-center gap-4 text-xs">
+                                      <div className="flex items-center gap-1">
+                                        <ThumbsUp className="h-3 w-3" />
+                                        <span>{sourceCard.votes} vote{sourceCard.votes !== 1 ? 's' : ''}</span>
+                                      </div>
+                                      {cardVoters.length > 0 && (
+                                        <div>
+                                          <span className="text-muted-foreground">Voters: </span>
+                                          {cardVoters.map((vote, index) => {
+                                            const voter = profiles.find(p => p.id === vote.user_id);
+                                            return voter?.full_name || voter?.email || 'Unknown';
+                                          }).join(', ')}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3 text-sm text-muted-foreground">
+                                  <div><strong>When:</strong> {item.when_sprint}</div>
+                                  <div><strong>Who:</strong> {item.who_responsible}</div>
+                                  <div><strong>Status:</strong> 
+                                    <Badge variant={item.converted_to_task ? 'default' : 'secondary'} className="ml-1">
+                                      {item.converted_to_task ? 'Converted to Task' : item.backlog_status}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                
+                                {item.how_approach && (
+                                  <div className="mt-2">
+                                    <div className="text-sm font-medium">How (Approach):</div>
+                                    <p className="text-sm text-muted-foreground">{item.how_approach}</p>
+                                  </div>
+                                )}
+                                
+                                <div className="text-xs text-muted-foreground mt-2">
+                                  Created: {new Date(item.created_at || '').toLocaleDateString()}
                                 </div>
                               </div>
-                              {item.how_approach && (
-                                <p className="mt-2 text-sm">{item.how_approach}</p>
-                              )}
+                              
+                              <div className="flex flex-col gap-2">
+                                {!item.converted_to_task && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => convertActionItemToTask(item)}
+                                  >
+                                    Convert to Task
+                                  </Button>
+                                )}
+                                {item.converted_to_task && item.task_id && (
+                                  <Badge variant="default" className="text-xs">
+                                    Task Created
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -782,100 +1043,98 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           <TabsContent value="history" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>All Retrospectives ({retrospectives.length})</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Complete history of retrospectives for this project
-                    </p>
-                  </div>
-                  <Button onClick={() => setShowCreateDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Retrospective
-                  </Button>
-                </div>
+                <CardTitle>Retrospective Analytics</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Performance overview and conversion metrics
+                </p>
               </CardHeader>
               <CardContent>
-                {retrospectives.length === 0 ? (
-                  <div className="text-center py-8">
-                    <h3 className="text-lg font-semibold mb-2">No retrospectives yet</h3>
-                    <p className="text-muted-foreground mb-4">Create your first retrospective to start reflecting on your team's performance</p>
-                    <Button onClick={() => setShowCreateDialog(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create First Retrospective
-                    </Button>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{retrospectives.length}</div>
+                    <div className="text-sm text-muted-foreground">Total Retrospectives</div>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {retrospectives.map((retro) => {
-                      const iteration = iterations.find(i => i.id === retro.iteration_id);
-                      const retroCards = cards.filter(card => 
-                        columns.find(col => col.retrospective_id === retro.id && col.id === card.column_id)
-                      );
-                      const retroActionItems = actionItems.filter(item => item.retrospective_id === retro.id);
-                      
-                      return (
-                        <div 
-                          key={retro.id} 
-                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                            selectedRetrospective?.id === retro.id 
-                              ? 'border-primary bg-primary/5' 
-                              : 'hover:border-primary/50 hover:bg-muted/20'
-                          }`}
-                          onClick={() => setSelectedRetrospective(retro)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h4 className="font-semibold text-lg">
-                                  {iteration?.iteration_name || 'Unknown Iteration'}
-                                </h4>
-                                <Badge variant={retro.status === 'active' ? 'default' : 'secondary'}>
-                                  {retro.status}
-                                </Badge>
-                                <Badge variant="outline">
-                                  {retro.framework}
-                                </Badge>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                                <div>
-                                  <span className="font-medium">Created:</span><br />
-                                  {new Date(retro.created_at || '').toLocaleDateString()}
-                                </div>
-                                <div>
-                                  <span className="font-medium">Cards:</span><br />
-                                  {retroCards.length} items
-                                </div>
-                                <div>
-                                  <span className="font-medium">Action Items:</span><br />
-                                  {retroActionItems.length} created
-                                </div>
-                                <div>
-                                  <span className="font-medium">Total Votes:</span><br />
-                                  {retroCards.reduce((sum, card) => sum + card.votes, 0)} votes
-                                </div>
-                              </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{actionItems.length}</div>
+                    <div className="text-sm text-muted-foreground">Action Items Created</div>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{actionItems.filter(item => item.converted_to_task).length}</div>
+                    <div className="text-sm text-muted-foreground">Converted to Tasks</div>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">
+                      {actionItems.length > 0 ? Math.round((actionItems.filter(item => item.converted_to_task).length / actionItems.length) * 100) : 0}%
+                    </div>
+                    <div className="text-sm text-muted-foreground">Conversion Rate</div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {retrospectives.map((retro) => {
+                    const iteration = iterations.find(i => i.id === retro.iteration_id);
+                    const retroActionItems = actionItems.filter(item => item.retrospective_id === retro.id);
+                    const convertedTasks = retroActionItems.filter(item => item.converted_to_task).length;
+                    
+                    return (
+                      <div 
+                        key={retro.id} 
+                        className="p-4 border rounded-lg hover:border-primary/50 hover:bg-muted/20 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h4 className="font-semibold text-lg">
+                                {iteration?.iteration_name || 'Unknown Iteration'}
+                              </h4>
+                              <Badge variant={retro.status === 'active' ? 'default' : 'secondary'}>
+                                {retro.status}
+                              </Badge>
+                              <Badge variant="outline">
+                                {retro.framework}
+                              </Badge>
                             </div>
                             
-                            <div className="flex flex-col items-end gap-2">
-                              <Button
-                                variant={selectedRetrospective?.id === retro.id ? "default" : "outline"}
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedRetrospective(retro);
-                                }}
-                              >
-                                {selectedRetrospective?.id === retro.id ? "Current" : "View"}
-                              </Button>
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                              <div>
+                                <div className="text-muted-foreground">Created</div>
+                                <div className="font-medium">{new Date(retro.created_at || '').toLocaleDateString()}</div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">Action Items</div>
+                                <div className="font-medium">{retroActionItems.length} total</div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">Tasks Created</div>
+                                <div className="font-medium">{convertedTasks} converted</div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">Progress</div>
+                                <div className="font-medium">
+                                  {retroActionItems.length > 0 ? Math.round((convertedTasks / retroActionItems.length) * 100) : 0}%
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">Status</div>
+                                <Badge variant={convertedTasks === retroActionItems.length && retroActionItems.length > 0 ? 'default' : 'secondary'}>
+                                  {retroActionItems.length === 0 ? 'No Actions' : convertedTasks === retroActionItems.length ? 'Complete' : 'In Progress'}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
+                          
+                          <Button
+                            variant={selectedRetrospective?.id === retro.id ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedRetrospective(retro)}
+                          >
+                            {selectedRetrospective?.id === retro.id ? "Current" : "View"}
+                          </Button>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1006,12 +1265,13 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
               </div>
             </div>
             <div>
-              <Label htmlFor="howApproach">How (Approach/Method)</Label>
+              <Label htmlFor="howApproach">How (Approach/Method) *</Label>
               <Textarea
                 id="howApproach"
                 value={actionForm.how_approach}
                 onChange={(e) => setActionForm({ ...actionForm, how_approach: e.target.value })}
                 placeholder="Describe how this will be implemented..."
+                required
               />
             </div>
             <div>

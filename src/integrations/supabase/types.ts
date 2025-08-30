@@ -336,12 +336,14 @@ export type Database = {
         Row: {
           backlog_ref_id: string | null
           backlog_status: string | null
+          converted_to_task: boolean | null
           created_at: string
           created_by: string
           from_card_id: string | null
           how_approach: string | null
           id: string
           retrospective_id: string
+          task_id: string | null
           updated_at: string
           what_task: string
           when_sprint: string | null
@@ -350,12 +352,14 @@ export type Database = {
         Insert: {
           backlog_ref_id?: string | null
           backlog_status?: string | null
+          converted_to_task?: boolean | null
           created_at?: string
           created_by: string
           from_card_id?: string | null
           how_approach?: string | null
           id?: string
           retrospective_id: string
+          task_id?: string | null
           updated_at?: string
           what_task: string
           when_sprint?: string | null
@@ -364,18 +368,57 @@ export type Database = {
         Update: {
           backlog_ref_id?: string | null
           backlog_status?: string | null
+          converted_to_task?: boolean | null
           created_at?: string
           created_by?: string
           from_card_id?: string | null
           how_approach?: string | null
           id?: string
           retrospective_id?: string
+          task_id?: string | null
           updated_at?: string
           what_task?: string
           when_sprint?: string | null
           who_responsible?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "retrospective_action_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_backlog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      retrospective_card_votes: {
+        Row: {
+          card_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retrospective_card_votes_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "retrospective_cards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       retrospective_cards: {
         Row: {
