@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: discussions, error } = await supabase
+      const { data: discussions, error } = await supabaseAuth
         .from('project_discussions')
         .select('*')
         .eq('project_id', projectId)
@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: discussion, error } = await supabase
+      const { data: discussion, error } = await supabaseAuth
         .from('project_discussions')
         .insert({
           ...discussionData,
@@ -327,7 +327,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: actionItems, error } = await supabase
+      const { data: actionItems, error } = await supabaseAuth
         .from('discussion_action_items')
         .select(`
           *,
@@ -384,7 +384,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: task, error } = await supabase
+      const { data: task, error } = await supabaseAuth
         .from('tasks')
         .insert({
           ...taskData,
@@ -530,7 +530,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: discussion, error } = await supabase
+      const { data: discussion, error } = await supabaseAuth
         .from('project_discussions')
         .update(discussionData)
         .eq('id', discussionId)
@@ -563,7 +563,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseAuth
         .from('project_discussions')
         .delete()
         .eq('id', discussionId)
@@ -596,7 +596,7 @@ Deno.serve(async (req) => {
         return createErrorResponse('discussion_id is required for action items', 'MISSING_DISCUSSION_ID');
       }
 
-      const { data: actionItem, error } = await supabase
+      const { data: actionItem, error } = await supabaseAuth
         .from('discussion_action_items')
         .insert({
           ...actionItemData,
@@ -631,7 +631,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: actionItem, error } = await supabase
+      const { data: actionItem, error } = await supabaseAuth
         .from('discussion_action_items')
         .update(actionItemData)
         .eq('id', actionItemId)
@@ -663,7 +663,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseAuth
         .from('discussion_action_items')
         .delete()
         .eq('id', actionItemId);
