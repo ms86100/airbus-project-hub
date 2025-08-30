@@ -161,6 +161,61 @@ class ApiClient {
     });
   }
 
+  // Team Capacity Service Methods
+  async getProjectCapacity(projectId: string): Promise<ApiResponse<{
+    projectId: string;
+    iterations: any[];
+    summary: { totalIterations: number; totalCapacity: number };
+  }>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
+      method: 'GET',
+    });
+  }
+
+  async createCapacityIteration(projectId: string, data: {
+    type: 'iteration';
+    iterationName: string;
+    startDate: string;
+    endDate: string;
+    workingDays: number;
+    committedStoryPoints?: number;
+  }): Promise<ApiResponse<{ message: string; iteration: any }>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async addCapacityMember(projectId: string, data: {
+    type: 'member';
+    iterationId: string;
+    memberName: string;
+    role: string;
+    workMode: string;
+    availabilityPercent: number;
+    leaves: number;
+    stakeholderId?: string;
+    teamId?: string;
+  }): Promise<ApiResponse<{ message: string; member: any }>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCapacityItem(projectId: string, itemId: string, data: any): Promise<ApiResponse<{ message: string; iteration?: any; member?: any }>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/capacity/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCapacityItem(projectId: string, itemId: string, type: 'iteration' | 'member'): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/capacity/${itemId}?type=${type}`, {
+      method: 'DELETE',
+    });
+  }
+
   async revokeModulePermission(projectId: string, userId: string, module: string): Promise<ApiResponse<{ message: string }>> {
     return this.makeRequest(`/access-service/projects/${projectId}/access/${userId}?module=${module}`, {
       method: 'DELETE',

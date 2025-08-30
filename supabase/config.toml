@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.access-service]
 verify_jwt = false
+
+[functions.capacity-service]
+verify_jwt = false
