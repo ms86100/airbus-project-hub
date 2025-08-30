@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp } = useApiAuth();
   const { toast } = useToast();
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -25,7 +25,7 @@ const Auth = () => {
     if (error) {
       toast({
         title: "Authentication Error",
-        description: error.message,
+        description: error,
         variant: "destructive",
       });
     }
@@ -37,18 +37,18 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signUp(email, password, fullName);
+    const { error, message } = await signUp(email, password, fullName);
 
     if (error) {
       toast({
         title: "Registration Error",
-        description: error.message,
+        description: error,
         variant: "destructive",
       });
     } else {
       toast({
         title: "Registration Successful",
-        description: "Please check your email to verify your account.",
+        description: message || "Please check your email to verify your account.",
       });
     }
 
