@@ -20,3 +20,18 @@ verify_jwt = false
 
 [functions.backlog-service]
 verify_jwt = false
+
+[functions.stakeholder-service]
+verify_jwt = false
+
+[functions.audit-service]
+verify_jwt = false
+
+[functions.workspace-service]
+verify_jwt = false
+
+[functions.wizard-service]
+verify_jwt = false
+
+[functions.department-service]
+verify_jwt = false

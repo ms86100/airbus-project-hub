@@ -276,6 +276,61 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+  // Stakeholders Service Methods
+  async getStakeholders(projectId: string): Promise<ApiResponse<{ projectId: string; stakeholders: any[] }>> {
+    return this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders`, { method: 'GET' });
+  }
+
+  async createStakeholder(projectId: string, data: { name: string; email?: string; department?: string; raci?: string; influence_level?: string; notes?: string; }): Promise<ApiResponse<{ message: string; stakeholder: any }>> {
+    return this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Audit Service Methods
+  async getProjectHistory(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/audit-service/projects/${projectId}/history`, { method: 'GET' });
+  }
+
+  async writeAuditLog(data: { projectId: string; module: string; action: string; entity_type?: string; entity_id?: string; old_values?: any; new_values?: any; description?: string; }): Promise<ApiResponse<{ message: string; entry: any }>> {
+    return this.makeRequest(`/audit-service/audit/log`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Workspace Service Methods
+  async getWorkspace(projectId: string): Promise<ApiResponse<{ projectId: string; summary: any; recentTasks: any[]; upcomingMilestones: any[] }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/workspace`, { method: 'GET' });
+  }
+
+  // Wizard Service Methods
+  async startWizard(seed: any): Promise<ApiResponse<{ message: string; sessionId: string; seed: any }>> {
+    return this.makeRequest(`/wizard-service/projects/wizard/start`, {
+      method: 'POST',
+      body: JSON.stringify(seed || {}),
+    });
+  }
+
+  async completeWizard(payload: { name: string; description?: string; startDate?: string; endDate?: string; priority?: string; status?: string; departmentId?: string; }): Promise<ApiResponse<{ message: string; project: any }>> {
+    return this.makeRequest(`/wizard-service/projects/wizard/complete`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Department Service Methods
+  async getDepartments(): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/department-service/departments`, { method: 'GET' });
+  }
+
+  async createDepartment(name: string): Promise<ApiResponse<{ message: string; department: any }>> {
+    return this.makeRequest(`/department-service/departments`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();
