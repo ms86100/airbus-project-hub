@@ -25,7 +25,6 @@ import { DiscussionLog } from '@/components/workspace/DiscussionLog';
 import { TaskBacklog } from '@/components/workspace/TaskBacklog';
 import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
-import { StatusManagementView } from '@/components/workspace/StatusManagementView';
 import { useModulePermissions, ModuleName } from '@/hooks/useModulePermissions';
 
 interface Project {
@@ -348,9 +347,13 @@ const ProjectOverview = () => {
               )}
 
               {canRead('tasks_milestones') && (
-                <TabsContent value="tasks" className="p-0">
-                  <div className="h-[700px] w-full overflow-y-auto">
-                    <StatusManagementView projectId={id!} />
+                <TabsContent value="tasks" className="p-6">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-semibold">Tasks & Milestones</h2>
+                    </div>
+                    {/* Simplified view for tasks - you can expand this */}
+                    <div className="text-muted-foreground">Tasks and Milestones content</div>
                   </div>
                 </TabsContent>
               )}
