@@ -51,6 +51,23 @@ interface Stakeholder {
   department?: string;
 }
 
+interface Team {
+  id: string;
+  project_id: string;
+  team_name: string;
+  description?: string;
+  created_by: string;
+}
+
+interface TeamDefinition {
+  id: string;
+  team_id: string;
+  stakeholder_id: string;
+  default_availability_percent: number;
+  default_leaves: number;
+  created_by: string;
+}
+
 interface TeamCapacityTrackerProps {
   projectId: string;
 }
@@ -66,6 +83,11 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const [selectedIteration, setSelectedIteration] = useState<CapacityIteration | null>(null);
   const [loading, setLoading] = useState(true);
   const [allIterationMembers, setAllIterationMembers] = useState<Record<string, CapacityMember[]>>({});
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [showTeamDialog, setShowTeamDialog] = useState(false);
+  const [teamFromIterationId, setTeamFromIterationId] = useState<string>('');
+  const [teamForm, setTeamForm] = useState({ team_name: '', description: '' });
+  const [selectedTeamPerIteration, setSelectedTeamPerIteration] = useState<Record<string, string>>({});
   
   // Dialog states
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -107,6 +129,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       fetchSettings();
       fetchIterations();
       fetchStakeholders();
+      fetchTeams();
     }
   }, [projectId]);
 
@@ -202,6 +225,20 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       setMembers((data || []) as CapacityMember[]);
     } catch (error) {
       console.error('Error fetching members:', error);
+    }
+  };
+
+  const fetchTeams = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('team_name');
+      if (error) throw error;
+      setTeams(data || []);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
     }
   };
 
@@ -513,6 +550,91 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     setEditingMember(null);
   };
 
+  const handleSaveTeamFromIteration = async (iterationId: string) => {
+    if (!user) return;
+    try {
+      const iterationMembers = allIterationMembers[iterationId] || [];
+      if (iterationMembers.length === 0) {
+        toast({ title: 'No members', description: 'Add members to this iteration before saving as a team', variant: 'destructive' });
+        return;
+      }
+      if (!teamForm.team_name.trim()) {
+        toast({ title: 'Team name required', description: 'Please provide a team name', variant: 'destructive' });
+        return;
+      }
+
+      const { data: team, error: teamError } = await supabase
+        .from('teams')
+        .insert([{ project_id: projectId, team_name: teamForm.team_name.trim(), description: teamForm.description?.trim() || null, created_by: user.id }])
+        .select()
+        .single();
+
+      if (teamError) throw teamError;
+
+      const definitions = iterationMembers.map((m) => ({
+        team_id: team.id,
+        stakeholder_id: m.stakeholder_id,
+        default_availability_percent: m.availability_percent,
+        default_leaves: m.leaves,
+        created_by: user.id,
+      }));
+
+      const { error: defsError } = await supabase.from('team_definitions').insert(definitions);
+      if (defsError) throw defsError;
+
+      toast({ title: 'Team saved', description: `Team "${team.team_name}" created with ${definitions.length} members.` });
+      setShowTeamDialog(false);
+      setTeamForm({ team_name: '', description: '' });
+      setTeamFromIterationId('');
+      fetchTeams();
+    } catch (error) {
+      console.error('Error saving team:', error);
+      toast({ title: 'Error', description: 'Failed to save team', variant: 'destructive' });
+    }
+  };
+
+  const applyTeamToIteration = async (teamId: string, iteration: CapacityIteration) => {
+    if (!user) return;
+    try {
+      const { data: defs, error } = await supabase
+        .from('team_definitions')
+        .select('*')
+        .eq('team_id', teamId);
+      if (error) throw error;
+      if (!defs || defs.length === 0) {
+        toast({ title: 'Empty team', description: 'Selected team has no members defined', variant: 'destructive' });
+        return;
+      }
+
+      const membersToInsert = defs.map((d) => {
+        const stakeholder = stakeholders.find((s) => s.id === d.stakeholder_id);
+        const eff = calculateEffectiveCapacity({ leaves: d.default_leaves, availability_percent: d.default_availability_percent }, iteration);
+        return {
+          stakeholder_id: d.stakeholder_id,
+          member_name: stakeholder?.name || 'Unknown',
+          role: stakeholder?.department || 'Team Member',
+          work_mode: 'office',
+          leaves: d.default_leaves,
+          availability_percent: d.default_availability_percent,
+          iteration_id: iteration.id,
+          effective_capacity_days: eff,
+          created_by: user.id,
+          team_id: teamId,
+        };
+      });
+
+      const { error: insertErr } = await supabase.from('team_capacity_members').insert(membersToInsert);
+      if (insertErr) throw insertErr;
+
+      toast({ title: 'Team applied', description: 'Team members added to iteration' });
+      fetchAllIterationMembers();
+      if (selectedIteration?.id === iteration.id) fetchMembers(iteration.id);
+      setSelectedTeamPerIteration((prev) => ({ ...prev, [iteration.id]: '' }));
+    } catch (error) {
+      console.error('Error applying team:', error);
+      toast({ title: 'Error', description: 'Failed to apply team', variant: 'destructive' });
+    }
+  };
   const openEditIteration = (iteration: CapacityIteration) => {
     setEditingIteration(iteration);
     setIterationForm({

@@ -688,6 +688,7 @@ export type Database = {
           member_name: string
           role: string
           stakeholder_id: string | null
+          team_id: string | null
           updated_at: string
           work_mode: string
         }
@@ -703,6 +704,7 @@ export type Database = {
           member_name: string
           role: string
           stakeholder_id?: string | null
+          team_id?: string | null
           updated_at?: string
           work_mode: string
         }
@@ -718,6 +720,7 @@ export type Database = {
           member_name?: string
           role?: string
           stakeholder_id?: string | null
+          team_id?: string | null
           updated_at?: string
           work_mode?: string
         }
@@ -767,6 +770,69 @@ export type Database = {
           updated_at?: string
           wfh_weight?: number
           work_week?: number
+        }
+        Relationships: []
+      }
+      team_definitions: {
+        Row: {
+          created_at: string
+          created_by: string
+          default_availability_percent: number
+          default_leaves: number
+          id: string
+          stakeholder_id: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          default_availability_percent?: number
+          default_leaves?: number
+          id?: string
+          stakeholder_id: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          default_availability_percent?: number
+          default_leaves?: number
+          id?: string
+          stakeholder_id?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teams: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          project_id: string
+          team_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          project_id: string
+          team_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          project_id?: string
+          team_name?: string
+          updated_at?: string
         }
         Relationships: []
       }
