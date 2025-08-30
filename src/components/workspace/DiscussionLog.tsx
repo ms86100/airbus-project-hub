@@ -385,11 +385,11 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
       const backlogData = {
         title: actionItem.task_description,
         description: `Converted from action item - Discussion: ${selectedDiscussion?.meeting_title}`,
-        owner_id: actionItem.owner_id || null,
-        target_date: actionItem.target_date || null,
+        ownerId: actionItem.owner_id || undefined,
+        targetDate: actionItem.target_date || undefined,
         priority: 'medium',
-        source_type: 'action_item',
-        source_id: actionItem.id
+        sourceType: 'action_item',
+        sourceId: actionItem.id
       };
 
       const response = await apiClient.createBacklogItem(projectId, backlogData);
