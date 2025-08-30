@@ -1,8 +1,25 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
+
+// Define custom User interface for microservice auth
+interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Define custom Session interface for microservice auth
+interface Session {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  expires_at?: number;
+  refresh_token?: string;
+  user: User;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +36,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Helper function to clean up auth state
 export const cleanupAuthState = () => {
+  // Remove microservice auth tokens
+  localStorage.removeItem('auth_session');
+  localStorage.removeItem('auth_user');
+  localStorage.removeItem('auth_role');
+  
+  // Clean up any legacy Supabase auth keys for safety
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
       localStorage.removeItem(key);
@@ -43,13 +66,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await apiClient.getUserRole(userId);
       if (response.success && response.data) {
-        setUserRole(response.data.role || null);
+        const role = response.data.role || null;
+        setUserRole(role);
+        localStorage.setItem('auth_role', role || '');
       } else {
         setUserRole(null);
+        localStorage.removeItem('auth_role');
       }
     } catch (error) {
       console.error('Error fetching user role:', error);
       setUserRole(null);
+      localStorage.removeItem('auth_role');
     }
   };
 
@@ -61,45 +88,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await apiClient.getCurrentSession();
       if (response.success && response.data) {
         setUserRole(response.data.role || null);
+        localStorage.setItem('auth_role', response.data.role || '');
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
     }
   };
 
+  // Initialize auth state from localStorage
   useEffect(() => {
-    // Set up auth state listener for Supabase session management
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
+    const initializeAuth = async () => {
+      try {
+        const storedSession = localStorage.getItem('auth_session');
+        const storedUser = localStorage.getItem('auth_user');
+        const storedRole = localStorage.getItem('auth_role');
         
-        if (session?.user) {
-          // Defer role fetching to avoid deadlocks
-          setTimeout(() => {
-            fetchUserRole(session.user.id);
-          }, 0);
-        } else {
-          setUserRole(null);
+        if (storedSession && storedUser) {
+          try {
+            const sessionData = JSON.parse(storedSession);
+            const userData = JSON.parse(storedUser);
+            
+            setSession(sessionData);
+            setUser(userData);
+            setUserRole(storedRole);
+            
+            // Fetch fresh role if available
+            if (userData.id) {
+              fetchUserRole(userData.id);
+            }
+          } catch (error) {
+            console.error('Error parsing stored auth:', error);
+            cleanupAuthState();
+          }
         }
-        
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
         setLoading(false);
       }
-    );
+    };
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserRole(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    initializeAuth();
   }, []);
 
   const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
@@ -114,9 +143,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: response.error || 'Login failed' };
       }
 
-      // The auth state change listener will handle setting user/session
-      // Force page refresh for clean state
-      if (response.data?.session) {
+      // Set auth state from API response
+      if (response.data?.session && response.data?.user) {
+        const sessionData = response.data.session;
+        const userData = response.data.user;
+        
+        setSession(sessionData);
+        setUser(userData);
+        
+        // Store session in localStorage for persistence
+        localStorage.setItem('auth_session', JSON.stringify(sessionData));
+        localStorage.setItem('auth_user', JSON.stringify(userData));
+        
+        // Fetch user role
+        if (userData.id) {
+          fetchUserRole(userData.id);
+        }
+        
+        // Force page refresh for clean state
         window.location.href = '/';
       }
 
@@ -139,6 +183,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: response.error || 'Registration failed' };
       }
 
+      // Update local state with the response
+      if (response.data?.session) {
+        setSession(response.data.session);
+        setUser(response.data.user);
+        
+        // Store session in localStorage
+        localStorage.setItem('auth_session', JSON.stringify(response.data.session));
+        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+        
+        // Fetch user role
+        if (response.data.user?.id) {
+          fetchUserRole(response.data.user.id);
+        }
+      }
+
       return { message: response.data?.message || 'Registration successful' };
     } catch (error) {
       console.error('Sign up error:', error);
@@ -149,30 +208,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async (): Promise<void> => {
     try {
       // Use API service for logout
-      await apiClient.logout();
+      try {
+        await apiClient.logout();
+      } catch (err) {
+        console.log('API logout failed, continuing with cleanup');
+      }
       
       // Clean up local state
       setSession(null);
       setUser(null);
       setUserRole(null);
       
-      // Clean up auth state and force sign out from Supabase client
+      // Clean up auth state
       cleanupAuthState();
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Ignore errors
-      }
       
       // Force page refresh for clean state
       window.location.href = '/auth';
     } catch (error) {
       console.error('Sign out error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to sign out properly",
-        variant: "destructive",
-      });
+      // Force cleanup even if there's an error
+      cleanupAuthState();
+      window.location.href = '/auth';
     }
   };
 

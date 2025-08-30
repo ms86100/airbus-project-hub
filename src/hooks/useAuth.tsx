@@ -1,21 +1,48 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 import { apiClient } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
+
+// Define custom User interface for microservice auth
+interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Define custom Session interface for microservice auth
+interface Session {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  expires_at?: number;
+  refresh_token?: string;
+  user: User;
+}
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRole: string | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; message?: string }>;
+  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error?: string; message?: string }>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to clean up auth state
 export const cleanupAuthState = () => {
+  // Remove microservice auth tokens
+  localStorage.removeItem('auth_session');
+  localStorage.removeItem('auth_user');
+  localStorage.removeItem('auth_role');
+  localStorage.removeItem('app_session');
+  
+  // Also clean up any Supabase auth keys for safety
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
       localStorage.removeItem(key);
@@ -28,162 +55,179 @@ export const cleanupAuthState = () => {
   });
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
+  // Fetch user role from API service
   const fetchUserRole = async (userId: string) => {
     try {
       const response = await apiClient.getUserRole(userId);
       if (response.success && response.data) {
-        setUserRole(response.data.role || null);
+        const role = response.data.role || null;
+        setUserRole(role);
+        localStorage.setItem('auth_role', role || '');
       } else {
         setUserRole(null);
+        localStorage.removeItem('auth_role');
       }
     } catch (error) {
       console.error('Error fetching user role:', error);
       setUserRole(null);
+      localStorage.removeItem('auth_role');
     }
   };
 
-  useEffect(() => {
-    console.log('🎯 AUTH HOOK V2 - Setting up auth from localStorage...');
+  // Refresh user data from API service
+  const refreshUser = async () => {
+    if (!session?.access_token || !user?.id) return;
     
-    // Check for stored session in localStorage
-    const storedSession = localStorage.getItem('app_session');
-    const storedUser = localStorage.getItem('app_user');
-    
-    if (storedSession && storedUser) {
-      try {
-        const session = JSON.parse(storedSession);
-        const user = JSON.parse(storedUser);
-        console.log('📱 Found stored session for:', user.email);
-        
-        setSession(session);
-        setUser(user);
-        
-        // Fetch user role
-        setTimeout(() => {
-          fetchUserRole(user.id);
-        }, 0);
-      } catch (err) {
-        console.log('❌ Error parsing stored session:', err);
-        localStorage.removeItem('app_session');
-        localStorage.removeItem('app_user');
+    try {
+      const response = await apiClient.getCurrentSession();
+      if (response.success && response.data) {
+        setUserRole(response.data.role || null);
+        localStorage.setItem('auth_role', response.data.role || '');
       }
-    } else {
-      console.log('📱 No stored session found');
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
     }
-    
-    setLoading(false);
-    console.log('✅ Auth initialization complete');
+  };
+
+  // Initialize auth state from localStorage
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const storedSession = localStorage.getItem('auth_session');
+        const storedUser = localStorage.getItem('auth_user');
+        const storedRole = localStorage.getItem('auth_role');
+        
+        if (storedSession && storedUser) {
+          try {
+            const sessionData = JSON.parse(storedSession);
+            const userData = JSON.parse(storedUser);
+            
+            setSession(sessionData);
+            setUser(userData);
+            setUserRole(storedRole);
+            
+            // Fetch fresh role if available
+            if (userData.id) {
+              fetchUserRole(userData.id);
+            }
+          } catch (error) {
+            console.error('Error parsing stored auth:', error);
+            cleanupAuthState();
+          }
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
-      console.log('🔐 AUTH HOOK V2 - useAuth.signIn() called');
-      console.log('📧 Email:', email);
-      
+      // Clean up any existing auth state first
       cleanupAuthState();
-      // Clear app storage
-      localStorage.removeItem('app_session');
-      localStorage.removeItem('app_user');
-      console.log('🧹 Auth state and app storage cleaned');
-
-      console.log('📡 Calling apiClient.login...');
+      
+      // Use API service for login
       const response = await apiClient.login(email, password);
-      console.log('📡 API Response:', response);
       
       if (!response.success) {
-        console.log('❌ Login failed:', response.error);
         return { error: response.error || 'Login failed' };
       }
-      
-      console.log('✅ Login successful');
-      console.log('👤 User data:', response.data?.user);
-      console.log('📱 Session data:', response.data?.session);
-      
-      if (response.data?.user && response.data?.session) {
-        // Store session and user data in localStorage
-        localStorage.setItem('app_session', JSON.stringify(response.data.session));
-        localStorage.setItem('app_user', JSON.stringify(response.data.user));
+
+      // Set auth state from API response
+      if (response.data?.session && response.data?.user) {
+        const sessionData = response.data.session;
+        const userData = response.data.user;
         
-        // Set Supabase client session for auto-refresh
-        try {
-          await supabase.auth.setSession({
-            access_token: response.data.session.access_token,
-            refresh_token: response.data.session.refresh_token || ''
-          });
-        } catch (e) {}
+        setSession(sessionData);
+        setUser(userData);
         
-        // Update state
-        setSession(response.data.session);
-        setUser(response.data.user);
+        // Store session in localStorage for persistence
+        localStorage.setItem('auth_session', JSON.stringify(sessionData));
+        localStorage.setItem('auth_user', JSON.stringify(userData));
         
         // Fetch user role
-        setTimeout(() => {
-          fetchUserRole(response.data.user.id);
-        }, 0);
+        if (userData.id) {
+          fetchUserRole(userData.id);
+        }
         
-        console.log('🔄 Auth state updated, redirecting to /');
+        // Force page refresh for clean state
         window.location.href = '/';
-      } else {
-        console.log('⚠️ No user/session data in response');
-        return { error: 'Invalid response data' };
       }
-      
-      return { error: null };
+
+      return {};
     } catch (error) {
-      console.error('💥 Exception in signIn:', error);
-      return { error };
+      console.error('Sign in error:', error);
+      return { error: 'An unexpected error occurred' };
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName?: string): Promise<{ error?: string; message?: string }> => {
     try {
+      // Clean up any existing auth state first
       cleanupAuthState();
       
+      // Use API service for registration
       const response = await apiClient.register(email, password, fullName);
       
       if (!response.success) {
         return { error: response.error || 'Registration failed' };
       }
-      
-      return { error: null, message: response.data?.message || "Registration successful" };
+
+      // Update local state with the response
+      if (response.data?.session) {
+        setSession(response.data.session);
+        setUser(response.data.user);
+        
+        // Store session in localStorage
+        localStorage.setItem('auth_session', JSON.stringify(response.data.session));
+        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+        
+        // Fetch user role
+        if (response.data.user?.id) {
+          fetchUserRole(response.data.user.id);
+        }
+      }
+
+      return { message: response.data?.message || 'Registration successful' };
     } catch (error) {
-      return { error };
+      console.error('Sign up error:', error);
+      return { error: 'An unexpected error occurred' };
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (): Promise<void> => {
     try {
-      console.log('🚪 Signing out...');
-      
       // Use API service for logout
-      await apiClient.logout();
+      try {
+        await apiClient.logout();
+      } catch (err) {
+        console.log('API logout failed, continuing with cleanup');
+      }
       
-      // Clear app storage
-      localStorage.removeItem('app_session');
-      localStorage.removeItem('app_user');
-      
-      // Clear state
+      // Clean up local state
       setSession(null);
       setUser(null);
       setUserRole(null);
       
+      // Clean up auth state
       cleanupAuthState();
-      console.log('✅ Logout complete, redirecting to auth');
+      
+      // Force page refresh for clean state
       window.location.href = '/auth';
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Sign out error:', error);
       // Force cleanup even if there's an error
-      localStorage.removeItem('app_session');
-      localStorage.removeItem('app_user');
-      setSession(null);
-      setUser(null);
-      setUserRole(null);
       cleanupAuthState();
       window.location.href = '/auth';
     }
@@ -197,15 +241,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signOut,
+    refreshUser,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

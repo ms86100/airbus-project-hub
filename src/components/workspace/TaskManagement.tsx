@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { Card, CardContent } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/services/api';
@@ -95,14 +95,12 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
     if (!task.owner_id) return;
     
     try {
-      const { data, error } = await supabase
-        .from('stakeholders')
-        .select('id, name, email, department')
-        .eq('id', task.owner_id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      setStakeholder(data);
+      const response = await apiClient.getStakeholders(projectId);
+      
+      if (response.success && response.data?.stakeholders) {
+        const owner = response.data.stakeholders.find(s => s.id === task.owner_id);
+        setStakeholder(owner || null);
+      }
     } catch (error: any) {
       console.error('Error fetching task owner:', error);
     }
@@ -113,19 +111,18 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({
-          title: formData.title,
-          description: formData.description || null,
-          status: formData.status,
-          priority: formData.priority,
-          due_date: formData.due_date || null,
-          owner_id: formData.owner_id || null
-        })
-        .eq('id', task.id);
+      const response = await apiClient.updateTask(task.id, {
+        title: formData.title,
+        description: formData.description || undefined,
+        status: formData.status,
+        priority: formData.priority,
+        due_date: formData.due_date || undefined,
+        owner_id: formData.owner_id || undefined
+      });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update task');
+      }
       
       toast({
         title: "Task updated",
@@ -145,12 +142,11 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
 
   const handleDelete = async () => {
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', task.id);
+      const response = await apiClient.deleteTask(task.id);
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete task');
+      }
       
       toast({
         title: "Task deleted",
