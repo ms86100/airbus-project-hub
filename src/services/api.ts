@@ -583,6 +583,27 @@ class ApiClient {
     return this.makeRequest(`/capacity-service/projects/${projectId}/iterations`, { method: 'GET' });
   }
 
+  async deleteCapacityIteration(projectId: string, iterationId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/capacity/${iterationId}?type=iteration`, { method: 'DELETE' });
+  }
+
+  async updateCapacityIteration(projectId: string, iterationId: string, data: {
+    type: 'iteration';
+    iterationName: string;
+    startDate: string;
+    endDate: string;
+    workingDays: number;
+    committedStoryPoints?: number;
+  }): Promise<ApiResponse<{ message: string; iteration: any }>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/capacity/${iterationId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
   async getCapacityMembers(projectId: string, iterationId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/capacity-service/projects/${projectId}/iterations/${iterationId}/members`, { method: 'GET' });
   }

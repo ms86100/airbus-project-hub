@@ -184,27 +184,73 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         committedStoryPoints: iterationForm.committed_story_points
       };
 
-      const response = await apiClient.createCapacityIteration(projectId, iterationData);
+      let response;
+      if (editingIteration) {
+        response = await apiClient.updateCapacityIteration(projectId, editingIteration.id, iterationData);
+      } else {
+        response = await apiClient.createCapacityIteration(projectId, iterationData);
+      }
       
       if (response.success) {
         toast({
           title: 'Success',
-          description: 'Iteration created successfully'
+          description: editingIteration ? 'Iteration updated successfully' : 'Iteration created successfully'
         });
         setShowIterationDialog(false);
         resetIterationForm();
         fetchIterations();
       } else {
-        throw new Error(response.error || 'Failed to create iteration');
+        throw new Error(response.error || `Failed to ${editingIteration ? 'update' : 'create'} iteration`);
       }
     } catch (error) {
-      console.error('Error creating iteration:', error);
+      console.error('Error saving iteration:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create iteration',
+        description: `Failed to ${editingIteration ? 'update' : 'create'} iteration`,
         variant: 'destructive'
       });
     }
+  };
+
+  const handleDeleteIteration = async (iterationId: string) => {
+    try {
+      const response = await apiClient.deleteCapacityIteration(projectId, iterationId);
+      
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Iteration deleted successfully'
+        });
+        
+        // Clear selection if deleted iteration was selected
+        if (selectedIteration?.id === iterationId) {
+          setSelectedIteration(null);
+        }
+        
+        fetchIterations();
+      } else {
+        throw new Error(response.error || 'Failed to delete iteration');
+      }
+    } catch (error) {
+      console.error('Error deleting iteration:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete iteration',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const openEditIteration = (iteration: CapacityIteration) => {
+    setEditingIteration(iteration);
+    setIterationForm({
+      iteration_name: iteration.iteration_name,
+      start_date: iteration.start_date,
+      end_date: iteration.end_date,
+      working_days: iteration.working_days,
+      committed_story_points: iteration.committed_story_points
+    });
+    setShowIterationDialog(true);
   };
 
   if (loading) {
@@ -236,9 +282,11 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle>Create New Iteration</DialogTitle>
+                <DialogTitle>
+                  {editingIteration ? 'Edit Iteration' : 'Create New Iteration'}
+                </DialogTitle>
                 <DialogDescription>
-                  Set up a new iteration for team capacity planning.
+                  {editingIteration ? 'Update the iteration details.' : 'Set up a new iteration for team capacity planning.'}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleIterationSubmit} className="space-y-4">
@@ -306,7 +354,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     Cancel
                   </Button>
                   <Button type="submit">
-                    Create Iteration
+                    {editingIteration ? 'Update Iteration' : 'Create Iteration'}
                   </Button>
                 </div>
               </form>
@@ -406,12 +454,45 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditIteration(iteration);
+                        }}
+                      >
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" className="text-status-error hover:bg-status-error hover:text-white">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Iteration</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{iteration.iteration_name}"? This action cannot be undone and will remove all associated team capacity data.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteIteration(iteration.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </CardHeader>
