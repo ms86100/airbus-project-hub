@@ -198,14 +198,15 @@ const Dashboard = () => {
           {userRole === 'admin' 
             ? 'Manage all projects and users across the organization' 
             : 'Coordinate and track your assigned projects'}
-          {userProfile?.departments && (
-            <span className="block mt-1">
-              Department: <Badge variant="outline" className="bg-white/20 text-white border-white/30">
-                {userProfile.departments.name}
-              </Badge>
-            </span>
-          )}
         </p>
+        {userProfile?.departments && (
+          <div className="mb-4">
+            <span className="text-white/90">Department: </span>
+            <Badge variant="outline" className="bg-white/20 text-white border-white/30">
+              {userProfile.departments.name}
+            </Badge>
+          </div>
+        )}
         <Button variant="hero" size="lg" onClick={handleCreateProject}>
           <Plus className="h-5 w-5 mr-2" />
           Create New Project
