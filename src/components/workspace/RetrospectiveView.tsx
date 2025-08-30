@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Target, Calendar, BarChart3 } from 'lucide-react';
 import { InteractiveRetrospectiveBoard } from './InteractiveRetrospectiveBoard';
@@ -302,40 +303,38 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
               <Plus className="h-4 w-4 mr-2" />
               New Retrospective
             </Button>
-            <DialogContent className="max-w-md">
+            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Retrospective</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreateRetrospective} className="space-y-4">
                 <div>
                   <Label htmlFor="iteration">Iteration *</Label>
-                  <Select value={createForm.iteration_id} onValueChange={(value) => setCreateForm(prev => ({ ...prev, iteration_id: value }))}>
-                    <SelectTrigger className="bg-background border-border">
-                      <SelectValue placeholder="Select an iteration" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border-border shadow-lg z-[100]">
-                      {iterations.map((iteration) => (
-                        <SelectItem key={iteration.id} value={iteration.id} className="hover:bg-muted focus:bg-muted">
-                          {iteration.iteration_name} ({iteration.start_date} - {iteration.end_date})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SimpleSelect
+                    value={createForm.iteration_id}
+                    onValueChange={(value) => setCreateForm(prev => ({ ...prev, iteration_id: value }))}
+                    placeholder="Select an iteration"
+                  >
+                    {iterations.map((iteration) => (
+                      <SimpleSelectItem key={iteration.id} value={iteration.id}>
+                        {iteration.iteration_name} ({iteration.start_date} - {iteration.end_date})
+                      </SimpleSelectItem>
+                    ))}
+                  </SimpleSelect>
                 </div>
                 <div>
                   <Label htmlFor="framework">Framework</Label>
-                  <Select value={createForm.framework} onValueChange={(value) => setCreateForm(prev => ({ ...prev, framework: value }))}>
-                    <SelectTrigger className="bg-background border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border-border shadow-lg z-[100]">
-                      {Object.keys(FRAMEWORK_TEMPLATES).map((framework) => (
-                        <SelectItem key={framework} value={framework} className="hover:bg-muted focus:bg-muted">
-                          {framework}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SimpleSelect
+                    value={createForm.framework}
+                    onValueChange={(value) => setCreateForm(prev => ({ ...prev, framework: value }))}
+                    placeholder="Select framework"
+                  >
+                    {Object.keys(FRAMEWORK_TEMPLATES).map((framework) => (
+                      <SimpleSelectItem key={framework} value={framework}>
+                        {framework}
+                      </SimpleSelectItem>
+                    ))}
+                  </SimpleSelect>
                 </div>
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>

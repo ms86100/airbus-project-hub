@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { Plus, ThumbsUp, Target, Trash2, MoreHorizontal, ArrowLeft } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RetrospectiveCard } from './RetrospectiveCard';
@@ -429,7 +430,7 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
 
       {/* Action Item Dialog */}
       <Dialog open={showActionItemDialog} onOpenChange={setShowActionItemDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Action Item</DialogTitle>
           </DialogHeader>
@@ -455,21 +456,17 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
             </div>
             <div>
               <Label htmlFor="who">Who (Responsible Person)</Label>
-              <Select
+              <SimpleSelect
                 value={actionItemForm.who_responsible}
                 onValueChange={(value) => setActionItemForm(prev => ({ ...prev, who_responsible: value }))}
+                placeholder="Select responsible person"
               >
-                <SelectTrigger className="bg-background border-border">
-                  <SelectValue placeholder="Select responsible person" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border-border shadow-lg z-[100]">
-                  {stakeholders.map((stakeholder) => (
-                    <SelectItem key={stakeholder.id} value={stakeholder.name} className="hover:bg-muted focus:bg-muted">
-                      {stakeholder.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {stakeholders.map((stakeholder) => (
+                  <SimpleSelectItem key={stakeholder.id} value={stakeholder.name}>
+                    {stakeholder.name}
+                  </SimpleSelectItem>
+                ))}
+              </SimpleSelect>
             </div>
             <div>
               <Label htmlFor="how">How (Approach/Method)</Label>
