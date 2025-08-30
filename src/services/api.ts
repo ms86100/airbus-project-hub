@@ -16,25 +16,29 @@ class ApiClient {
   }
 
   private async getAuthToken(): Promise<string | null> {
-    // Get token from localStorage since we're using microservice auth
-    const storedSession = localStorage.getItem('auth_session');
-    if (storedSession) {
-      try {
-        const session = JSON.parse(storedSession);
-        console.log('🔑 Retrieved session from localStorage:', session);
-        
-        // Check multiple possible token field names
-        const token = session?.access_token || session?.token || session?.accessToken;
-        console.log('🎫 Extracted token:', token ? `${token.substring(0, 20)}...` : 'null');
-        
-        return token || null;
-      } catch (error) {
-        console.error('Error parsing stored session:', error);
+    try {
+      // Get the current session from Supabase
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      console.log('🔑 Retrieved session from Supabase:', session ? 'Session exists' : 'No session');
+      console.log('🔑 Session error:', error);
+      
+      if (error) {
+        console.error('Error getting session:', error);
         return null;
       }
+      
+      if (session?.access_token) {
+        console.log('🎫 Extracted token:', `${session.access_token.substring(0, 20)}...`);
+        return session.access_token;
+      }
+      
+      console.log('❌ No access token found in session');
+      return null;
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return null;
     }
-    console.log('❌ No stored session found in localStorage');
-    return null;
   }
 
   private async makeRequest<T>(
