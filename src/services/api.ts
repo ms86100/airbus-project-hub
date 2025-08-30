@@ -1,3 +1,5 @@
+import { supabase } from '@/integrations/supabase/client';
+
 // Central API client for all microservices
 
 export interface ApiResponse<T = any> {
@@ -16,23 +18,33 @@ class ApiClient {
 
   private async getAuthToken(): Promise<string | null> {
     try {
-      // Get the stored session from localStorage (microservice auth)
-      const storedSession = localStorage.getItem('auth_session');
-      
-      if (storedSession) {
-        const session = JSON.parse(storedSession);
-        console.log('🔑 Retrieved session from localStorage:', session ? 'Session exists' : 'No session');
-        
-        // Extract token from the stored session
-        const token = session?.access_token || session?.token || session?.accessToken;
-        
-        if (token) {
-          console.log('🎫 Extracted token:', `${token.substring(0, 20)}...`);
-          return token;
+      // 1) Prefer Supabase client session (auto-refreshed)
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ?? null;
+      if (token) {
+        console.log('🔑 Using Supabase session token');
+        // Keep microservice storage in sync for compatibility
+        try {
+          const stored = localStorage.getItem('auth_session');
+          if (!stored) {
+            localStorage.setItem('auth_session', JSON.stringify({ access_token: token, refresh_token: session?.refresh_token }));
+          }
+        } catch {}
+        return token;
+      }
+
+      // 2) Fallback to microservice-stored session tokens
+      const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
+      if (storedAuth) {
+        const parsed = JSON.parse(storedAuth);
+        const legacyToken = parsed?.access_token || parsed?.token || parsed?.accessToken;
+        if (legacyToken) {
+          console.log('🔑 Using legacy stored token');
+          return legacyToken;
         }
       }
-      
-      console.log('❌ No access token found in stored session');
+
+      console.log('❌ No access token available');
       return null;
     } catch (error) {
       console.error('Error getting auth token:', error);

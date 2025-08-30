@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
 
 // Define custom User interface for microservice auth
 interface User {
@@ -101,6 +102,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(sessionData);
         setUser(userData);
         
+        // Sync Supabase JS client session so tokens auto-refresh
+        try {
+          await supabase.auth.setSession({
+            access_token: sessionData.access_token,
+            refresh_token: sessionData.refresh_token || ''
+          });
+        } catch (e) {
+          console.warn('Failed to set Supabase client session', e);
+        }
+        
         // Store session in localStorage for persistence
         console.log('💾 Storing session and user data');
         localStorage.setItem('auth_session', JSON.stringify(sessionData));
@@ -129,6 +140,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.data?.session) {
         setSession(response.data.session);
         setUser(response.data.user);
+        
+        // Sync Supabase JS client session
+        try {
+          await supabase.auth.setSession({
+            access_token: response.data.session.access_token,
+            refresh_token: response.data.session.refresh_token || ''
+          });
+        } catch (e) {}
         
         // Store session in localStorage
         localStorage.setItem('auth_session', JSON.stringify(response.data.session));
@@ -161,6 +180,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         console.log('⚠️ API logout failed, continuing with cleanup');
       }
+
+      // Also clear Supabase client session
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (e) {}
       
       // Force redirect to auth page
       window.location.href = '/auth';

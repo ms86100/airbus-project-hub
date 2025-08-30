@@ -110,6 +110,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('app_session', JSON.stringify(response.data.session));
         localStorage.setItem('app_user', JSON.stringify(response.data.user));
         
+        // Set Supabase client session for auto-refresh
+        try {
+          await supabase.auth.setSession({
+            access_token: response.data.session.access_token,
+            refresh_token: response.data.session.refresh_token || ''
+          });
+        } catch (e) {}
+        
         // Update state
         setSession(response.data.session);
         setUser(response.data.user);
