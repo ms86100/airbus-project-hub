@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log('🎯 Setting up auth from localStorage...');
+    console.log('🎯 AUTH HOOK V2 - Setting up auth from localStorage...');
     
     // Check for stored session in localStorage
     const storedSession = localStorage.getItem('app_session');
@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('🔐 useAuth.signIn() called');
+      console.log('🔐 AUTH HOOK V2 - useAuth.signIn() called');
       console.log('📧 Email:', email);
       
       cleanupAuthState();
