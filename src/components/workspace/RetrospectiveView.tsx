@@ -94,34 +94,54 @@ interface CardVote {
 }
 
 const FRAMEWORK_TEMPLATES = {
-  Classic: [
-    { title: "Start 🚀", subtitle: "What should we start doing?" },
-    { title: "Stop ✋", subtitle: "What should we stop doing?" },
-    { title: "Continue ✅", subtitle: "What should we continue doing?" }
-  ],
-  "4Ls": [
-    { title: "Liked 👍", subtitle: "What did we like?" },
-    { title: "Learned 🧠", subtitle: "What did we learn?" },
-    { title: "Lacked 😕", subtitle: "What was missing or lacking?" },
-    { title: "Longed For 🌟", subtitle: "What did we long for?" }
-  ],
-  KISS: [
-    { title: "Keep 💚", subtitle: "What should we continue doing?" },
-    { title: "Improve 🔧", subtitle: "What could be improved?" },
-    { title: "Start 🆕", subtitle: "What should we try next?" },
-    { title: "Stop ✋", subtitle: "What should we avoid?" }
-  ],
-  Sailboat: [
-    { title: "Wind ⛵", subtitle: "What helped us move forward?" },
-    { title: "Anchor ⚓", subtitle: "What slowed us down?" },
-    { title: "Rocks 🪨", subtitle: "What risks do we see ahead?" },
-    { title: "Island 🏝️", subtitle: "What is our destination/goal?" }
-  ],
-  "Mad/Sad/Glad": [
-    { title: "Mad 😡", subtitle: "What frustrated us?" },
-    { title: "Sad 😢", subtitle: "What disappointed us?" },
-    { title: "Glad 😊", subtitle: "What made us happy?" }
-  ]
+  classic: {
+    name: "Classic",
+    description: "A simple format focusing on actions to start, stop, or continue.",
+    columns: [
+      { title: "Start", subtitle: "What should we start doing?" },
+      { title: "Stop", subtitle: "What should we stop doing?" },
+      { title: "Continue", subtitle: "What should we continue doing?" }
+    ]
+  },
+  "4ls": {
+    name: "4Ls", 
+    description: "Captures knowledge and improvement areas: liked, learned, lacked, longed for.",
+    columns: [
+      { title: "Liked", subtitle: "What did we like?" },
+      { title: "Learned", subtitle: "What did we learn?" },
+      { title: "Lacked", subtitle: "What was missing or lacking?" },
+      { title: "Longed For", subtitle: "What did we long for?" }
+    ]
+  },
+  kiss: {
+    name: "KISS",
+    description: "Keep, Improve, Start, Stop — a straightforward way to analyze team practices.",
+    columns: [
+      { title: "Keep", subtitle: "What should we continue doing?" },
+      { title: "Improve", subtitle: "What could be improved?" },
+      { title: "Start", subtitle: "What should we try next?" },
+      { title: "Stop", subtitle: "What should we avoid?" }
+    ]
+  },
+  sailboat: {
+    name: "Sailboat",
+    description: "Visualizes team journey with metaphorical elements: wind, anchors, rocks, and island.",
+    columns: [
+      { title: "Wind", subtitle: "Things pushing the team forward" },
+      { title: "Anchor", subtitle: "Things holding the team back" },
+      { title: "Rocks", subtitle: "Risks or obstacles ahead" },
+      { title: "Island", subtitle: "Goals or desired state" }
+    ]
+  },
+  mad_sad_glad: {
+    name: "Mad / Sad / Glad",
+    description: "Focuses on emotional reflections of the sprint.",
+    columns: [
+      { title: "Mad", subtitle: "What frustrated us?" },
+      { title: "Sad", subtitle: "What disappointed us?" },
+      { title: "Glad", subtitle: "What made us happy?" }
+    ]
+  }
 };
 
 // Card colors that cycle through 7 colors
@@ -156,7 +176,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   // Form states
   const [createForm, setCreateForm] = useState({
     iteration_id: '',
-    framework: 'Classic'
+    framework: 'classic'
   });
 
   useEffect(() => {
@@ -240,9 +260,9 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           description: 'Retrospective created successfully'
         });
 
-        setShowCreateDialog(false);
-        setCreateForm({ iteration_id: '', framework: 'Classic' });
-        fetchRetrospectives();
+                        setShowCreateDialog(false);
+                        setCreateForm({ iteration_id: '', framework: 'classic' });
+                        fetchRetrospectives();
       } else {
         throw new Error(response.error || 'Failed to create retrospective');
       }
@@ -329,9 +349,9 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                     onValueChange={(value) => setCreateForm(prev => ({ ...prev, framework: value }))}
                     placeholder="Select framework"
                   >
-                    {Object.keys(FRAMEWORK_TEMPLATES).map((framework) => (
-                      <SimpleSelectItem key={framework} value={framework}>
-                        {framework}
+                    {Object.entries(FRAMEWORK_TEMPLATES).map(([key, template]) => (
+                      <SimpleSelectItem key={key} value={key}>
+                        {template.name} - {template.description}
                       </SimpleSelectItem>
                     ))}
                   </SimpleSelect>
@@ -356,7 +376,8 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
               <Card key={retro.id} className="p-6 hover:shadow-md transition-shadow cursor-pointer">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold">{retro.framework} Retrospective</h3>
+                    <h3 className="text-lg font-semibold">{FRAMEWORK_TEMPLATES[retro.framework]?.name || retro.framework} Retrospective</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{FRAMEWORK_TEMPLATES[retro.framework]?.description}</p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                       {iteration && (
                         <span className="flex items-center gap-1">

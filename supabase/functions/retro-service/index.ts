@@ -165,12 +165,39 @@ Deno.serve(async (req) => {
         return createErrorResponse('Failed to create retrospective', 'CREATE_ERROR');
       }
 
-      // Default columns if none provided
-      const columns = body.columns && body.columns.length > 0 ? body.columns : [
-        { title: 'Went well' },
-        { title: 'To improve' },
-        { title: 'Action items' },
-      ];
+      // Default columns based on framework
+      const frameworkColumns = {
+        classic: [
+          { title: 'Start', subtitle: 'What should we start doing?' },
+          { title: 'Stop', subtitle: 'What should we stop doing?' },
+          { title: 'Continue', subtitle: 'What should we continue doing?' }
+        ],
+        '4ls': [
+          { title: 'Liked', subtitle: 'What did we like?' },
+          { title: 'Learned', subtitle: 'What did we learn?' },
+          { title: 'Lacked', subtitle: 'What was missing or lacking?' },
+          { title: 'Longed For', subtitle: 'What did we long for?' }
+        ],
+        kiss: [
+          { title: 'Keep', subtitle: 'What should we continue doing?' },
+          { title: 'Improve', subtitle: 'What could be improved?' },
+          { title: 'Start', subtitle: 'What should we try next?' },
+          { title: 'Stop', subtitle: 'What should we avoid?' }
+        ],
+        sailboat: [
+          { title: 'Wind', subtitle: 'Things pushing the team forward' },
+          { title: 'Anchor', subtitle: 'Things holding the team back' },
+          { title: 'Rocks', subtitle: 'Risks or obstacles ahead' },
+          { title: 'Island', subtitle: 'Goals or desired state' }
+        ],
+        mad_sad_glad: [
+          { title: 'Mad', subtitle: 'What frustrated us?' },
+          { title: 'Sad', subtitle: 'What disappointed us?' },
+          { title: 'Glad', subtitle: 'What made us happy?' }
+        ]
+      };
+
+      const columns = body.columns && body.columns.length > 0 ? body.columns : frameworkColumns[framework] || frameworkColumns.classic;
 
       const toInsert = columns.map((c, idx) => ({
         retrospective_id: retrospective.id,

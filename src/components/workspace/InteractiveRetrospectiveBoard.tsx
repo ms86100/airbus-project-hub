@@ -17,7 +17,8 @@ import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { Plus, ThumbsUp, Target, Trash2, MoreHorizontal, ArrowLeft } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RetrospectiveCard } from './RetrospectiveCard';
-import { DroppableColumn } from './DroppableColumn';
+import { InteractiveRetrospectiveCard } from './InteractiveRetrospectiveCard';
+import { InteractiveDroppableColumn } from './InteractiveDroppableColumn';
 
 interface InteractiveRetrospectiveBoardProps {
   retrospective: {
@@ -152,7 +153,32 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
     }
   };
 
-  const handleAddCard = async () => {
+  const handleEditCard = async (cardId: string, newText: string) => {
+    try {
+      const response = await apiClient.updateRetrospectiveCard(cardId, { text: newText });
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Card updated successfully'
+        });
+        await fetchRetrospectiveData();
+      }
+    } catch (error) {
+      console.error('Error updating card:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update card',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleAddCard = (columnId: string) => {
+    setSelectedColumnId(columnId);
+    setShowAddCardDialog(true);
+  };
+
+  const handleSubmitCard = async () => {
     if (!newCardText.trim() || !selectedColumnId) return;
 
     try {
@@ -345,48 +371,28 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
         onDragEnd={handleDragEnd}
         collisionDetection={closestCorners}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 h-[calc(100vh-200px)]">
           {columns.map((column) => (
-            <Card key={column.id} className="flex flex-col h-fit">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{column.title}</CardTitle>
-                    {column.subtitle && (
-                      <p className="text-sm text-muted-foreground mt-1">{column.subtitle}</p>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedColumnId(column.id);
-                      setShowAddCardDialog(true);
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <DroppableColumn
-                  column={column}
-                  cards={column.cards || []}
-                  getCardColor={getCardColor}
-                  getUserDisplayName={getUserDisplayName}
-                  onVote={handleVote}
-                  onDelete={handleDeleteCard}
-                  onCreateAction={handleCreateActionItem}
-                  userId={user?.id}
-                />
-              </CardContent>
-            </Card>
+            <div key={column.id} className="flex flex-col">
+              <InteractiveDroppableColumn
+                column={column}
+                cards={column.cards || []}
+                getCardColor={getCardColor}
+                getUserDisplayName={getUserDisplayName}
+                onVote={handleVote}
+                onDelete={handleDeleteCard}
+                onCreateAction={handleCreateActionItem}
+                onEditCard={handleEditCard}
+                onAddCard={handleAddCard}
+                userId={user?.id}
+              />
+            </div>
           ))}
         </div>
 
         <DragOverlay>
           {activeCard ? (
-            <RetrospectiveCard
+            <InteractiveRetrospectiveCard
               card={activeCard}
               cardColor={getCardColor(0)}
               userDisplayName={getUserDisplayName(activeCard.created_by)}
@@ -420,7 +426,7 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
               <Button variant="outline" onClick={() => setShowAddCardDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleAddCard} disabled={!newCardText.trim()}>
+              <Button onClick={handleSubmitCard} disabled={!newCardText.trim()}>
                 Add Card
               </Button>
             </div>
