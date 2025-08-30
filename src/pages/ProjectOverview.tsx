@@ -24,6 +24,7 @@ import { AddTaskFromBacklogDialog } from '@/components/workspace/AddTaskFromBack
 import { DiscussionLog } from '@/components/workspace/DiscussionLog';
 import { TaskBacklog } from '@/components/workspace/TaskBacklog';
 import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
+import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
 
 interface Project {
   id: string;
@@ -288,6 +289,7 @@ const ProjectOverview = () => {
                   <TabsTrigger value="discussions" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Discussions</TabsTrigger>
                   <TabsTrigger value="backlog" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Task Backlog</TabsTrigger>
                   <TabsTrigger value="capacity" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Team Capacity</TabsTrigger>
+                  <TabsTrigger value="retrospectives" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Retrospectives</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -536,6 +538,12 @@ const ProjectOverview = () => {
               <TabsContent value="capacity" className="p-0">
                 <div className="h-[700px] w-full overflow-y-auto">
                   <TeamCapacityTracker projectId={id!} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="retrospectives" className="p-0">
+                <div className="h-[700px] w-full overflow-y-auto">
+                  <RetrospectiveView projectId={id!} />
                 </div>
               </TabsContent>
             </Tabs>
