@@ -42,8 +42,12 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const path = url.pathname;
   const method = req.method;
+  const normalizedPath = path
+    .replace(/^\/functions\/v1\/projects-service/, '')
+    .replace(/^\/projects-service/, '') || '/';
+  const normUrl = new URL(url.origin + normalizedPath);
 
-  logRequest(method, path);
+  logRequest(method, normalizedPath);
 
   try {
     // Validate authentication for all endpoints
@@ -52,8 +56,8 @@ Deno.serve(async (req) => {
       return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
     }
 
-    // GET /projects or /projects-service/projects
-    if (method === 'GET' && (path === '/projects' || path === '/projects-service/projects')) {
+    // GET /projects
+    if (method === 'GET' && (normalizedPath === '/projects' || normalizedPath === '/projects/')) {
       const { data: projects, error } = await supabase
         .from('projects')
         .select(`
@@ -71,8 +75,8 @@ Deno.serve(async (req) => {
       return createSuccessResponse(projects);
     }
 
-    // POST /projects or /projects-service/projects
-    if (method === 'POST' && (path === '/projects' || path === '/projects-service/projects')) {
+    // POST /projects
+    if (method === 'POST' && (normalizedPath === '/projects' || normalizedPath === '/projects/')) {
       const projectData: CreateProjectRequest = await parseRequestBody(req);
 
       if (!projectData.name) {
@@ -106,11 +110,9 @@ Deno.serve(async (req) => {
       return createSuccessResponse(project);
     }
 
-    // GET /projects/:id or /projects-service/projects/:id
-    if (method === 'GET' && (path.match(/^\/projects\/[^\/]+$/) || path.match(/^\/projects-service\/projects\/[^\/]+$/))) {
-      const params = path.startsWith('/projects-service/') 
-        ? extractPathParams(url, '/projects-service/projects/:id')
-        : extractPathParams(url, '/projects/:id');
+    // GET /projects/:id
+    if (method === 'GET' && normalizedPath.match(/^\/projects\/[^\/]+$/)) {
+      const params = extractPathParams(normUrl, '/projects/:id');
       const projectId = params.id;
 
       const { data: project, error } = await supabase
@@ -134,11 +136,9 @@ Deno.serve(async (req) => {
       return createSuccessResponse(project);
     }
 
-    // PUT /projects/:id or /projects-service/projects/:id
-    if (method === 'PUT' && (path.match(/^\/projects\/[^\/]+$/) || path.match(/^\/projects-service\/projects\/[^\/]+$/))) {
-      const params = path.startsWith('/projects-service/') 
-        ? extractPathParams(url, '/projects-service/projects/:id')
-        : extractPathParams(url, '/projects/:id');
+    // PUT /projects/:id
+    if (method === 'PUT' && normalizedPath.match(/^\/projects\/[^\/]+$/)) {
+      const params = extractPathParams(normUrl, '/projects/:id');
       const projectId = params.id;
       const updateData: UpdateProjectRequest = await parseRequestBody(req);
 
@@ -193,11 +193,9 @@ Deno.serve(async (req) => {
       return createSuccessResponse(project);
     }
 
-    // DELETE /projects/:id or /projects-service/projects/:id
-    if (method === 'DELETE' && (path.match(/^\/projects\/[^\/]+$/) || path.match(/^\/projects-service\/projects\/[^\/]+$/))) {
-      const params = path.startsWith('/projects-service/') 
-        ? extractPathParams(url, '/projects-service/projects/:id')
-        : extractPathParams(url, '/projects/:id');
+    // DELETE /projects/:id
+    if (method === 'DELETE' && normalizedPath.match(/^\/projects\/[^\/]+$/)) {
+      const params = extractPathParams(normUrl, '/projects/:id');
       const projectId = params.id;
 
       // Check if user has admin role for deletion
@@ -225,8 +223,8 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Project deleted successfully' });
     }
 
-    // GET /projects-service/stats - Get project statistics (admin only)
-    if (method === 'GET' && path.endsWith('/stats')) {
+    // GET /stats - Get project statistics (admin only)
+    if (method === 'GET' && normalizedPath.endsWith('/stats')) {
       try {
         // Check if user is admin
         const { data: isAdmin } = await supabase
