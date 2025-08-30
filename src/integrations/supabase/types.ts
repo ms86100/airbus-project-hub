@@ -463,6 +463,7 @@ export type Database = {
         Row: {
           backlog_ref_id: string | null
           backlog_status: string | null
+          backlog_task_id: string | null
           converted_to_task: boolean | null
           created_at: string
           created_by: string
@@ -479,6 +480,7 @@ export type Database = {
         Insert: {
           backlog_ref_id?: string | null
           backlog_status?: string | null
+          backlog_task_id?: string | null
           converted_to_task?: boolean | null
           created_at?: string
           created_by: string
@@ -495,6 +497,7 @@ export type Database = {
         Update: {
           backlog_ref_id?: string | null
           backlog_status?: string | null
+          backlog_task_id?: string | null
           converted_to_task?: boolean | null
           created_at?: string
           created_by?: string
@@ -513,7 +516,21 @@ export type Database = {
             foreignKeyName: "fk_retrospective_action_items_retrospective_id"
             columns: ["retrospective_id"]
             isOneToOne: false
+            referencedRelation: "retrospective_analytics"
+            referencedColumns: ["retrospective_id"]
+          },
+          {
+            foreignKeyName: "fk_retrospective_action_items_retrospective_id"
+            columns: ["retrospective_id"]
+            isOneToOne: false
             referencedRelation: "retrospectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retrospective_action_items_backlog_task_id_fkey"
+            columns: ["backlog_task_id"]
+            isOneToOne: false
+            referencedRelation: "task_backlog"
             referencedColumns: ["id"]
           },
           {
@@ -530,18 +547,21 @@ export type Database = {
           card_id: string
           created_at: string
           id: string
+          metadata: Json | null
           user_id: string
         }
         Insert: {
           card_id: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           user_id: string
         }
         Update: {
           card_id?: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           user_id?: string
         }
         Relationships: [
@@ -624,6 +644,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_retrospective_columns_retrospective_id"
+            columns: ["retrospective_id"]
+            isOneToOne: false
+            referencedRelation: "retrospective_analytics"
+            referencedColumns: ["retrospective_id"]
+          },
           {
             foreignKeyName: "fk_retrospective_columns_retrospective_id"
             columns: ["retrospective_id"]
@@ -1196,7 +1223,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      retrospective_analytics: {
+        Row: {
+          converted_to_tasks: number | null
+          created_at: string | null
+          created_by: string | null
+          framework: string | null
+          project_id: string | null
+          retrospective_id: string | null
+          status: string | null
+          total_action_items: number | null
+          total_card_votes: number | null
+          total_cards: number | null
+          total_votes: number | null
+          unique_voters: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_effective_capacity: {
