@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
 import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ interface Project {
 }
 
 const TeamCapacity = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useApiAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -43,17 +43,16 @@ const TeamCapacity = () => {
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, name, status')
-        .order('name');
-
-      if (error) throw error;
-      setProjects(data || []);
+      const response = await apiClient.getProjects();
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch projects');
+      }
+      
+      setProjects(response.data || []);
       
       // Auto-select first project if available
-      if (data && data.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(data[0].id);
+      if (response.data && response.data.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(response.data[0].id);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -62,37 +61,12 @@ const TeamCapacity = () => {
 
   const fetchCapacityStats = async () => {
     try {
-      const { data: iterationData, error: iterationError } = await supabase
-        .from('team_capacity_iterations')
-        .select('id');
-
-      if (iterationError) throw iterationError;
-
-      const { data: memberData, error: memberError } = await supabase
-        .from('team_capacity_members')
-        .select('id, effective_capacity_days');
-
-      if (memberError) throw memberError;
-
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('id');
-
-      if (projectError) throw projectError;
-
-      const totalIterations = iterationData?.length || 0;
-      const totalMembers = memberData?.length || 0;
-      const avgCapacity = totalMembers > 0 
-        ? Math.round((memberData?.reduce((sum, member) => sum + (member.effective_capacity_days || 0), 0) || 0) / totalMembers * 10) / 10
-        : 0;
-      const totalProjects = projectData?.length || 0;
-
-      setCapacityStats({
-        totalIterations,
-        totalMembers,
-        avgCapacity,
-        totalProjects
-      });
+      const response = await apiClient.getCapacityStats();
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch capacity stats');
+      }
+      
+      setCapacityStats(response.data);
     } catch (error) {
       console.error('Error fetching capacity stats:', error);
     }

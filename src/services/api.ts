@@ -216,6 +216,15 @@ class ApiClient {
     });
   }
 
+  async getCapacityStats(): Promise<ApiResponse<{
+    totalIterations: number;
+    totalMembers: number;
+    avgCapacity: number;
+    totalProjects: number;
+  }>> {
+    return this.makeRequest('/capacity-service/stats', { method: 'GET' });
+  }
+
   async revokeModulePermission(projectId: string, userId: string, module: string): Promise<ApiResponse<{ message: string }>> {
     return this.makeRequest(`/access-service/projects/${projectId}/access/${userId}?module=${module}`, {
       method: 'DELETE',
