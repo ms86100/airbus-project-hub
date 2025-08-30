@@ -1174,12 +1174,9 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           )}
           
           <Dialog open={showTeamDialog} onOpenChange={setShowTeamDialog}>
-            <DialogContent className="z-[50] max-w-md">
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Save Team</DialogTitle>
-                <DialogDescription>
-                  Save the current team members as a reusable team template.
-                </DialogDescription>
               </DialogHeader>
               <form onSubmit={(e) => { e.preventDefault(); handleSaveTeamFromIteration(teamFromIterationId); }} className="space-y-4">
                 <div>
