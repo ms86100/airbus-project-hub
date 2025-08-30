@@ -649,6 +649,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                           </Badge>
                         </CardHeader>
                         <CardContent 
+                          id={column.id}
                           className="space-y-3 p-4 min-h-[200px]"
                           style={{ 
                             background: `linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)/0.1) 100%)` 
