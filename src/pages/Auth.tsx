@@ -18,14 +18,30 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('=== LOGIN ATTEMPT START ===');
+    console.log('Email:', email);
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
+    try {
+      const { error } = await signIn(email, password);
+      console.log('=== LOGIN RESPONSE ===');
+      console.log('Error:', error);
 
-    if (error) {
+      if (error) {
+        console.log('=== LOGIN FAILED ===');
+        toast({
+          title: "Authentication Error",
+          description: error,
+          variant: "destructive",
+        });
+      } else {
+        console.log('=== LOGIN SUCCESS ===');
+      }
+    } catch (err) {
+      console.error('=== LOGIN EXCEPTION ===', err);
       toast({
         title: "Authentication Error",
-        description: error,
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
     }

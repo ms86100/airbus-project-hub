@@ -83,25 +83,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('🔐 useAuth.signIn() called');
+      console.log('📧 Email:', email);
+      
       cleanupAuthState();
+      console.log('🧹 Auth state cleaned');
+      
       try {
         await supabase.auth.signOut({ scope: 'global' });
+        console.log('🚪 Global signout completed');
       } catch (err) {
+        console.log('⚠️ Global signout failed:', err);
         // Continue even if this fails
       }
 
+      console.log('📡 Calling apiClient.login...');
       const response = await apiClient.login(email, password);
+      console.log('📡 API Response:', response);
       
       if (!response.success) {
+        console.log('❌ Login failed:', response.error);
         return { error: response.error || 'Login failed' };
       }
       
+      console.log('✅ Login successful');
+      console.log('👤 User data:', response.data?.user);
+      
       if (response.data?.user) {
+        console.log('🔄 Redirecting to /');
         window.location.href = '/';
+      } else {
+        console.log('⚠️ No user data in response');
       }
       
       return { error: null };
     } catch (error) {
+      console.error('💥 Exception in signIn:', error);
       return { error };
     }
   };
