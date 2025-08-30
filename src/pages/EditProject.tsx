@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,14 +49,13 @@ const EditProject = () => {
 
   const fetchProject = async () => {
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.getProject(id!);
       
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch project');
+      }
+      
+      const data = response.data;
       setProject(data);
       setFormData({
         name: data.name,
@@ -64,11 +63,11 @@ const EditProject = () => {
         start_date: data.start_date || '',
         end_date: data.end_date || ''
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching project:', error);
       toast({
         title: "Error",
-        description: "Failed to load project data.",
+        description: error.message || "Failed to load project data.",
         variant: "destructive",
       });
     } finally {
@@ -81,17 +80,16 @@ const EditProject = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          name: formData.name,
-          description: formData.description,
-          start_date: formData.start_date || null,
-          end_date: formData.end_date || null
-        })
-        .eq('id', project.id);
+      const response = await apiClient.updateProject(project.id, {
+        name: formData.name,
+        description: formData.description,
+        startDate: formData.start_date || null,
+        endDate: formData.end_date || null
+      });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update project');
+      }
 
       toast({
         title: "Project Updated",
@@ -99,11 +97,11 @@ const EditProject = () => {
       });
       
       navigate(`/project/${project.id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating project:', error);
       toast({
         title: "Error",
-        description: "Failed to update project.",
+        description: error.message || "Failed to update project.",
         variant: "destructive",
       });
     } finally {

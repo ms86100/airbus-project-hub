@@ -483,6 +483,11 @@ class ApiClient {
     return this.makeRequest(`/auth-service/profiles/${userId}`);
   }
 
+  // Capacity Service Methods (extended)  
+  async getCapacitySettings(projectId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/settings`, { method: 'GET' });
+  }
+
   // Risk Register Methods (workspace service)
   async getRisks(projectId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/workspace-service/projects/${projectId}/risks`, { method: 'GET' });
@@ -530,6 +535,10 @@ class ApiClient {
     });
   }
 
+  // Capacity Data method  
+  async getCapacityData(projectId: string): Promise<ApiResponse<{ projectId: string; iterations: any[]; members: any[]; }>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, { method: 'GET' });
+  }
 }
 
 export const apiClient = new ApiClient();
