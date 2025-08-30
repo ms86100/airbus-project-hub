@@ -124,8 +124,9 @@ export default function AccessControl() {
     try {
       // Grant access for each selected module using the API
       const permissionPromises = selectedModules.map(module => 
-        apiClient.grantModulePermission(selectedProject, {
-          userId: userEmail, // The API will handle email-to-ID conversion
+        apiClient.grantModulePermission({
+          projectId: selectedProject,
+          userEmail: userEmail,
           module,
           accessLevel: selectedAccess,
         })
@@ -171,11 +172,7 @@ export default function AccessControl() {
         throw new Error('Permission not found');
       }
 
-      const response = await apiClient.revokeModulePermission(
-        permission.project_id, 
-        permission.user_id, 
-        permission.module
-      );
+      const response = await apiClient.revokeModulePermission(permissionId);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to remove permission');

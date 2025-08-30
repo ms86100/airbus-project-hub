@@ -5,8 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Clock, User, FileText, Filter, Search } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
+import { apiClient } from '@/services/api';
 
 interface AuditEntry {
   id: string;
@@ -62,36 +62,21 @@ export function AuditLogView({ projectId }: AuditLogViewProps) {
   const fetchAuditLog = async () => {
     setLoading(true);
     
-    const { data, error } = await supabase
-      .from('audit_log')
-      .select(`
-        id,
-        user_id,
-        module,
-        action,
-        entity_type,
-        entity_id,
-        description,
-        created_at,
-        profiles!user_id(email)
-      `)
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: false })
-      .limit(100);
+    try {
+      const response = await apiClient.getAuditLog(projectId);
+      
+      if (!response.success) {
+        console.error('Error fetching audit log:', response.error);
+        setLoading(false);
+        return;
+      }
 
-    if (error) {
+      setAuditEntries(response.data || []);
+    } catch (error) {
       console.error('Error fetching audit log:', error);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const entriesWithEmail = data.map(entry => ({
-      ...entry,
-      user_email: (entry.profiles as any)?.email || 'Unknown user'
-    }));
-
-    setAuditEntries(entriesWithEmail);
-    setLoading(false);
   };
 
   const filterEntries = () => {

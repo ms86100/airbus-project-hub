@@ -140,17 +140,6 @@ class ApiClient {
     });
   }
 
-  async grantModulePermission(projectId: string, data: {
-    userId: string;
-    module: string;
-    accessLevel: 'read' | 'write';
-  }): Promise<ApiResponse<{ message: string; permission: any }>> {
-    return this.makeRequest(`/access-service/projects/${projectId}/access`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
   async updateModulePermission(projectId: string, userId: string, data: {
     module: string;
     accessLevel: 'read' | 'write';
@@ -229,11 +218,6 @@ class ApiClient {
     return this.makeRequest('/capacity-service/stats', { method: 'GET' });
   }
 
-  async revokeModulePermission(projectId: string, userId: string, module: string): Promise<ApiResponse<{ message: string }>> {
-    return this.makeRequest(`/access-service/projects/${projectId}/access/${userId}?module=${module}`, {
-      method: 'DELETE',
-    });
-  }
   // Retrospectives Service Methods
   async getRetrospectives(projectId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/retro-service/projects/${projectId}/retrospectives`, { method: 'GET' });
@@ -391,6 +375,62 @@ class ApiClient {
     return this.makeRequest(`/department-service/departments`, {
       method: 'POST',
       body: JSON.stringify({ name }),
+    });
+  }
+
+  // Access Control Service Methods (consolidated)
+  async getModulePermissions(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/access-service/projects/${projectId}/permissions`, { method: 'GET' });
+  }
+
+  async grantModulePermission(data: { projectId: string; userEmail: string; module: string; accessLevel: string }): Promise<ApiResponse<{ message: string; permission: any }>> {
+    return this.makeRequest(`/access-service/permissions/grant`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async revokeModulePermission(permissionId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/access-service/permissions/${permissionId}/revoke`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Audit Service Methods (additional)
+  async getAuditLog(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/audit-service/projects/${projectId}/logs`, { method: 'GET' });
+  }
+
+  // Risk Register Methods (workspace service)
+  async getRisks(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/risks`, { method: 'GET' });
+  }
+
+  async createRisk(projectId: string, riskData: any): Promise<ApiResponse<{ message: string; risk: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/risks`, {
+      method: 'POST',
+      body: JSON.stringify(riskData),
+    });
+  }
+
+  async updateRisk(projectId: string, riskId: string, riskData: any): Promise<ApiResponse<{ message: string; risk: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/risks/${riskId}`, {
+      method: 'PUT',
+      body: JSON.stringify(riskData),
+    });
+  }
+
+  async deleteRisk(projectId: string, riskId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/risks/${riskId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Task creation for milestones (workspace service)
+  async createTaskForMilestone(projectId: string, taskData: any): Promise<ApiResponse<{ message: string; task: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify(taskData),
     });
   }
 }

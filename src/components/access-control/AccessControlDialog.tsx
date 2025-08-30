@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserPlus, Trash2, Shield, Eye } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/services/api';
 
 interface ModulePermission {
   id: string;
@@ -53,33 +53,26 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
   }, [open, projectId]);
 
   const fetchPermissions = async () => {
-    const { data, error } = await supabase
-      .from('module_permissions')
-      .select(`
-        id,
-        user_id,
-        module,
-        access_level,
-        granted_by,
-        profiles!user_id(email)
-      `)
-      .eq('project_id', projectId);
+    try {
+      const response = await apiClient.getModulePermissions(projectId);
+      
+      if (!response.success) {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to fetch permissions",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    if (error) {
+      setPermissions(response.data || []);
+    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to fetch permissions",
         variant: "destructive",
       });
-      return;
     }
-
-    const permissionsWithEmail = data.map(p => ({
-      ...p,
-      user_email: (p.profiles as any)?.email || 'Unknown user'
-    }));
-
-    setPermissions(permissionsWithEmail);
   };
 
   const inviteUser = async () => {
@@ -95,38 +88,17 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
     setLoading(true);
 
     try {
-      // Check if user exists
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', userEmail)
-        .single();
+      const response = await apiClient.grantModulePermission({
+        projectId: projectId,
+        userEmail: userEmail,
+        module: selectedModule,
+        accessLevel: selectedAccess,
+      });
 
-      if (userError) {
+      if (!response.success) {
         toast({
           title: "Error",
-          description: "User not found. They must sign up first.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Add module permission
-      const { error: permissionError } = await supabase
-        .from('module_permissions')
-        .upsert({
-          project_id: projectId,
-          user_id: userData.id,
-          module: selectedModule as any,
-          access_level: selectedAccess,
-          granted_by: (await supabase.auth.getUser()).data.user?.id
-        });
-
-      if (permissionError) {
-        toast({
-          title: "Error",
-          description: "Failed to grant permission",
+          description: response.error || "Failed to grant permission",
           variant: "destructive",
         });
         setLoading(false);
@@ -154,26 +126,31 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
   };
 
   const removePermission = async (permissionId: string) => {
-    const { error } = await supabase
-      .from('module_permissions')
-      .delete()
-      .eq('id', permissionId);
+    try {
+      const response = await apiClient.revokeModulePermission(permissionId);
 
-    if (error) {
+      if (!response.success) {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to remove permission",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Permission removed",
+      });
+
+      fetchPermissions();
+    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to remove permission",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Success",
-      description: "Permission removed",
-    });
-
-    fetchPermissions();
   };
 
   const groupedPermissions = permissions.reduce((acc, permission) => {

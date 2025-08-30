@@ -9,9 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, AlertTriangle, Clock, User, Trash2, Edit } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { apiClient } from '@/services/api';
 
 interface Risk {
   id: string;
@@ -99,14 +99,13 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
   const fetchRisks = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('risk_register')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setRisks(data || []);
+      const response = await apiClient.getRisks(projectId);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch risks');
+      }
+      
+      setRisks(response.data || []);
     } catch (error: any) {
       toast({
         title: "Error loading risks",
@@ -130,8 +129,6 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
 
     try {
       const riskData = {
-        project_id: projectId,
-        created_by: user?.id,
         risk_code: newRisk.risk_code,
         title: newRisk.title,
         description: newRisk.description || null,
@@ -153,11 +150,11 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
         notes: newRisk.notes || null
       };
 
-      const { error } = await supabase
-        .from('risk_register')
-        .insert([riskData]);
+      const response = await apiClient.createRisk(projectId, riskData);
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create risk');
+      }
 
       toast({
         title: "Success",
@@ -198,12 +195,11 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
 
   const handleDeleteRisk = async (riskId: string) => {
     try {
-      const { error } = await supabase
-        .from('risk_register')
-        .delete()
-        .eq('id', riskId);
+      const response = await apiClient.deleteRisk(projectId, riskId);
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete risk');
+      }
 
       toast({
         title: "Success",
@@ -278,12 +274,11 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
         notes: newRisk.notes || null
       };
 
-      const { error } = await supabase
-        .from('risk_register')
-        .update(riskData)
-        .eq('id', editingRisk.id);
+      const response = await apiClient.updateRisk(projectId, editingRisk.id, riskData);
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update risk');
+      }
 
       toast({
         title: "Success",

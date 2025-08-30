@@ -6,9 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/services/api';
 
 interface AddTaskDialogProps {
   milestoneId: string;
@@ -60,14 +60,22 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
 
   const fetchStakeholders = async () => {
     try {
-      const { data, error } = await supabase
-        .from('stakeholders')
-        .select('id, name, email, department')
-        .eq('project_id', projectId)
-        .order('name');
-
-      if (error) throw error;
-      setStakeholders(data || []);
+      const response = await apiClient.getStakeholders(projectId);
+      
+      if (!response.success) {
+        console.error('Error fetching stakeholders:', response.error);
+        return;
+      }
+      
+      // Handle different response formats from stakeholder service
+      let stakeholdersList: Stakeholder[] = [];
+      if (Array.isArray(response.data)) {
+        stakeholdersList = response.data;
+      } else if (response.data?.stakeholders && Array.isArray(response.data.stakeholders)) {
+        stakeholdersList = response.data.stakeholders;
+      }
+      
+      setStakeholders(stakeholdersList);
     } catch (error: any) {
       console.error('Error fetching stakeholders:', error);
     }
@@ -78,21 +86,21 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
     if (!user || !formData.title.trim()) return;
 
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .insert({
-          title: formData.title,
-          description: formData.description || null,
-          status: formData.status,
-          priority: formData.priority,
-          due_date: formData.due_date || null,
-          owner_id: formData.owner_id || null,
-          milestone_id: milestoneId,
-          project_id: projectId,
-          created_by: user.id
-        });
+      const taskData = {
+        title: formData.title,
+        description: formData.description || null,
+        status: formData.status,
+        priority: formData.priority,
+        due_date: formData.due_date || null,
+        owner_id: formData.owner_id || null,
+        milestone_id: milestoneId,
+      };
 
-      if (error) throw error;
+      const response = await apiClient.createTaskForMilestone(projectId, taskData);
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create task');
+      }
       
       toast({
         title: "Task created",
