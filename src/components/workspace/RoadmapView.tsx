@@ -101,27 +101,33 @@ export function RoadmapView() {
     try {
       setLoading(true);
       
-      // Fetch roadmap data (includes milestones and tasks)
+      // Fetch roadmap data (includes milestones) 
       const roadmapResponse = await apiClient.getRoadmap(id!);
       if (!roadmapResponse.success) {
         throw new Error(roadmapResponse.error || 'Failed to fetch roadmap data');
       }
       
-      // Extract milestones and tasks from roadmap response
+      // Extract milestones from roadmap response
       const roadmapData = roadmapResponse.data;
       setMilestones(roadmapData.milestones || []);
       
-      // For now, get tasks from milestones data or fetch separately if needed
-      // This assumes roadmap service returns tasks with milestones
-      const allTasks = roadmapData.milestones?.flatMap((m: any) => m.tasks || []) || [];
-      setTasks(allTasks);
+      // Fetch tasks separately from workspace service
+      const tasksResponse = await apiClient.getTasks(id!);
+      if (!tasksResponse.success) {
+        console.error('Failed to fetch tasks:', tasksResponse.error);
+        setTasks([]);
+      } else {
+        setTasks(tasksResponse.data || []);
+      }
 
       // Fetch stakeholders
       const stakeholdersResponse = await apiClient.getStakeholders(id!);
       if (!stakeholdersResponse.success) {
-        throw new Error(stakeholdersResponse.error || 'Failed to fetch stakeholders');
+        console.error('Failed to fetch stakeholders:', stakeholdersResponse.error);
+        setStakeholders([]);
+      } else {
+        setStakeholders(stakeholdersResponse.data.stakeholders || []);
       }
-      setStakeholders(stakeholdersResponse.data.stakeholders || []);
       
     } catch (error) {
       console.error('Error fetching data:', error);

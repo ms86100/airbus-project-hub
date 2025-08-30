@@ -528,6 +528,14 @@ class ApiClient {
     return this.makeRequest(`/capacity-service/projects/${projectId}/settings`, { method: 'GET' });
   }
 
+  async getCapacityIterations(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/iterations`, { method: 'GET' });
+  }
+
+  async getCapacityMembers(projectId: string, iterationId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/iterations/${iterationId}/members`, { method: 'GET' });
+  }
+
   // Risk Register Methods (workspace service)
   async getRisks(projectId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/workspace-service/projects/${projectId}/risks`, { method: 'GET' });

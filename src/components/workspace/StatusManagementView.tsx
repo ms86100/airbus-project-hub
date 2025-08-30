@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/services/api';
 
 interface StatusManagementViewProps {
   projectId: string;
@@ -47,8 +47,21 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
     try {
       setLoading(true);
       
-      // For now, use placeholder data since project_statuses table doesn't exist yet
-      setStatuses([]);
+      // Fetch tasks and milestones to display status overview
+      const tasksResponse = await apiClient.getTasks(projectId);
+      const milestonesResponse = await apiClient.getMilestones(projectId);
+      
+      if (tasksResponse.success || milestonesResponse.success) {
+        // For now, use default statuses - in the future this could be configurable
+        setStatuses(defaultStatuses.map((status, index) => ({
+          id: `default-${index}`,
+          project_id: projectId,
+          key: status.key,
+          label: status.label,
+          color: status.color,
+          sort_order: status.sort_order
+        })));
+      }
     } catch (error: any) {
       toast({
         title: "Error loading statuses",
