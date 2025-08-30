@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ThumbsUp, MoreHorizontal, Edit2, Save, X, Trash2, Target, User } from 'lucide-react';
+import { ThumbsUp, MoreHorizontal, Edit2, Save, X, Trash2, Target, User, GripVertical } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface InteractiveRetrospectiveCardProps {
@@ -51,11 +51,18 @@ export function InteractiveRetrospectiveCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: card.id });
+  } = useSortable({ 
+    id: card.id,
+    data: {
+      type: 'card',
+      card
+    }
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
   };
 
   const handleEditSave = () => {
@@ -74,37 +81,47 @@ export function InteractiveRetrospectiveCard({
     <Card
       ref={setNodeRef}
       style={style}
-      className={`relative group cursor-grab active:cursor-grabbing transition-all duration-200 ${
-        isDragging ? 'opacity-50 shadow-lg scale-105' : 'hover:shadow-md'
+      className={`relative group transition-all duration-200 ${
+        isDragging ? 'opacity-50 shadow-lg scale-105 z-50' : 'hover:shadow-md'
       }`}
-      {...attributes}
-      {...listeners}
     >
       <CardContent className="p-4 space-y-3" style={{ backgroundColor: cardColor }}>
-        {/* Card Content */}
-        {isEditing ? (
-          <div className="space-y-2">
-            <Textarea
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              className="min-h-[60px] resize-none border-primary/20"
-              placeholder="Enter card text..."
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleEditSave}>
-                <Save className="h-3 w-3" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleEditCancel}>
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
+        {/* Drag Handle and Card Content */}
+        <div className="flex items-start gap-2">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity mt-1"
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground" />
           </div>
-        ) : (
-          <div>
-            <p className="text-sm leading-relaxed break-words">{card.text}</p>
+          
+          <div className="flex-1">
+            {isEditing ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  className="min-h-[60px] resize-none border-primary/20"
+                  placeholder="Enter card text..."
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleEditSave}>
+                    <Save className="h-3 w-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleEditCancel}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm leading-relaxed break-words">{card.text}</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Card Footer */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">

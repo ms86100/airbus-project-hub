@@ -749,6 +749,12 @@ class ApiClient {
     });
   }
 
+  async deleteRetrospective(retrospectiveId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/retro-service/${retrospectiveId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async updateRetrospectiveActionItem(actionItemId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
     return this.makeRequest(`/retro-service/action-items/${actionItemId}`, {
       method: 'PUT',

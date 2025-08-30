@@ -316,6 +316,10 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
     try {
       const response = await apiClient.moveRetrospectiveCard(cardId, newColumnId);
       if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Card moved successfully'
+        });
         await fetchRetrospectiveData();
       }
     } catch (error) {
