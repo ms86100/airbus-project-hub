@@ -474,6 +474,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_retrospective_action_items_retrospective_id"
+            columns: ["retrospective_id"]
+            isOneToOne: false
+            referencedRelation: "retrospectives"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "retrospective_action_items_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
