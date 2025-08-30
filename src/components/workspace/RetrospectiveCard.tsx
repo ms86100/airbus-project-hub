@@ -49,10 +49,12 @@ export function RetrospectiveCard({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
-      className={`${cardColor} p-4 rounded-lg group cursor-grab active:cursor-grabbing border-2 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105`}
+      className={`${cardColor} p-4 rounded-lg group border-2 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 ${
+        isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab'
+      }`}
     >
-      <div className="mb-3">
+      {/* Drag handle area - only the text area should be draggable */}
+      <div {...listeners} className="mb-3 cursor-grab">
         <p className="text-sm font-medium leading-relaxed">{card.text}</p>
       </div>
       
@@ -64,12 +66,14 @@ export function RetrospectiveCard({
           </div>
         </div>
         
-        <div className="flex items-center gap-1">
+        {/* Interactive buttons - should NOT be draggable */}
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
             variant="ghost"
             onClick={(e) => {
               e.stopPropagation();
+              e.preventDefault();
               onVote();
             }}
             className="h-7 px-2 hover:bg-white/50"
@@ -84,19 +88,32 @@ export function RetrospectiveCard({
                 size="sm" 
                 variant="ghost" 
                 className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 hover:bg-white/50"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
               >
                 <MoreHorizontal className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onCreateAction}>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onCreateAction();
+                }}
+              >
                 <Target className="h-4 w-4 mr-2" />
                 Create Action Item
               </DropdownMenuItem>
               {isOwner && (
                 <DropdownMenuItem 
-                  onClick={onDelete}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onDelete();
+                  }}
                   className="text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />

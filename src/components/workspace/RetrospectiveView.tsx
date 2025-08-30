@@ -608,29 +608,39 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
             <TabsList>
               <TabsTrigger value="board">Kanban Board</TabsTrigger>
               <TabsTrigger value="actions">Action Items</TabsTrigger>
+              <TabsTrigger value="history">All Retrospectives</TabsTrigger>
             </TabsList>
             
-            <Select 
-              value={selectedRetrospective?.id || ''} 
-              onValueChange={(value) => {
-                const retro = retrospectives.find(r => r.id === value);
-                setSelectedRetrospective(retro || null);
-              }}
-            >
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Select retrospective" />
-              </SelectTrigger>
-              <SelectContent>
-                {retrospectives.map((retro) => {
-                  const iteration = iterations.find(i => i.id === retro.iteration_id);
-                  return (
-                    <SelectItem key={retro.id} value={retro.id}>
-                      {iteration?.iteration_name || 'Unknown Iteration'} - {retro.framework}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-4">
+              {retrospectives.length > 0 && (
+                <Select 
+                  value={selectedRetrospective?.id || ''} 
+                  onValueChange={(value) => {
+                    const retro = retrospectives.find(r => r.id === value);
+                    setSelectedRetrospective(retro || null);
+                  }}
+                >
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Select retrospective" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {retrospectives.map((retro) => {
+                      const iteration = iterations.find(i => i.id === retro.iteration_id);
+                      return (
+                        <SelectItem key={retro.id} value={retro.id}>
+                          {iteration?.iteration_name || 'Unknown Iteration'} - {retro.framework}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
+              
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Retrospective
+              </Button>
+            </div>
           </div>
 
           <TabsContent value="board" className="space-y-4">
@@ -720,97 +730,154 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
 
           <TabsContent value="actions" className="space-y-4">
             {selectedRetrospective && (
-              <div className="space-y-6">
-                {/* Action Items Summary */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Action Items ({actionItems.length})</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Action items created from retrospective cards
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    {actionItems.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No action items yet</h3>
-                        <p className="text-muted-foreground">
-                          Create action items from cards using the dropdown menu on each card.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {actionItems.map((item) => (
-                          <div key={item.id} className="p-4 border rounded-lg">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <h4 className="font-semibold">{item.what_task}</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 text-sm text-muted-foreground">
-                                  <div><strong>When:</strong> {item.when_sprint}</div>
-                                  <div><strong>Who:</strong> {item.who_responsible}</div>
-                                  <div><strong>Status:</strong> 
-                                    <Badge variant={item.backlog_status === 'Open' ? 'default' : 'secondary'} className="ml-1">
-                                      {item.backlog_status}
-                                    </Badge>
-                                  </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Action Items ({actionItems.length})</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Action items from {(() => {
+                      const iteration = iterations.find(i => i.id === selectedRetrospective.iteration_id);
+                      return iteration?.iteration_name || 'Unknown Iteration';
+                    })()} - {selectedRetrospective.framework}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {actionItems.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No action items yet</h3>
+                      <p className="text-muted-foreground">
+                        Create action items from cards using the dropdown menu on each card.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {actionItems.map((item) => (
+                        <div key={item.id} className="p-4 border rounded-lg">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-semibold">{item.what_task}</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 text-sm text-muted-foreground">
+                                <div><strong>When:</strong> {item.when_sprint}</div>
+                                <div><strong>Who:</strong> {item.who_responsible}</div>
+                                <div><strong>Status:</strong> 
+                                  <Badge variant={item.backlog_status === 'Open' ? 'default' : 'secondary'} className="ml-1">
+                                    {item.backlog_status}
+                                  </Badge>
                                 </div>
-                                {item.how_approach && (
-                                  <p className="mt-2 text-sm">{item.how_approach}</p>
-                                )}
                               </div>
+                              {item.how_approach && (
+                                <p className="mt-2 text-sm">{item.how_approach}</p>
+                              )}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
-                {/* All Retrospectives History */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Retrospective History</CardTitle>
+          <TabsContent value="history" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>All Retrospectives ({retrospectives.length})</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      All retrospectives created for this project
+                      Complete history of retrospectives for this project
                     </p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {retrospectives.map((retro) => {
-                        const iteration = iterations.find(i => i.id === retro.iteration_id);
-                        return (
-                          <div 
-                            key={retro.id} 
-                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                              selectedRetrospective?.id === retro.id 
-                                ? 'border-primary bg-primary/5' 
-                                : 'hover:border-primary/50'
-                            }`}
-                            onClick={() => setSelectedRetrospective(retro)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h4 className="font-medium">
+                  </div>
+                  <Button onClick={() => setShowCreateDialog(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Retrospective
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {retrospectives.length === 0 ? (
+                  <div className="text-center py-8">
+                    <h3 className="text-lg font-semibold mb-2">No retrospectives yet</h3>
+                    <p className="text-muted-foreground mb-4">Create your first retrospective to start reflecting on your team's performance</p>
+                    <Button onClick={() => setShowCreateDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create First Retrospective
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {retrospectives.map((retro) => {
+                      const iteration = iterations.find(i => i.id === retro.iteration_id);
+                      const retroCards = cards.filter(card => 
+                        columns.find(col => col.retrospective_id === retro.id && col.id === card.column_id)
+                      );
+                      const retroActionItems = actionItems.filter(item => item.retrospective_id === retro.id);
+                      
+                      return (
+                        <div 
+                          key={retro.id} 
+                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                            selectedRetrospective?.id === retro.id 
+                              ? 'border-primary bg-primary/5' 
+                              : 'hover:border-primary/50 hover:bg-muted/20'
+                          }`}
+                          onClick={() => setSelectedRetrospective(retro)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h4 className="font-semibold text-lg">
                                   {iteration?.iteration_name || 'Unknown Iteration'}
                                 </h4>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                  <span>Framework: {retro.framework}</span>
-                                  <span>Status: {retro.status}</span>
-                                  <span>Created: {new Date(retro.created_at || '').toLocaleDateString()}</span>
+                                <Badge variant={retro.status === 'active' ? 'default' : 'secondary'}>
+                                  {retro.status}
+                                </Badge>
+                                <Badge variant="outline">
+                                  {retro.framework}
+                                </Badge>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                                <div>
+                                  <span className="font-medium">Created:</span><br />
+                                  {new Date(retro.created_at || '').toLocaleDateString()}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Cards:</span><br />
+                                  {retroCards.length} items
+                                </div>
+                                <div>
+                                  <span className="font-medium">Action Items:</span><br />
+                                  {retroActionItems.length} created
+                                </div>
+                                <div>
+                                  <span className="font-medium">Total Votes:</span><br />
+                                  {retroCards.reduce((sum, card) => sum + card.votes, 0)} votes
                                 </div>
                               </div>
-                              <Badge variant={retro.status === 'active' ? 'default' : 'secondary'}>
-                                {retro.status}
-                              </Badge>
+                            </div>
+                            
+                            <div className="flex flex-col items-end gap-2">
+                              <Button
+                                variant={selectedRetrospective?.id === retro.id ? "default" : "outline"}
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedRetrospective(retro);
+                                }}
+                              >
+                                {selectedRetrospective?.id === retro.id ? "Current" : "View"}
+                              </Button>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       )}
