@@ -1,5 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
-
 // Central API client for all microservices
 
 export interface ApiResponse<T = any> {
@@ -18,29 +16,17 @@ class ApiClient {
 
   private async getAuthToken(): Promise<string | null> {
     try {
-      // 1) Prefer Supabase client session (auto-refreshed)
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token ?? null;
-      if (token) {
-        console.log('🔑 Using Supabase session token');
-        // Keep microservice storage in sync for compatibility
-        try {
-          const stored = localStorage.getItem('auth_session');
-          if (!stored) {
-            localStorage.setItem('auth_session', JSON.stringify({ access_token: token, refresh_token: session?.refresh_token }));
-          }
-        } catch {}
-        return token;
-      }
-
-      // 2) Fallback to microservice-stored session tokens
+      // Use microservice-stored session tokens only (no Supabase SDK coupling)
       const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
       if (storedAuth) {
-        const parsed = JSON.parse(storedAuth);
-        const legacyToken = parsed?.access_token || parsed?.token || parsed?.accessToken;
-        if (legacyToken) {
-          console.log('🔑 Using legacy stored token');
-          return legacyToken;
+        try {
+          const session = JSON.parse(storedAuth);
+          const token = session?.access_token || session?.token || session?.accessToken;
+          if (token) {
+            return token;
+          }
+        } catch (e) {
+          console.warn('Failed parsing stored session');
         }
       }
 
@@ -57,33 +43,83 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const token = await this.getAuthToken();
-    
-    console.log(`🌐 Making request to: ${endpoint}`);
-    console.log(`🔐 Using token: ${token ? `${token.substring(0, 20)}...` : 'None'}`);
-    
-    const headers = {
-      'Content-Type': 'application/json',
-      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options.headers,
-    };
 
-    try {
+    const doFetch = async (authToken?: string) => {
+      const headers = {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+        ...options.headers,
+      } as Record<string, string>;
+
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers,
       });
 
-      const result = await response.json();
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch {}
+      return { response, result };
+    };
+
+    try {
+      console.log(`🌐 Making request to: ${endpoint}`);
+      console.log(`🔐 Using token: ${token ? `${token.substring(0, 20)}...` : 'None'}`);
+
+      let { response, result } = await doFetch(token || undefined);
+
+      if (
+        response.status === 401 ||
+        (result && (result.message === 'Invalid JWT' || result.code === 'INVALID_TOKEN' || result.code === 'UNAUTHORIZED'))
+      ) {
+        const refreshed = await this.refreshToken();
+        if (refreshed) {
+          ({ response, result } = await doFetch(refreshed));
+        }
+      }
+
       console.log(`📡 Response from ${endpoint}:`, result);
-      return result;
+      return result ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' };
     } catch (error) {
       console.error('API request failed:', error);
-      return {
-        success: false,
-        error: 'Network error',
-        code: 'NETWORK_ERROR',
-      };
+      return { success: false, error: 'Network error', code: 'NETWORK_ERROR' };
+    }
+  }
+
+  private async refreshToken(): Promise<string | null> {
+    try {
+      const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
+      if (!storedAuth) return null;
+      const session = JSON.parse(storedAuth);
+      const refreshToken = session?.refresh_token;
+      if (!refreshToken) return null;
+
+      const response = await fetch(`${this.baseUrl}/auth-service/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data?.success && data?.data?.session) {
+        localStorage.setItem('auth_session', JSON.stringify(data.data.session));
+        localStorage.setItem('app_session', JSON.stringify(data.data.session));
+        return data.data.session.access_token || null;
+      }
+
+      // Cleanup on refresh failure
+      localStorage.removeItem('auth_session');
+      localStorage.removeItem('app_session');
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('app_user');
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 
