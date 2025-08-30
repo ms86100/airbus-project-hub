@@ -52,8 +52,8 @@ Deno.serve(async (req) => {
       return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
     }
 
-    // GET /projects
-    if (method === 'GET' && path === '/projects') {
+    // GET /projects or /projects-service/projects
+    if (method === 'GET' && (path === '/projects' || path === '/projects-service/projects')) {
       const { data: projects, error } = await supabase
         .from('projects')
         .select(`
@@ -71,8 +71,8 @@ Deno.serve(async (req) => {
       return createSuccessResponse(projects);
     }
 
-    // POST /projects
-    if (method === 'POST' && path === '/projects') {
+    // POST /projects or /projects-service/projects
+    if (method === 'POST' && (path === '/projects' || path === '/projects-service/projects')) {
       const projectData: CreateProjectRequest = await parseRequestBody(req);
 
       if (!projectData.name) {
@@ -106,9 +106,11 @@ Deno.serve(async (req) => {
       return createSuccessResponse(project);
     }
 
-    // GET /projects/:id
-    if (method === 'GET' && path.match(/^\/projects\/[^\/]+$/)) {
-      const params = extractPathParams(url, '/projects/:id');
+    // GET /projects/:id or /projects-service/projects/:id
+    if (method === 'GET' && (path.match(/^\/projects\/[^\/]+$/) || path.match(/^\/projects-service\/projects\/[^\/]+$/))) {
+      const params = path.startsWith('/projects-service/') 
+        ? extractPathParams(url, '/projects-service/projects/:id')
+        : extractPathParams(url, '/projects/:id');
       const projectId = params.id;
 
       const { data: project, error } = await supabase
@@ -132,9 +134,11 @@ Deno.serve(async (req) => {
       return createSuccessResponse(project);
     }
 
-    // PUT /projects/:id
-    if (method === 'PUT' && path.match(/^\/projects\/[^\/]+$/)) {
-      const params = extractPathParams(url, '/projects/:id');
+    // PUT /projects/:id or /projects-service/projects/:id
+    if (method === 'PUT' && (path.match(/^\/projects\/[^\/]+$/) || path.match(/^\/projects-service\/projects\/[^\/]+$/))) {
+      const params = path.startsWith('/projects-service/') 
+        ? extractPathParams(url, '/projects-service/projects/:id')
+        : extractPathParams(url, '/projects/:id');
       const projectId = params.id;
       const updateData: UpdateProjectRequest = await parseRequestBody(req);
 
@@ -189,9 +193,11 @@ Deno.serve(async (req) => {
       return createSuccessResponse(project);
     }
 
-    // DELETE /projects/:id
-    if (method === 'DELETE' && path.match(/^\/projects\/[^\/]+$/)) {
-      const params = extractPathParams(url, '/projects/:id');
+    // DELETE /projects/:id or /projects-service/projects/:id
+    if (method === 'DELETE' && (path.match(/^\/projects\/[^\/]+$/) || path.match(/^\/projects-service\/projects\/[^\/]+$/))) {
+      const params = path.startsWith('/projects-service/') 
+        ? extractPathParams(url, '/projects-service/projects/:id')
+        : extractPathParams(url, '/projects/:id');
       const projectId = params.id;
 
       // Check if user has admin role for deletion
