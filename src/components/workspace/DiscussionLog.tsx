@@ -11,8 +11,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { MessageSquare, Plus, Edit2, Clock, CheckCircle, Trash2, Users } from 'lucide-react';
+import { MessageSquare, Plus, Edit2, Clock, CheckCircle, Trash2, Users, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Discussion {
@@ -487,6 +488,77 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
                   onChange={(e) => setDiscussionForm(prev => ({ ...prev, summary_notes: e.target.value }))}
                   rows={4}
                 />
+              </div>
+              <div>
+                <Label>Meeting Attendees</Label>
+                <div className="border rounded-lg p-4 space-y-3 max-h-48 overflow-y-auto">
+                  <div className="text-sm font-medium text-muted-foreground mb-2">Stakeholders</div>
+                  {stakeholders.map((stakeholder) => (
+                    <div key={`stakeholder-${stakeholder.id}`} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`stakeholder-${stakeholder.id}`}
+                        checked={discussionForm.attendees.includes(stakeholder.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setDiscussionForm(prev => ({
+                              ...prev,
+                              attendees: [...prev.attendees, stakeholder.id]
+                            }));
+                          } else {
+                            setDiscussionForm(prev => ({
+                              ...prev,
+                              attendees: prev.attendees.filter(id => id !== stakeholder.id)
+                            }));
+                          }
+                        }}
+                      />
+                      <Label 
+                        htmlFor={`stakeholder-${stakeholder.id}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {stakeholder.name} ({stakeholder.email})
+                      </Label>
+                    </div>
+                  ))}
+                  
+                  <div className="text-sm font-medium text-muted-foreground mb-2 mt-4">Project Members</div>
+                  {projectMembers.map((member) => (
+                    <div key={`member-${member.user_id}`} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`member-${member.user_id}`}
+                        checked={discussionForm.attendees.includes(member.user_id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setDiscussionForm(prev => ({
+                              ...prev,
+                              attendees: [...prev.attendees, member.user_id]
+                            }));
+                          } else {
+                            setDiscussionForm(prev => ({
+                              ...prev,
+                              attendees: prev.attendees.filter(id => id !== member.user_id)
+                            }));
+                          }
+                        }}
+                      />
+                      <Label 
+                        htmlFor={`member-${member.user_id}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {member.profiles?.full_name || 'Unknown'} ({member.profiles?.email || 'No email'})
+                      </Label>
+                    </div>
+                  ))}
+                  
+                  {stakeholders.length === 0 && projectMembers.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No stakeholders or project members found. Add some to select attendees.
+                    </p>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Selected: {discussionForm.attendees.length} attendee(s)
+                </div>
               </div>
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setShowDiscussionDialog(false)}>
