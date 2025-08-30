@@ -212,6 +212,40 @@ Deno.serve(async (req) => {
       }
     }
 
+    // GET /auth-service/session - Get current session info
+    if (method === 'GET' && path.endsWith('/session')) {
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader) {
+        return createErrorResponse('No authorization header', 'MISSING_TOKEN', 401);
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+
+      if (error || !user) {
+        return createErrorResponse('Invalid token', 'INVALID_TOKEN', 401);
+      }
+
+      // Also fetch user role
+      try {
+        const { data: userRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
+        return createSuccessResponse({ 
+          user, 
+          role: userRole?.role || null 
+        });
+      } catch (error) {
+        return createSuccessResponse({ 
+          user, 
+          role: null 
+        });
+      }
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
 
   } catch (error) {

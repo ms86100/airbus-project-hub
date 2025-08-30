@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -35,14 +36,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserRole = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-      
-      if (error) throw error;
-      setUserRole(data?.role || null);
+      const response = await apiClient.getUserRole(userId);
+      if (response.success && response.data) {
+        setUserRole(response.data.role || null);
+      } else {
+        setUserRole(null);
+      }
     } catch (error) {
       console.error('Error fetching user role:', error);
       setUserRole(null);
@@ -91,14 +90,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Continue even if this fails
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
+      const response = await apiClient.login(email, password);
       
-      if (data.user) {
+      if (!response.success) {
+        return { error: response.error || 'Login failed' };
+      }
+      
+      if (response.data?.user) {
         window.location.href = '/';
       }
       
@@ -112,20 +110,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       cleanupAuthState();
       
-      const redirectUrl = `${window.location.origin}/`;
+      const response = await apiClient.register(email, password, fullName);
       
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: fullName,
-          }
-        }
-      });
+      if (!response.success) {
+        return { error: response.error || 'Registration failed' };
+      }
       
-      return { error };
+      return { error: null };
     } catch (error) {
       return { error };
     }
@@ -133,6 +124,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      // Use API service for logout
+      await apiClient.logout();
+      
       cleanupAuthState();
       try {
         await supabase.auth.signOut({ scope: 'global' });

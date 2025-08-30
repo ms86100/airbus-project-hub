@@ -85,6 +85,12 @@ class ApiClient {
     });
   }
 
+  async getCurrentSession(): Promise<ApiResponse<{ user: any; role?: string }>> {
+    return this.makeRequest('/auth-service/session', {
+      method: 'GET',
+    });
+  }
+
   // Projects Service Methods
   async getProjects(): Promise<ApiResponse<any[]>> {
     return this.makeRequest('/projects-service/projects', {
