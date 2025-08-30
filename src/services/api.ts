@@ -311,6 +311,33 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  async updateBacklogItem(projectId: string, itemId: string, data: {
+    title?: string;
+    description?: string;
+    priority?: string;
+    status?: 'backlog' | 'in_progress' | 'blocked' | 'done';
+    ownerId?: string;
+    targetDate?: string;
+  }): Promise<ApiResponse<{ message: string; item: any }>> {
+    return this.makeRequest(`/backlog-service/projects/${projectId}/backlog/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteBacklogItem(projectId: string, itemId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/backlog-service/projects/${projectId}/backlog/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async moveBacklogToMilestone(projectId: string, backlogItemId: string, milestoneId: string): Promise<ApiResponse<{ message: string; task: any }>> {
+    return this.makeRequest(`/backlog-service/projects/${projectId}/backlog/${backlogItemId}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ milestoneId }),
+    });
+  }
   // Stakeholders Service Methods
   async getStakeholders(projectId: string): Promise<ApiResponse<{ projectId: string; stakeholders: any[] }>> {
     return this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders`, { method: 'GET' });

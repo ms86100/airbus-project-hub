@@ -9,8 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { apiClient } from '@/services/api';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface TaskBacklogProps {
@@ -52,7 +52,7 @@ const priorityOptions = [
 ];
 
 export function TaskBacklog({ projectId }: TaskBacklogProps) {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
@@ -81,14 +81,11 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
 
   const fetchBacklogItems = async () => {
     try {
-      const { data, error } = await supabase
-        .from('task_backlog')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBacklogItems(data || []);
+      const response = await apiClient.getBacklog(projectId);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch backlog items');
+      }
+      setBacklogItems(response.data.items || []);
     } catch (error) {
       console.error('Error fetching backlog items:', error);
     }
@@ -96,14 +93,11 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
 
   const fetchStakeholders = async () => {
     try {
-      const { data, error } = await supabase
-        .from('stakeholders')
-        .select('id, name, email, department')
-        .eq('project_id', projectId)
-        .order('name');
-
-      if (error) throw error;
-      setStakeholders(data || []);
+      const response = await apiClient.getStakeholders(projectId);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch stakeholders');
+      }
+      setStakeholders(response.data.stakeholders || []);
     } catch (error) {
       console.error('Error fetching stakeholders:', error);
     }
@@ -111,14 +105,12 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
 
   const fetchMilestones = async () => {
     try {
-      const { data, error } = await supabase
-        .from('milestones')
-        .select('id, name, status')
-        .eq('project_id', projectId)
-        .order('name');
-
-      if (error) throw error;
-      setMilestones(data || []);
+      const response = await apiClient.getRoadmap(projectId);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch milestones');
+      }
+      // Extract milestones from roadmap response
+      setMilestones(response.data.milestones || []);
     } catch (error) {
       console.error('Error fetching milestones:', error);
     }
@@ -129,20 +121,18 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
     if (!user || !formData.title.trim()) return;
 
     try {
-      const { error } = await supabase
-        .from('task_backlog')
-        .insert({
-          title: formData.title,
-          description: formData.description || null,
-          priority: formData.priority,
-          owner_id: formData.owner_id || null,
-          target_date: formData.target_date || null,
-          project_id: projectId,
-          created_by: user.id,
-          source_type: 'manual'
-        });
+      const response = await apiClient.createBacklogItem(projectId, {
+        title: formData.title,
+        description: formData.description || undefined,
+        priority: formData.priority,
+        ownerId: formData.owner_id || undefined,
+        targetDate: formData.target_date || undefined,
+        sourceType: 'manual'
+      });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create backlog item');
+      }
       
       toast({
         title: 'Success',
@@ -165,18 +155,17 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
     if (!editingItem || !formData.title.trim()) return;
 
     try {
-      const { error } = await supabase
-        .from('task_backlog')
-        .update({
-          title: formData.title,
-          description: formData.description || null,
-          priority: formData.priority,
-          owner_id: formData.owner_id || null,
-          target_date: formData.target_date || null
-        })
-        .eq('id', editingItem.id);
+      const response = await apiClient.updateBacklogItem(projectId, editingItem.id, {
+        title: formData.title,
+        description: formData.description || undefined,
+        priority: formData.priority,
+        ownerId: formData.owner_id || undefined,
+        targetDate: formData.target_date || undefined
+      });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update backlog item');
+      }
       
       toast({
         title: 'Success',
@@ -198,12 +187,11 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
 
   const handleDelete = async (itemId: string) => {
     try {
-      const { error } = await supabase
-        .from('task_backlog')
-        .delete()
-        .eq('id', itemId);
-
-      if (error) throw error;
+      const response = await apiClient.deleteBacklogItem(projectId, itemId);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete backlog item');
+      }
       
       toast({
         title: 'Success',
@@ -224,30 +212,11 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
     if (!movingItem || !selectedMilestone || !user) return;
 
     try {
-      // Create task in milestone
-      const { error: taskError } = await supabase
-        .from('tasks')
-        .insert({
-          title: movingItem.title,
-          description: movingItem.description,
-          status: 'todo',
-          priority: movingItem.priority,
-          due_date: movingItem.target_date || null,
-          owner_id: movingItem.owner_id || null,
-          milestone_id: selectedMilestone,
-          project_id: projectId,
-          created_by: user.id
-        });
-
-      if (taskError) throw taskError;
-
-      // Remove from backlog
-      const { error: deleteError } = await supabase
-        .from('task_backlog')
-        .delete()
-        .eq('id', movingItem.id);
-
-      if (deleteError) throw deleteError;
+      const response = await apiClient.moveBacklogToMilestone(projectId, movingItem.id, selectedMilestone);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to move item to milestone');
+      }
       
       toast({
         title: 'Success',
