@@ -17,6 +17,7 @@ import { KanbanView } from '@/components/workspace/KanbanView';
 import { StakeholdersManagement } from '@/components/workspace/StakeholdersManagement';
 import { RiskRegisterView } from '@/components/workspace/RiskRegisterView';
 import { TaskCard } from '@/components/workspace/TaskManagement';
+import { TasksTableView } from '@/components/workspace/TasksTableView';
 import { AddTaskDialog } from '@/components/workspace/AddTaskDialog';
 
 interface Project {
@@ -40,6 +41,7 @@ interface Milestone {
   description: string;
   project_id: string;
   created_by: string;
+  created_at: string;
 }
 
 interface Task {
@@ -53,6 +55,7 @@ interface Task {
   milestone_id: string;
   project_id: string;
   created_by: string;
+  created_at: string;
 }
 
 const ProjectOverview = () => {
@@ -273,6 +276,7 @@ const ProjectOverview = () => {
                 <TabsList className="w-full h-auto p-0 bg-transparent">
                   <TabsTrigger value="overview" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Overview</TabsTrigger>
                   <TabsTrigger value="tasks" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Tasks & Milestones</TabsTrigger>
+                  <TabsTrigger value="table" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Table View</TabsTrigger>
                   <TabsTrigger value="roadmap" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Roadmap</TabsTrigger>
                   <TabsTrigger value="kanban" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Kanban</TabsTrigger>
                   <TabsTrigger value="stakeholders" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Stakeholders</TabsTrigger>
@@ -419,6 +423,15 @@ const ProjectOverview = () => {
                     </Card>
                   )}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="table" className="p-6">
+                <TasksTableView 
+                  tasks={tasks} 
+                  milestones={milestones}
+                  onTaskUpdate={fetchProjectData}
+                  onMilestoneUpdate={fetchProjectData}
+                />
               </TabsContent>
 
 
