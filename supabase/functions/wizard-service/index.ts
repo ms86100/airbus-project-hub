@@ -11,13 +11,9 @@ import {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-Deno.serve(async (req) => {
-  // Initialize Supabase client with user auth context so auth.uid() works in DB triggers
-  const authHeader = req.headers.get('Authorization') || req.headers.get('authorization') || '';
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    global: { headers: { Authorization: authHeader } }
-  });
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return handleCorsOptions();
   }
