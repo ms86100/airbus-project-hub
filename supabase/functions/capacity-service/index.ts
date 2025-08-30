@@ -391,8 +391,22 @@ Deno.serve(async (req) => {
         return createErrorResponse('Project not found', 'PROJECT_NOT_FOUND', 404);
       }
 
+      // Create authenticated client for database operations that trigger audit logs
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader) {
+        return createErrorResponse('Authorization header required', 'MISSING_AUTH_HEADER', 401);
+      }
+
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      });
+
       if (type === 'iteration') {
-        const { error } = await supabase
+        const { error } = await supabaseAuth
           .from('team_capacity_iterations')
           .delete()
           .eq('id', itemId)
@@ -408,7 +422,7 @@ Deno.serve(async (req) => {
         });
 
       } else if (type === 'member') {
-        const { error } = await supabase
+        const { error } = await supabaseAuth
           .from('team_capacity_members')
           .delete()
           .eq('id', itemId);
