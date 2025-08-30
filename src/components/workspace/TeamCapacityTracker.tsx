@@ -1030,16 +1030,56 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                           {format(new Date(iteration.start_date), 'MMM dd')} - {format(new Date(iteration.end_date), 'MMM dd, yyyy')}
                         </p>
                       </div>
-                      <Button 
-                        onClick={() => {
-                          setSelectedIteration(iteration);
-                          setShowMemberDialog(true);
-                          resetMemberForm();
-                        }}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Member
-                      </Button>
+                      <div className="flex gap-2">
+                        {iterationMembers.length > 0 && (
+                          <Button 
+                            variant="outline"
+                            onClick={() => {
+                              setTeamFromIterationId(iteration.id);
+                              setShowTeamDialog(true);
+                            }}
+                          >
+                            Save as Team
+                          </Button>
+                        )}
+                        {teams.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <Select 
+                              value={selectedTeamPerIteration[iteration.id] || ''} 
+                              onValueChange={(value) => setSelectedTeamPerIteration(prev => ({ ...prev, [iteration.id]: value }))}
+                            >
+                              <SelectTrigger className="bg-background border z-50 min-w-[150px]">
+                                <SelectValue placeholder="Apply Team" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-popover border z-50">
+                                {teams.map((team) => (
+                                  <SelectItem key={team.id} value={team.id} className="hover:bg-accent">
+                                    {team.team_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {selectedTeamPerIteration[iteration.id] && (
+                              <Button 
+                                size="sm"
+                                onClick={() => applyTeamToIteration(selectedTeamPerIteration[iteration.id], iteration)}
+                              >
+                                Apply
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        <Button 
+                          onClick={() => {
+                            setSelectedIteration(iteration);
+                            setShowMemberDialog(true);
+                            resetMemberForm();
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Member
+                        </Button>
+                      </div>
                     </div>
                     
                     {iterationMembers.length > 0 ? (
@@ -1132,6 +1172,41 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
             </Card>
           )}
           
+          <Dialog open={showTeamDialog} onOpenChange={setShowTeamDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Save Team</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={(e) => { e.preventDefault(); handleSaveTeamFromIteration(teamFromIterationId); }} className="space-y-4">
+                <div>
+                  <Label htmlFor="team_name">Team Name</Label>
+                  <Input
+                    id="team_name"
+                    value={teamForm.team_name}
+                    onChange={(e) => setTeamForm({ ...teamForm, team_name: e.target.value })}
+                    placeholder="e.g., Voyager, Falcon"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Input
+                    id="description"
+                    value={teamForm.description}
+                    onChange={(e) => setTeamForm({ ...teamForm, description: e.target.value })}
+                    placeholder="Team description"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setShowTeamDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Save Team</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={showMemberDialog} onOpenChange={setShowMemberDialog}>
             <DialogContent>
               <DialogHeader>
@@ -1141,12 +1216,12 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                 <div>
                   <Label htmlFor="stakeholder">Team Member</Label>
                   <Select value={memberForm.stakeholder_id} onValueChange={(value) => setMemberForm({ ...memberForm, stakeholder_id: value })}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-background border z-50">
                       <SelectValue placeholder="Select a team member" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover border z-50">
                       {stakeholders.map((stakeholder) => (
-                        <SelectItem key={stakeholder.id} value={stakeholder.id}>
+                        <SelectItem key={stakeholder.id} value={stakeholder.id} className="hover:bg-accent">
                           {stakeholder.name} {stakeholder.department && `(${stakeholder.department})`}
                         </SelectItem>
                       ))}
