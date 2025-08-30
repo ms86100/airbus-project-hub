@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: risks, error } = await supabase
+      const { data: risks, error } = await supabaseAuth
         .from('risk_register')
         .select('*')
         .eq('project_id', projectId)
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: risk, error } = await supabase
+      const { data: risk, error } = await supabaseAuth
         .from('risk_register')
         .insert({
           ...riskData,
@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: risk, error } = await supabase
+      const { data: risk, error } = await supabaseAuth
         .from('risk_register')
         .update(riskData)
         .eq('id', riskId)
@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseAuth
         .from('risk_register')
         .delete()
         .eq('id', riskId)
