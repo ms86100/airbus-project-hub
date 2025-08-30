@@ -102,89 +102,26 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      // Manually assemble nested structure to avoid relying on FK-based embedded selects
-      const { data: retros, error: retrosError } = await supabase
+      const { data: retrospectives, error } = await supabase
         .from('retrospectives')
-        .select('id, project_id, iteration_id, framework, status, created_at, updated_at, created_by')
+        .select(`
+          id, project_id, iteration_id, framework, status, created_at, updated_at, created_by,
+          columns:retrospective_columns (
+            id, title, subtitle, column_order, created_at, updated_at,
+            cards:retrospective_cards (
+              id, text, votes, card_order, created_at, updated_at, created_by
+            )
+          )
+        `)
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
-      if (retrosError) {
-        console.error('Error fetching retrospectives:', retrosError);
+      if (error) {
+        console.error('Error fetching retrospectives:', error);
         return createErrorResponse('Failed to fetch retrospectives', 'FETCH_ERROR');
       }
 
-      const retrospectives = retros || [];
-      if (retrospectives.length === 0) {
-        return createSuccessResponse([]);
-      }
-
-      const retroIds = retrospectives.map((r) => r.id);
-      const { data: cols, error: colsError } = await supabase
-        .from('retrospective_columns')
-        .select('id, retrospective_id, title, subtitle, column_order, created_at, updated_at')
-        .in('retrospective_id', retroIds)
-        .order('column_order', { ascending: true });
-
-      if (colsError) {
-        console.error('Error fetching columns:', colsError);
-        return createErrorResponse('Failed to fetch retrospectives', 'FETCH_ERROR');
-      }
-
-      const columnIds = (cols || []).map((c) => c.id);
-      let cardsByColumn: Record<string, any[]> = {};
-      if (columnIds.length > 0) {
-        const { data: cards, error: cardsError } = await supabase
-          .from('retrospective_cards')
-          .select('id, column_id, text, votes, card_order, created_at, updated_at, created_by')
-          .in('column_id', columnIds)
-          .order('card_order', { ascending: true });
-
-        if (cardsError) {
-          console.error('Error fetching cards:', cardsError);
-          return createErrorResponse('Failed to fetch retrospectives', 'FETCH_ERROR');
-        }
-
-        cardsByColumn = (cards || []).reduce((acc, card) => {
-          (acc[card.column_id] ||= []).push({
-            id: card.id,
-            text: card.text,
-            votes: card.votes,
-            card_order: card.card_order,
-            created_at: card.created_at,
-            updated_at: card.updated_at,
-            created_by: card.created_by,
-          });
-          return acc;
-        }, {} as Record<string, any[]>);
-      }
-
-      const colsByRetro = (cols || []).reduce((acc, col) => {
-        (acc[col.retrospective_id] ||= []).push({
-          id: col.id,
-          title: col.title,
-          subtitle: col.subtitle,
-          column_order: col.column_order,
-          created_at: col.created_at,
-          updated_at: col.updated_at,
-          cards: cardsByColumn[col.id] || [],
-        });
-        return acc;
-      }, {} as Record<string, any[]>);
-
-      const assembled = retrospectives.map((r) => ({
-        id: r.id,
-        project_id: r.project_id,
-        iteration_id: r.iteration_id,
-        framework: r.framework,
-        status: r.status,
-        created_at: r.created_at,
-        updated_at: r.updated_at,
-        created_by: r.created_by,
-        columns: colsByRetro[r.id] || [],
-      }));
-
-      return createSuccessResponse(assembled);
+      return createSuccessResponse(retrospectives || []);
     }
 
     // POST /retro-service/projects/:id/retrospectives
@@ -202,28 +139,11 @@ Deno.serve(async (req) => {
       const body: CreateRetrospectiveBody = await parseRequestBody(req);
       const framework = body.framework || 'Classic';
 
-      // If no iterationId provided, get the latest one for this project
-      let iterationId = body.iterationId;
-      if (!iterationId) {
-        const { data: latestIteration } = await supabase
-          .from('team_capacity_iterations')
-          .select('id')
-          .eq('project_id', projectId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        if (!latestIteration) {
-          return createErrorResponse('No iteration found for this project. Please create a team capacity iteration first.', 'NO_ITERATION');
-        }
-        iterationId = latestIteration.id;
-      }
-
       const { data: retrospective, error: createError } = await supabase
         .from('retrospectives')
         .insert({
           project_id: projectId,
-          iteration_id: iterationId,
+          iteration_id: body.iterationId || null,
           framework,
           status: 'active',
           created_by: user.id,
