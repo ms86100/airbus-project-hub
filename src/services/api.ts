@@ -16,8 +16,18 @@ class ApiClient {
   }
 
   private async getAuthToken(): Promise<string | null> {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token || null;
+    // Get token from localStorage since we're using microservice auth
+    const storedSession = localStorage.getItem('auth_session');
+    if (storedSession) {
+      try {
+        const session = JSON.parse(storedSession);
+        return session?.access_token || null;
+      } catch (error) {
+        console.error('Error parsing stored session:', error);
+        return null;
+      }
+    }
+    return null;
   }
 
   private async makeRequest<T>(
