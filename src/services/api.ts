@@ -245,6 +245,15 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  async getRetrospectiveStats(): Promise<ApiResponse<{
+    totalRetrospectives: number;
+    totalActionItems: number;
+    convertedTasks: number;
+    conversionRate: number;
+  }>> {
+    return this.makeRequest('/retro-service/stats', { method: 'GET' });
+  }
   // Roadmap Service Methods
   async getRoadmap(projectId: string): Promise<ApiResponse<{ projectId: string; milestones: any[] }>> {
     return this.makeRequest(`/roadmap-service/projects/${projectId}/roadmap`, { method: 'GET' });

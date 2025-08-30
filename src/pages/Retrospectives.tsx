@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ interface Project {
 }
 
 const Retrospectives = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useApiAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -43,17 +43,16 @@ const Retrospectives = () => {
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, name, status')
-        .order('name');
-
-      if (error) throw error;
-      setProjects(data || []);
+      const response = await apiClient.getProjects();
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch projects');
+      }
+      
+      setProjects(response.data || []);
       
       // Auto-select first project if available
-      if (data && data.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(data[0].id);
+      if (response.data && response.data.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(response.data[0].id);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -62,29 +61,12 @@ const Retrospectives = () => {
 
   const fetchRetrospectiveStats = async () => {
     try {
-      const { data: retroData, error: retroError } = await supabase
-        .from('retrospectives')
-        .select('id');
-
-      if (retroError) throw retroError;
-
-      const { data: actionData, error: actionError } = await supabase
-        .from('retrospective_action_items')
-        .select('id, converted_to_task');
-
-      if (actionError) throw actionError;
-
-      const totalRetrospectives = retroData?.length || 0;
-      const totalActionItems = actionData?.length || 0;
-      const convertedTasks = actionData?.filter(item => item.converted_to_task).length || 0;
-      const conversionRate = totalActionItems > 0 ? Math.round((convertedTasks / totalActionItems) * 100) : 0;
-
-      setRetrospectiveStats({
-        totalRetrospectives,
-        totalActionItems,
-        convertedTasks,
-        conversionRate
-      });
+      const response = await apiClient.getRetrospectiveStats();
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch retrospective stats');
+      }
+      
+      setRetrospectiveStats(response.data);
     } catch (error) {
       console.error('Error fetching retrospective stats:', error);
     }
