@@ -289,8 +289,13 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     try {
       const effectiveCapacity = calculateEffectiveCapacity(memberForm, selectedIteration);
       
+      const selectedStakeholder = stakeholders.find(s => s.id === memberForm.stakeholder_id);
+      
       const memberData = {
         stakeholder_id: memberForm.stakeholder_id,
+        member_name: selectedStakeholder?.name || 'Unknown',
+        role: selectedStakeholder?.department || 'Team Member',
+        work_mode: 'office', // Default value since we're not using work mode anymore
         leaves: memberForm.leaves,
         availability_percent: memberForm.availability_percent,
         iteration_id: selectedIteration.id,
