@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -1173,9 +1173,12 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           )}
           
           <Dialog open={showTeamDialog} onOpenChange={setShowTeamDialog}>
-            <DialogContent>
+            <DialogContent className="z-[50] max-w-md" onInteractOutside={(e) => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle>Save Team</DialogTitle>
+                <DialogDescription>
+                  Save the current team members as a reusable team template.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={(e) => { e.preventDefault(); handleSaveTeamFromIteration(teamFromIterationId); }} className="space-y-4">
                 <div>
@@ -1208,11 +1211,14 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           </Dialog>
 
           <Dialog open={showMemberDialog} onOpenChange={setShowMemberDialog}>
-            <DialogContent className="z-[50] max-w-md">
+            <DialogContent className="z-[50] max-w-md" onInteractOutside={(e) => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle>{editingMember ? 'Edit' : 'Add'} Team Member</DialogTitle>
+                <DialogDescription>
+                  {editingMember ? 'Update team member details.' : 'Add a new team member to this iteration.'}
+                </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleMemberSubmit} className="space-y-4">
+              <form onSubmit={handleMemberSubmit} className="space-y-4" onClick={(e) => e.stopPropagation()}>
                 <div>
                   <Label htmlFor="stakeholder">Team Member</Label>
                   <Select value={memberForm.stakeholder_id} onValueChange={(value) => setMemberForm({ ...memberForm, stakeholder_id: value })}>
@@ -1226,6 +1232,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                       align="start"
                       avoidCollisions={true}
                       sticky="always"
+                      onCloseAutoFocus={(e) => e.preventDefault()}
                     >
                       {stakeholders.map((stakeholder) => (
                         <SelectItem key={stakeholder.id} value={stakeholder.id} className="hover:bg-accent cursor-pointer">
