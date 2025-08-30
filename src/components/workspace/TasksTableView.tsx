@@ -16,7 +16,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
 interface Task {
@@ -124,12 +124,11 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
     const newMilestoneId = over.id === 'unassigned' ? null : over.id as string;
     
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ milestone_id: newMilestoneId })
-        .eq('id', taskId);
-
-      if (error) throw error;
+      const response = await apiClient.moveTask(taskId, newMilestoneId);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to move task');
+      }
 
       toast({
         title: "Success",
@@ -149,12 +148,11 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
 
   const handleDeleteTask = useCallback(async (taskId: string) => {
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', taskId);
-
-      if (error) throw error;
+      const response = await apiClient.deleteTask(taskId);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete task');
+      }
 
       toast({
         title: "Success",
@@ -175,12 +173,11 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
 
   const handleEditTask = useCallback(async (task: Task, updatedData: Partial<Task>) => {
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update(updatedData)
-        .eq('id', task.id);
-
-      if (error) throw error;
+      const response = await apiClient.updateTask(task.id, updatedData);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update task');
+      }
 
       toast({
         title: "Success",

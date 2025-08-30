@@ -155,7 +155,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
         throw new Error(response.error || 'Failed to fetch task history');
       }
       
-      setStatusHistory(response.data || []);
+      setStatusHistory(Array.isArray(response.data) ? response.data : response.data?.history || []);
     } catch (error: any) {
       toast({
         title: "Error loading history",

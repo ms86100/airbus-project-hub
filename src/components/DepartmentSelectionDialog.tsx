@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -37,13 +37,10 @@ export default function DepartmentSelectionDialog({
 
   const fetchDepartments = async () => {
     try {
-      const { data, error } = await supabase
-        .from("departments")
-        .select("id, name")
-        .order("name");
-      
-      if (error) throw error;
-      setDepartments(data || []);
+      const response = await apiClient.getDepartments();
+      if (response.success && response.data) {
+        setDepartments(Array.isArray(response.data) ? response.data : response.data.departments || []);
+      }
     } catch (error) {
       console.error("Error fetching departments:", error);
       toast({
@@ -66,12 +63,11 @@ export default function DepartmentSelectionDialog({
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ department_id: selectedDepartmentId })
-        .eq("id", userId);
-
-      if (error) throw error;
+      const response = await apiClient.assignUserDepartment(userId, selectedDepartmentId);
+      
+      if (!response.success) {
+        throw new Error(response.error || "Failed to assign department");
+      }
 
       toast({
         title: "Success",

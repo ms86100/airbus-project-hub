@@ -56,7 +56,7 @@ export default function DepartmentManagement() {
         throw new Error(response.error || 'Failed to fetch departments');
       }
       
-      setDepartments(response.data || []);
+      setDepartments(Array.isArray(response.data) ? response.data : response.data?.departments || []);
     } catch (error: any) {
       console.error("Error fetching departments:", error);
       toast({

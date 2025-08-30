@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
 interface StakeholdersViewProps {
@@ -39,9 +39,10 @@ export function StakeholdersView({ projectId }: StakeholdersViewProps) {
   const fetchStakeholders = async () => {
     try {
       setLoading(true);
-      
-      // For now, use placeholder data since stakeholders table doesn't exist yet
-      setStakeholders([]);
+      const response = await apiClient.getStakeholders(projectId);
+      if (response.success && response.data?.stakeholders) {
+        setStakeholders(response.data.stakeholders);
+      }
     } catch (error: any) {
       toast({
         title: "Error loading stakeholders",

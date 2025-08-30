@@ -407,7 +407,7 @@ class ApiClient {
   }
 
   // Department Service Methods
-  async getDepartments(): Promise<ApiResponse<any[]>> {
+  async getDepartmentsLegacy(): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/department-service/departments`, { method: 'GET' });
   }
 
@@ -509,7 +509,7 @@ class ApiClient {
     });
   }
 
-  async getTaskStatusHistory(taskId: string): Promise<ApiResponse<any[]>> {
+  async getTaskStatusHistoryLegacy(taskId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/workspace-service/tasks/${taskId}/history`);
   }
 
@@ -615,6 +615,43 @@ class ApiClient {
     return this.makeRequest('/wizard-service/projects/create', {
       method: 'POST',
       body: JSON.stringify(projectData),
+    });
+  }
+
+  // Department service methods
+  async getDepartments(): Promise<ApiResponse<{ departments: any[] }>> {
+    return this.makeRequest('/department-service/departments', { method: 'GET' });
+  }
+
+  async assignUserDepartment(userId: string, departmentId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/auth-service/profiles/${userId}/department`, {
+      method: 'PUT',
+      body: JSON.stringify({ department_id: departmentId }),
+    });
+  }
+
+  // Task status history and user profiles
+  async getTaskStatusHistory(taskId: string): Promise<ApiResponse<{ history: any[] }>> {
+    return this.makeRequest(`/workspace-service/tasks/${taskId}/status-history`, { method: 'GET' });
+  }
+
+  async deleteTask(taskId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/workspace-service/tasks/${taskId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getUserProfiles(userIds: string[]): Promise<ApiResponse<{ profiles: any[] }>> {
+    return this.makeRequest('/auth-service/profiles/batch', {
+      method: 'POST',
+      body: JSON.stringify({ user_ids: userIds }),
+    });
+  }
+
+  async moveTask(taskId: string, milestoneId: string | null): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/workspace-service/tasks/${taskId}/move`, {
+      method: 'PUT',
+      body: JSON.stringify({ milestone_id: milestoneId }),
     });
   }
 }

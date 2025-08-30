@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -39,14 +39,10 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
 
   const fetchBacklogItems = async () => {
     try {
-      const { data, error } = await supabase
-        .from('task_backlog')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBacklogItems(data || []);
+      const response = await apiClient.getBacklog(projectId);
+      if (response.success && response.data?.items) {
+        setBacklogItems(response.data.items);
+      }
     } catch (error) {
       console.error('Error fetching backlog items:', error);
     }
@@ -56,35 +52,13 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
     if (!user || selectedItems.length === 0) return;
 
     try {
-      // Get selected backlog items
-      const itemsToMove = backlogItems.filter(item => selectedItems.includes(item.id));
-      
-      // Create tasks in milestone
-      const taskInserts = itemsToMove.map(item => ({
-        title: item.title,
-        description: item.description || null,
-        status: 'todo',
-        priority: item.priority,
-        due_date: item.target_date || null,
-        owner_id: item.owner_id || null,
-        milestone_id: milestoneId,
-        project_id: projectId,
-        created_by: user.id
-      }));
-
-      const { error: taskError } = await supabase
-        .from('tasks')
-        .insert(taskInserts);
-
-      if (taskError) throw taskError;
-
-      // Remove items from backlog
-      const { error: deleteError } = await supabase
-        .from('task_backlog')
-        .delete()
-        .in('id', selectedItems);
-
-      if (deleteError) throw deleteError;
+      // Use the API to move backlog items to tasks in milestone
+      for (const itemId of selectedItems) {
+        const response = await apiClient.moveBacklogToMilestone(projectId, itemId, milestoneId);
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to move backlog item');
+        }
+      }
       
       toast({
         title: 'Success',

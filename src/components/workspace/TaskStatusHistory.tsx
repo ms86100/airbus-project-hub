@@ -3,7 +3,7 @@ import { Clock, User, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -42,33 +42,25 @@ export function TaskStatusHistory({ taskId, taskTitle }: TaskStatusHistoryProps)
       setLoading(true);
       
       // Fetch task status history
-      const { data: historyData, error: historyError } = await supabase
-        .from('task_status_history')
-        .select('*')
-        .eq('task_id', taskId)
-        .order('changed_at', { ascending: false });
+      const historyResponse = await apiClient.getTaskStatusHistory(taskId);
+      if (historyResponse.success && historyResponse.data) {
+        const historyData = Array.isArray(historyResponse.data) ? historyResponse.data : historyResponse.data.history || [];
+        setHistory(historyData);
 
-      if (historyError) throw historyError;
-
-      setHistory(historyData || []);
-
-      // Fetch user profiles for the changed_by field
-      if (historyData && historyData.length > 0) {
-        const userIds = [...new Set(historyData.map(h => h.changed_by))];
-        
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', userIds);
-
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-        } else {
-          const userMap = new Map<string, UserProfile>();
-          profilesData?.forEach(profile => {
-            userMap.set(profile.id, profile);
-          });
-          setUsers(userMap);
+        // Fetch user profiles for the changed_by field
+        if (historyData.length > 0) {
+          const userIds = [...new Set(historyData.map((h: any) => h.changed_by).filter(Boolean))];
+          
+          if (userIds.length > 0) {
+            const profilesResponse = await apiClient.getUserProfiles(userIds);
+            if (profilesResponse.success && profilesResponse.data?.profiles) {
+              const userMap = new Map<string, UserProfile>();
+              profilesResponse.data.profiles.forEach((profile: any) => {
+                userMap.set(profile.id, profile);
+              });
+              setUsers(userMap);
+            }
+          }
         }
       }
     } catch (error: any) {
