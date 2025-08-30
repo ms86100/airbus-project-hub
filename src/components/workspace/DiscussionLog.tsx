@@ -623,15 +623,17 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
                         size="sm"
                         onClick={() => {
                           setSelectedDiscussion(discussion);
-                          // Switch to action-items tab
-                          const actionItemsTab = document.querySelector('[data-value="action-items"]') as HTMLElement;
-                          if (actionItemsTab) {
-                            actionItemsTab.click();
-                          }
+                          // Switch to action-items tab with a small delay to ensure state is updated
+                          setTimeout(() => {
+                            const actionItemsTab = document.querySelector('[value="action-items"]') as HTMLElement;
+                            if (actionItemsTab) {
+                              actionItemsTab.click();
+                            }
+                          }, 10);
                         }}
                       >
                         <Users className="h-4 w-4 mr-1" />
-                        Action Items
+                        View
                       </Button>
                       <Button
                         variant="outline"
