@@ -258,11 +258,11 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
               Add Risk
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto z-[9998]">
             <DialogHeader>
               <DialogTitle>Add New Risk</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4 space-y-4 relative z-[9999]">
               <div className="col-span-1 space-y-2">
                 <Label htmlFor="risk_code">Risk Code *</Label>
                 <Input
