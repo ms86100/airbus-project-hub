@@ -803,25 +803,28 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                           </div>
                         </div>
                         
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setRetrospectiveToDelete(retro.id);
-                            setShowDeleteDialog(true);
-                          }}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          Delete
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setSelectedRetrospective(retro);
-                            setShowRetrospectivesList(false);
-                          }}
-                        >
-                          View
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setRetrospectiveToDelete(retro.id);
+                              setShowDeleteDialog(true);
+                            }}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setSelectedRetrospective(retro);
+                              setShowRetrospectivesList(false);
+                            }}
+                          >
+                            View
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );
