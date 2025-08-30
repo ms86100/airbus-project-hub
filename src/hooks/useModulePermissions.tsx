@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { useApiAuth } from '@/hooks/useApiAuth';
 
 export type ModuleName = 
@@ -42,31 +42,21 @@ export function useModulePermissions(projectId: string) {
     console.log('Checking permissions for user:', user.id, 'project:', projectId);
 
     try {
-      // Check if user is project owner
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('created_by')
-        .eq('id', projectId)
-        .single();
-
-      if (projectError) {
-        console.error('Error fetching project:', projectError);
+      // Get project details including ownership
+      const projectResponse = await apiClient.getProject(projectId);
+      if (!projectResponse.success) {
+        console.error('Error fetching project:', projectResponse.error);
         setLoading(false);
         return;
       }
 
-      const isOwner = projectData.created_by === user.id;
+      const isOwner = projectResponse.data.created_by === user.id;
       console.log('User is project owner:', isOwner);
       setIsProjectOwner(isOwner);
 
-      // Check if user is admin
-      const { data: userRoleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-
-      const isAdminUser = userRoleData?.role === 'admin';
+      // Check if user is admin by getting user profile/role
+      const profileResponse = await apiClient.getProfile(user.id);
+      const isAdminUser = profileResponse.success && profileResponse.data?.role === 'admin';
       console.log('User is admin:', isAdminUser);
       setIsAdmin(isAdminUser);
 
@@ -90,23 +80,20 @@ export function useModulePermissions(projectId: string) {
       }
 
       // Fetch specific module permissions for this user
-      const { data: permissionsData, error: permissionsError } = await supabase
-        .from('module_permissions')
-        .select('module, access_level')
-        .eq('project_id', projectId)
-        .eq('user_id', user.id);
-
-      if (permissionsError) {
-        console.error('Error fetching permissions:', permissionsError);
+      const permissionsResponse = await apiClient.getModulePermissions(projectId);
+      
+      if (!permissionsResponse.success) {
+        console.error('Error fetching permissions:', permissionsResponse.error);
         setLoading(false);
         return;
       }
 
       const userPermissions: ModulePermissions = {};
+      const permissionsData = permissionsResponse.data || [];
       console.log('Fetched permissions data for user:', user.id, 'project:', projectId, 'data:', permissionsData);
       
-      if (permissionsData && permissionsData.length > 0) {
-        permissionsData.forEach(permission => {
+      if (permissionsData.length > 0) {
+        permissionsData.forEach((permission: any) => {
           userPermissions[permission.module] = permission.access_level as AccessLevel;
           console.log('Setting permission:', permission.module, '=', permission.access_level);
         });

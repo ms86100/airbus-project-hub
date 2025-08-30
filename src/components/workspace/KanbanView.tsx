@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -92,61 +92,47 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       setLoading(true);
       
       // Fetch regular tasks
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at');
-
-      if (tasksError) throw tasksError;
+      const tasksResponse = await apiClient.getTasks(projectId);
+      if (!tasksResponse.success) {
+        throw new Error(tasksResponse.error || 'Failed to fetch tasks');
+      }
 
       // Fetch retrospective action items that haven't been converted to tasks yet
-      const { data: retrospectiveItems, error: retroError } = await supabase
-        .from('retrospective_action_items')
-        .select(`
-          id,
-          what_task,
-          how_approach,
-          who_responsible,
-          retrospective_id,
-          task_id,
-          retrospectives!inner(project_id)
-        `)
-        .eq('retrospectives.project_id', projectId)
-        .is('task_id', null)
-        .order('created_at');
-
-      if (retroError) throw retroError;
-
-      // Convert retrospective items to task-like objects
-      const retrospectiveTasks: Task[] = (retrospectiveItems || []).map(item => ({
-        id: `retro-${item.id}`,
-        title: item.what_task || 'Untitled Action Item',
-        description: item.how_approach || '',
-        status: 'todo', // Default status for retrospective items
-        priority: 'medium', // Default priority
-        owner_id: item.who_responsible,
-        source: 'retrospective' as const,
-        retrospective_id: item.retrospective_id,
-      }));
+      const retroResponse = await apiClient.getRetrospectives(projectId);
+      let retrospectiveTasks: Task[] = [];
+      
+      if (retroResponse.success && retroResponse.data) {
+        // Convert retrospective items to task-like objects
+        const actionItems = retroResponse.data.flatMap((retro: any) => 
+          (retro.action_items || []).filter((item: any) => !item.task_id)
+        );
+        
+        retrospectiveTasks = actionItems.map((item: any) => ({
+          id: `retro-${item.id}`,
+          title: item.what_task || 'Untitled Action Item',
+          description: item.how_approach || '',
+          status: 'todo', // Default status for retrospective items
+          priority: 'medium', // Default priority
+          owner_id: item.who_responsible,
+          source: 'retrospective' as const,
+          retrospective_id: item.retrospective_id,
+        }));
+      }
 
       // Fetch milestones for grouping
-      const { data: milestonesData, error: milestonesError } = await supabase
-        .from('milestones')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('due_date');
-
-      if (milestonesError) throw milestonesError;
+      const milestonesResponse = await apiClient.getMilestones(projectId);
+      if (!milestonesResponse.success) {
+        throw new Error(milestonesResponse.error || 'Failed to fetch milestones');
+      }
 
       // Combine regular tasks with retrospective items
-      const regularTasks: Task[] = (tasksData || []).map(task => ({
+      const regularTasks: Task[] = (tasksResponse.data || []).map((task: any) => ({
         ...task,
         source: 'task' as const,
       }));
 
       setTasks([...regularTasks, ...retrospectiveTasks]);
-      setMilestones(milestonesData || []);
+      setMilestones(milestonesResponse.data || []);
     } catch (error: any) {
       toast({
         title: "Error loading data",
@@ -162,41 +148,14 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     try {
       setHistoryLoading(true);
       
-      // First get the status history
-      const { data: historyData, error: historyError } = await supabase
-        .from('task_status_history')
-        .select('*')
-        .eq('task_id', taskId)
-        .order('changed_at', { ascending: false });
-
-      if (historyError) throw historyError;
-
-      // Get unique user IDs from the history
-      const userIds = [...new Set((historyData || []).map(entry => entry.changed_by))];
+      // Get the task status history via API
+      const response = await apiClient.getTaskStatusHistory(taskId);
       
-      // Fetch user profiles for these IDs
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', userIds);
-
-      if (profilesError) {
-        console.warn('Could not fetch user profiles:', profilesError);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch task history');
       }
-
-      // Create a map of user ID to user name
-      const userMap = (profilesData || []).reduce((acc, profile) => {
-        acc[profile.id] = profile.full_name || profile.email || 'Unknown User';
-        return acc;
-      }, {} as Record<string, string>);
-
-      // Format the data to include user names
-      const formattedData = (historyData || []).map(entry => ({
-        ...entry,
-        user_name: userMap[entry.changed_by] || 'Unknown User'
-      }));
       
-      setStatusHistory(formattedData);
+      setStatusHistory(response.data || []);
     } catch (error: any) {
       toast({
         title: "Error loading history",
@@ -250,15 +209,12 @@ export function KanbanView({ projectId }: KanbanViewProps) {
         return;
       }
 
-      // Update regular tasks in the database
-      const { error } = await supabase
-        .from('tasks')
-        .update({ status: newStatus })
-        .eq('id', taskId);
-
-      if (error) {
-        console.error('Database update error:', error);
-        throw error;
+      // Update regular tasks via API
+      const response = await apiClient.updateTask(taskId, { status: newStatus });
+      
+      if (!response.success) {
+        console.error('API update error:', response.error);
+        throw new Error(response.error || 'Failed to update task');
       }
 
       // Update local state immediately for optimistic UI

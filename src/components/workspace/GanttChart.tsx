@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { format, addDays, differenceInDays, startOfDay, endOfDay } from 'date-fns';
 
 interface Task {
@@ -43,34 +43,31 @@ export function GanttChart({ projectId }: GanttChartProps) {
     try {
       setLoading(true);
       
-      // Fetch milestones
-      const { data: milestonesData, error: milestonesError } = await supabase
-        .from('milestones')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('due_date');
+      // Fetch milestones via API
+      const milestonesResponse = await apiClient.getMilestones(projectId);
+      if (!milestonesResponse.success) {
+        throw new Error(milestonesResponse.error || 'Failed to fetch milestones');
+      }
+      setMilestones(milestonesResponse.data || []);
 
-      if (milestonesError) throw milestonesError;
-      setMilestones(milestonesData || []);
-
-      // Fetch tasks
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at');
-
-      if (tasksError) throw tasksError;
-      setTasks(tasksData || []);
+      // Fetch tasks via API
+      const tasksResponse = await apiClient.getTasks(projectId);
+      if (!tasksResponse.success) {
+        throw new Error(tasksResponse.error || 'Failed to fetch tasks');
+      }
+      const tasksData = tasksResponse.data || [];
+      const milestonesData = milestonesResponse.data || [];
+      
+      setTasks(tasksData);
 
       // Calculate date range - ensure timeline includes full end dates
       const allStartDates = [
-        ...(tasksData || []).map(t => new Date(t.created_at))
+        ...tasksData.map((t: any) => new Date(t.created_at))
       ];
       
       const allEndDates = [
-        ...(milestonesData || []).map(m => new Date(m.due_date)),
-        ...(tasksData || []).filter(t => t.due_date).map(t => new Date(t.due_date!))
+        ...milestonesData.map((m: any) => new Date(m.due_date)),
+        ...tasksData.filter((t: any) => t.due_date).map((t: any) => new Date(t.due_date!))
       ];
       
       if (allStartDates.length > 0 || allEndDates.length > 0) {

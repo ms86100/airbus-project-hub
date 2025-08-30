@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,18 +29,18 @@ export default function DepartmentManagement() {
 
   const fetchDepartments = async () => {
     try {
-      const { data, error } = await supabase
-        .from("departments")
-        .select("*")
-        .order("name");
+      const response = await apiClient.getDepartments();
       
-      if (error) throw error;
-      setDepartments(data || []);
-    } catch (error) {
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch departments');
+      }
+      
+      setDepartments(response.data || []);
+    } catch (error: any) {
       console.error("Error fetching departments:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch departments",
+        description: error.message || "Failed to fetch departments",
         variant: "destructive",
       });
     }
@@ -58,11 +58,11 @@ export default function DepartmentManagement() {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("departments")
-        .insert([{ name: newDepartmentName.trim() }]);
+      const response = await apiClient.createDepartment(newDepartmentName.trim());
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create department');
+      }
 
       toast({
         title: "Success",
@@ -75,9 +75,9 @@ export default function DepartmentManagement() {
       console.error("Error creating department:", error);
       toast({
         title: "Error",
-        description: error.message?.includes("duplicate") 
+        description: error.message?.includes("already exists") 
           ? "Department name already exists" 
-          : "Failed to create department",
+          : error.message || "Failed to create department",
         variant: "destructive",
       });
     } finally {
@@ -91,12 +91,11 @@ export default function DepartmentManagement() {
     }
 
     try {
-      const { error } = await supabase
-        .from("departments")
-        .delete()
-        .eq("id", id);
+      const response = await apiClient.deleteDepartment(id);
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete department');
+      }
 
       toast({
         title: "Success",
@@ -108,7 +107,7 @@ export default function DepartmentManagement() {
       console.error("Error deleting department:", error);
       toast({
         title: "Error",
-        description: "Failed to delete department",
+        description: error.message || "Failed to delete department",
         variant: "destructive",
       });
     }

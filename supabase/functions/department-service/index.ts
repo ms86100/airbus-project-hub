@@ -76,6 +76,27 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Department created', department });
     }
 
+    // DELETE /department-service/departments/{id}
+    if (method === 'DELETE' && path.includes('/departments/')) {
+      const admin = await isAdmin(user.id);
+      if (!admin) return createErrorResponse('Only admins can delete departments', 'FORBIDDEN', 403);
+
+      const departmentId = path.split('/').pop();
+      if (!departmentId) return createErrorResponse('Department ID is required', 'MISSING_FIELDS');
+
+      const { error } = await supabase
+        .from('departments')
+        .delete()
+        .eq('id', departmentId);
+
+      if (error) {
+        console.error('Error deleting department:', error);
+        return createErrorResponse('Failed to delete department', 'DELETE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Department deleted successfully' });
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
   } catch (error) {
     console.error('Department service error:', error);

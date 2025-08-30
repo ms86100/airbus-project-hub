@@ -378,6 +378,12 @@ class ApiClient {
     });
   }
 
+  async deleteDepartment(departmentId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/department-service/departments/${departmentId}`, {
+      method: 'DELETE'
+    });
+  }
+
   // Access Control Service Methods (consolidated)
   async getModulePermissions(projectId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/access-service/projects/${projectId}/permissions`, { method: 'GET' });
@@ -456,6 +462,27 @@ class ApiClient {
     return this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, { method: 'GET' });
   }
 
+  async updateTask(taskId: string, data: any): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/workspace-service/tasks/${taskId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getTaskStatusHistory(taskId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/tasks/${taskId}/history`);
+  }
+
+  // Milestones
+  async getMilestones(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/milestones`);
+  }
+
+  // Profile management
+  async getProfile(userId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/auth-service/profiles/${userId}`);
+  }
+
   // Risk Register Methods (workspace service)
   async getRisks(projectId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/workspace-service/projects/${projectId}/risks`, { method: 'GET' });
@@ -502,6 +529,7 @@ class ApiClient {
       body: JSON.stringify(taskData),
     });
   }
+
 }
 
 export const apiClient = new ApiClient();
