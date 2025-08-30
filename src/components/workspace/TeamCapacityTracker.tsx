@@ -65,6 +65,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [selectedIteration, setSelectedIteration] = useState<CapacityIteration | null>(null);
   const [loading, setLoading] = useState(true);
+  const [allIterationMembers, setAllIterationMembers] = useState<Record<string, CapacityMember[]>>({});
   
   // Dialog states
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -114,6 +115,12 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       fetchMembers(selectedIteration.id);
     }
   }, [selectedIteration]);
+
+  useEffect(() => {
+    if (iterations.length > 0) {
+      fetchAllIterationMembers();
+    }
+  }, [iterations]);
 
   // Auto-calculate working days when dates change
   useEffect(() => {
@@ -195,6 +202,26 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       setMembers((data || []) as CapacityMember[]);
     } catch (error) {
       console.error('Error fetching members:', error);
+    }
+  };
+
+  const fetchAllIterationMembers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('team_capacity_members')
+        .select('*')
+        .in('iteration_id', iterations.map(i => i.id));
+
+      if (error) throw error;
+      
+      const membersByIteration: Record<string, CapacityMember[]> = {};
+      iterations.forEach(iteration => {
+        membersByIteration[iteration.id] = (data || []).filter(member => member.iteration_id === iteration.id);
+      });
+      
+      setAllIterationMembers(membersByIteration);
+    } catch (error) {
+      console.error('Error fetching all iteration members:', error);
     }
   };
 
@@ -416,6 +443,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       if (selectedIteration) {
         fetchMembers(selectedIteration.id);
       }
+      fetchAllIterationMembers();
     } catch (error) {
       console.error('Error deleting member:', error);
       toast({
@@ -513,17 +541,16 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     return stakeholder?.name || 'Unknown';
   };
 
-  const getTotalCapacity = () => {
-    return members.reduce((sum, member) => sum + member.effective_capacity_days, 0);
+  const getTotalCapacity = (iterationMembers?: CapacityMember[]) => {
+    const membersToUse = iterationMembers || members;
+    return membersToUse.reduce((sum, member) => sum + member.effective_capacity_days, 0);
   };
 
-  const getVariance = () => {
-    if (!selectedIteration) return 0;
-    return getTotalCapacity() - selectedIteration.committed_story_points;
+  const getVariance = (iteration: CapacityIteration, iterationMembers?: CapacityMember[]) => {
+    return getTotalCapacity(iterationMembers) - iteration.committed_story_points;
   };
 
-  const getVarianceColor = () => {
-    const variance = getVariance();
+  const getVarianceColor = (variance: number) => {
     if (variance > 0) return 'text-status-success';
     if (variance < 0) return 'text-status-error';
     return 'text-muted-foreground';
@@ -739,58 +766,66 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {selectedIteration && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Current Iteration</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{selectedIteration.iteration_name}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {format(new Date(selectedIteration.start_date), 'MMM dd')} - {format(new Date(selectedIteration.end_date), 'MMM dd, yyyy')}
-                  </p>
-                </CardContent>
-              </Card>
+          {iterations.length > 0 ? (
+            <div className="space-y-6">
+              {iterations.map((iteration) => {
+                const iterationMembers = allIterationMembers[iteration.id] || [];
+                const totalCapacity = getTotalCapacity(iterationMembers);
+                const variance = getVariance(iteration, iterationMembers);
+                
+                return (
+                  <Card key={iteration.id} className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">{iteration.iteration_name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(iteration.start_date), 'MMM dd')} - {format(new Date(iteration.end_date), 'MMM dd, yyyy')}
+                        </p>
+                      </div>
+                      <Badge variant="outline">{iteration.working_days} working days</Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="border-border/50">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-medium">Total Capacity</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{totalCapacity.toFixed(1)}</div>
+                          <p className="text-xs text-muted-foreground">effective days</p>
+                        </CardContent>
+                      </Card>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Total Capacity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{getTotalCapacity().toFixed(1)}</div>
-                  <p className="text-xs text-muted-foreground">effective days</p>
-                </CardContent>
-              </Card>
+                      <Card className="border-border/50">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-medium">Committed Points</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{iteration.committed_story_points}</div>
+                          <p className="text-xs text-muted-foreground">story points</p>
+                        </CardContent>
+                      </Card>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Committed Points</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{selectedIteration.committed_story_points}</div>
-                  <p className="text-xs text-muted-foreground">story points</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Variance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold flex items-center gap-2 ${getVarianceColor()}`}>
-                    {getVariance() > 0 ? <TrendingUp className="h-5 w-5" /> : getVariance() < 0 ? <TrendingDown className="h-5 w-5" /> : null}
-                    {getVariance().toFixed(1)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {getVariance() > 0 ? 'Over capacity' : getVariance() < 0 ? 'Under capacity' : 'Balanced'}
-                  </p>
-                </CardContent>
-              </Card>
+                      <Card className="border-border/50">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-medium">Variance</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className={`text-2xl font-bold flex items-center gap-2 ${getVarianceColor(variance)}`}>
+                            {variance > 0 ? <TrendingUp className="h-5 w-5" /> : variance < 0 ? <TrendingDown className="h-5 w-5" /> : null}
+                            {variance.toFixed(1)}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {variance > 0 ? 'Over capacity' : variance < 0 ? 'Under capacity' : 'Balanced'}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
-          )}
-
-          {!selectedIteration && iterations.length === 0 && (
+          ) : (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
@@ -858,164 +893,178 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           </div>
         </TabsContent>
 
-        <TabsContent value="capacity" className="space-y-4">
-          {selectedIteration ? (
-            <>
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Team Members - {selectedIteration.iteration_name}</h3>
-                <Dialog open={showMemberDialog} onOpenChange={setShowMemberDialog}>
-                  <DialogTrigger asChild>
-                    <Button onClick={resetMemberForm}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Member
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{editingMember ? 'Edit' : 'Add'} Team Member</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleMemberSubmit} className="space-y-4">
+        <TabsContent value="capacity" className="space-y-6">
+          {iterations.length > 0 ? (
+            <div className="space-y-6">
+              {iterations.map((iteration) => {
+                const iterationMembers = allIterationMembers[iteration.id] || [];
+                
+                return (
+                  <Card key={iteration.id} className="p-6">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
-                        <Label htmlFor="stakeholder">Team Member</Label>
-                        <Select value={memberForm.stakeholder_id} onValueChange={(value) => setMemberForm({ ...memberForm, stakeholder_id: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a team member" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {stakeholders.map((stakeholder) => (
-                              <SelectItem key={stakeholder.id} value={stakeholder.id}>
-                                {stakeholder.name} {stakeholder.department && `(${stakeholder.department})`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <h3 className="text-lg font-semibold">{iteration.iteration_name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(iteration.start_date), 'MMM dd')} - {format(new Date(iteration.end_date), 'MMM dd, yyyy')}
+                        </p>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="leaves">Leave Days</Label>
-                          <Input
-                            id="leaves"
-                            type="number"
-                            value={memberForm.leaves}
-                            onChange={(e) => setMemberForm({ ...memberForm, leaves: parseInt(e.target.value) })}
-                            min="0"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="availability_percent">Availability %</Label>
-                          <Input
-                            id="availability_percent"
-                            type="number"
-                            value={memberForm.availability_percent}
-                            onChange={(e) => setMemberForm({ ...memberForm, availability_percent: parseInt(e.target.value) })}
-                            min="0"
-                            max="100"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={() => setShowMemberDialog(false)}>
-                          Cancel
-                        </Button>
-                        <Button type="submit">{editingMember ? 'Update' : 'Add'} Member</Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              <div className="grid gap-4">
-                {members.map((member) => {
-                  const stakeholder = stakeholders.find(s => s.id === member.stakeholder_id);
-                  return (
-                    <Card key={member.id}>
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="text-2xl">👤</div>
-                            <div>
-                              <CardTitle className="text-lg">{stakeholder?.name || 'Unknown Member'}</CardTitle>
-                              <p className="text-sm text-muted-foreground">{stakeholder?.department || 'No Department'}</p>
+                      <Button 
+                        onClick={() => {
+                          setSelectedIteration(iteration);
+                          setShowMemberDialog(true);
+                          resetMemberForm();
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Member
+                      </Button>
+                    </div>
+                    
+                    {iterationMembers.length > 0 ? (
+                      <div className="grid gap-3">
+                        {iterationMembers.map((member) => (
+                          <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center gap-4">
+                              <div>
+                                <h4 className="font-medium">{getStakeholderName(member.stakeholder_id)}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {member.availability_percent}% available • {member.leaves} days leave
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className="font-semibold">{member.effective_capacity_days.toFixed(1)} days</div>
+                                <div className="text-sm text-muted-foreground">effective capacity</div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    setSelectedIteration(iteration);
+                                    openEditMember(member);
+                                  }}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="text-status-error hover:bg-status-error hover:text-white">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to remove {getStakeholderName(member.stakeholder_id)} from {iteration.iteration_name}?
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDeleteMember(member.id)} 
+                                        className="bg-status-error hover:bg-status-error/90"
+                                      >
+                                        Remove
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => openEditMember(member)}>
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="text-status-error hover:bg-status-error hover:text-white">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to remove {stakeholder?.name || 'this member'} from this iteration?
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteMember(member.id)} className="bg-status-error hover:bg-status-error/90">
-                                    Remove
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Leave Days</Label>
-                            <p className="font-medium">{member.leaves}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Availability</Label>
-                            <p className="font-medium">{member.availability_percent}%</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Effective Capacity</Label>
-                            <p className="font-medium text-primary">{member.effective_capacity_days.toFixed(1)} days</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-
-                {members.length === 0 && (
-                  <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No team members yet</h3>
-                      <p className="text-muted-foreground text-center mb-4">
-                        Add team members to track their capacity for this iteration.
-                      </p>
-                      <Button onClick={() => setShowMemberDialog(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add First Member
-                      </Button>
-                    </CardContent>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No team members assigned to this iteration</p>
+                        <Button 
+                          variant="outline" 
+                          className="mt-4"
+                          onClick={() => {
+                            setSelectedIteration(iteration);
+                            setShowMemberDialog(true);
+                            resetMemberForm();
+                          }}
+                        >
+                          Add First Member
+                        </Button>
+                      </div>
+                    )}
                   </Card>
-                )}
-              </div>
-            </>
+                );
+              })}
+            </div>
           ) : (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No iteration selected</h3>
-                <p className="text-muted-foreground text-center">
-                  Select an iteration to view and manage team capacity.
+                <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No iterations yet</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  Create an iteration first to manage team capacity.
                 </p>
               </CardContent>
             </Card>
           )}
+          
+          <Dialog open={showMemberDialog} onOpenChange={setShowMemberDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingMember ? 'Edit' : 'Add'} Team Member</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleMemberSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="stakeholder">Team Member</Label>
+                  <Select value={memberForm.stakeholder_id} onValueChange={(value) => setMemberForm({ ...memberForm, stakeholder_id: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a team member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stakeholders.map((stakeholder) => (
+                        <SelectItem key={stakeholder.id} value={stakeholder.id}>
+                          {stakeholder.name} {stakeholder.department && `(${stakeholder.department})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="leaves">Leave Days</Label>
+                    <Input
+                      id="leaves"
+                      type="number"
+                      value={memberForm.leaves}
+                      onChange={(e) => setMemberForm({ ...memberForm, leaves: parseInt(e.target.value) })}
+                      min="0"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="availability_percent">Availability %</Label>
+                    <Input
+                      id="availability_percent"
+                      type="number"
+                      value={memberForm.availability_percent}
+                      onChange={(e) => setMemberForm({ ...memberForm, availability_percent: parseInt(e.target.value) })}
+                      min="0"
+                      max="100"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setShowMemberDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">{editingMember ? 'Update' : 'Add'} Member</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>
