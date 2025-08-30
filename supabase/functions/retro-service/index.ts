@@ -108,15 +108,7 @@ Deno.serve(async (req) => {
 
       const { data: retrospectives, error } = await supabase
         .from('retrospectives')
-        .select(`
-          id, project_id, iteration_id, framework, status, created_at, updated_at, created_by,
-          columns:retrospective_columns (
-            id, title, subtitle, column_order, created_at, updated_at,
-            cards:retrospective_cards (
-              id, text, votes, card_order, created_at, updated_at, created_by
-            )
-          )
-        `)
+        .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
