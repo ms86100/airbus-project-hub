@@ -82,7 +82,9 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
   const location = useLocation();
   const currentPath = location.pathname;
   const [showAuditLog, setShowAuditLog] = useState(false);
-  const { isProjectOwner, canRead } = useModulePermissions(projectId);
+  const { isProjectOwner, canRead, loading } = useModulePermissions(projectId);
+
+  console.log('ProjectSidebar - isProjectOwner:', isProjectOwner, 'loading:', loading);
 
   const isActive = (path: string) => currentPath.includes(`/project/${projectId}/${path}`);
   const hasActiveRoute = sidebarItems.some((item) => isActive(item.path));

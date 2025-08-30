@@ -38,6 +38,8 @@ export function useModulePermissions(projectId: string) {
   const checkPermissions = async () => {
     if (!user) return;
 
+    console.log('Checking permissions for user:', user.id, 'project:', projectId);
+
     try {
       // Check if user is project owner or admin
       const { data: projectData, error: projectError } = await supabase
@@ -53,6 +55,7 @@ export function useModulePermissions(projectId: string) {
       }
 
       const isOwner = projectData.created_by === user.id;
+      console.log('User is project owner:', isOwner);
       setIsProjectOwner(isOwner);
 
       // If user is project owner or admin, they have full access
@@ -88,8 +91,8 @@ export function useModulePermissions(projectId: string) {
         return;
       }
 
-      // Convert array to object for easier lookup
       const userPermissions: ModulePermissions = {};
+      console.log('Fetched permissions data:', permissionsData);
       permissionsData.forEach(permission => {
         userPermissions[permission.module] = permission.access_level as AccessLevel;
       });
