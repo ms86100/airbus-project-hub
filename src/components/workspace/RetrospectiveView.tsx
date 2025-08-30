@@ -11,8 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, ThumbsUp, MoreHorizontal, Target } from 'lucide-react';
+import { Plus, ThumbsUp, MoreHorizontal, Target, Trash2, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { RetrospectiveCard } from './RetrospectiveCard';
 
 interface RetrospectiveViewProps {
   projectId: string;
@@ -49,6 +54,23 @@ interface RetrospectiveCard {
   votes: number;
   card_order: number;
   created_by: string;
+  created_at?: string;
+}
+
+interface Stakeholder {
+  id: string;
+  name: string;
+  email?: string;
+  department?: string;
+  raci?: string;
+  influence_level?: string;
+  notes?: string;
+}
+
+interface Profile {
+  id: string;
+  full_name: string;
+  email: string;
 }
 
 interface ActionItem {
@@ -83,6 +105,21 @@ const FRAMEWORK_TEMPLATES = {
   ]
 };
 
+// Card colors that cycle through 7 colors
+const CARD_COLORS = [
+  'bg-red-100 border-red-200 text-red-900',
+  'bg-blue-100 border-blue-200 text-blue-900', 
+  'bg-green-100 border-green-200 text-green-900',
+  'bg-yellow-100 border-yellow-200 text-yellow-900',
+  'bg-purple-100 border-purple-200 text-purple-900',
+  'bg-pink-100 border-pink-200 text-pink-900',
+  'bg-indigo-100 border-indigo-200 text-indigo-900'
+];
+
+const getCardColor = (index: number) => {
+  return CARD_COLORS[index % CARD_COLORS.length];
+};
+
 export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -93,7 +130,10 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   const [cards, setCards] = useState<RetrospectiveCard[]>([]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [selectedRetrospective, setSelectedRetrospective] = useState<Retrospective | null>(null);
+  const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -124,6 +164,8 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     if (user) {
       fetchIterations();
       fetchRetrospectives();
+      fetchStakeholders();
+      fetchProfiles();
     }
   }, [user, projectId]);
 
@@ -218,6 +260,33 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
       setActionItems(data || []);
     } catch (error) {
       console.error('Error fetching action items:', error);
+    }
+  };
+
+  const fetchStakeholders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('stakeholders')
+        .select('*')
+        .eq('project_id', projectId);
+
+      if (error) throw error;
+      setStakeholders(data || []);
+    } catch (error) {
+      console.error('Error fetching stakeholders:', error);
+    }
+  };
+
+  const fetchProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email');
+
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
     }
   };
 
@@ -325,12 +394,72 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     }
   };
 
+  const handleDeleteCard = async (cardId: string) => {
+    try {
+      const { error } = await supabase
+        .from('retrospective_cards')
+        .delete()
+        .eq('id', cardId);
+
+      if (error) throw error;
+      
+      toast({
+        title: 'Success',
+        description: 'Card deleted successfully'
+      });
+      
+      fetchCards();
+    } catch (error) {
+      console.error('Error deleting card:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete card',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over) return;
+
+    const cardId = active.id as string;
+    const targetColumnId = over.id as string;
+    const card = cards.find(c => c.id === cardId);
+
+    if (!card || card.column_id === targetColumnId) return;
+
+    try {
+      const { error } = await supabase
+        .from('retrospective_cards')
+        .update({ column_id: targetColumnId })
+        .eq('id', cardId);
+
+      if (error) throw error;
+      fetchCards();
+    } catch (error) {
+      console.error('Error moving card:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to move card',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleCreateActionItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !selectedRetrospective || !selectedCardForAction) return;
 
     try {
-      const { error } = await supabase
+      // Create action item
+      const { error: actionError } = await supabase
         .from('retrospective_action_items')
         .insert([{
           retrospective_id: selectedRetrospective.id,
@@ -343,11 +472,26 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           created_by: user.id
         }]);
 
-      if (error) throw error;
+      if (actionError) throw actionError;
+
+      // Create task in backlog
+      const { error: taskError } = await supabase
+        .from('task_backlog')
+        .insert([{
+          project_id: projectId,
+          title: actionForm.what_task,
+          description: `From Retrospective: ${selectedCardForAction.text}\n\nApproach: ${actionForm.how_approach}`,
+          source_type: 'retrospective',
+          source_id: selectedCardForAction.id,
+          created_by: user.id,
+          priority: 'medium'
+        }]);
+
+      if (taskError) throw taskError;
 
       toast({
         title: 'Success',
-        description: 'Action item created successfully'
+        description: 'Action item created and added to backlog successfully'
       });
 
       setShowActionDialog(false);
@@ -368,6 +512,11 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
         variant: 'destructive'
       });
     }
+  };
+
+  const getUserDisplayName = (userId: string) => {
+    const profile = profiles.find(p => p.id === userId);
+    return profile?.full_name || profile?.email || 'Unknown User';
   };
 
   if (loading) {
@@ -435,71 +584,98 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
 
           <TabsContent value="board" className="space-y-4">
             {selectedRetrospective && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {columns.map((column) => (
-                  <Card key={column.id} className="h-fit">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-sm font-medium">{column.title}</CardTitle>
-                          {column.subtitle && (
-                            <p className="text-xs text-muted-foreground mt-1">{column.subtitle}</p>
-                          )}
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setSelectedColumnId(column.id);
-                            setShowCardDialog(true);
+              <DndContext 
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                collisionDetection={closestCorners}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {columns.map((column) => {
+                    const columnCards = cards
+                      .filter(card => card.column_id === column.id)
+                      .sort((a, b) => b.votes - a.votes);
+                    
+                    return (
+                      <Card key={column.id} className="h-fit bg-gradient-to-br from-background to-muted/20 border-2 shadow-lg">
+                        <CardHeader className="pb-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-t-lg border-b">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <CardTitle className="text-base font-bold text-primary">{column.title}</CardTitle>
+                              {column.subtitle && (
+                                <p className="text-xs text-muted-foreground mt-1 font-medium">{column.subtitle}</p>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 w-8 p-0 hover:bg-primary hover:text-primary-foreground"
+                              onClick={() => {
+                                setSelectedColumnId(column.id);
+                                setShowCardDialog(true);
+                              }}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <Badge variant="secondary" className="w-fit text-xs">
+                            {columnCards.length} card{columnCards.length !== 1 ? 's' : ''}
+                          </Badge>
+                        </CardHeader>
+                        <CardContent 
+                          className="space-y-3 p-4 min-h-[200px]"
+                          style={{ 
+                            background: `linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)/0.1) 100%)` 
                           }}
                         >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {cards
-                        .filter(card => card.column_id === column.id)
-                        .sort((a, b) => b.votes - a.votes)
-                        .map((card) => (
-                          <div key={card.id} className="bg-muted/50 p-3 rounded-lg group">
-                            <p className="text-sm mb-2">{card.text}</p>
-                            <div className="flex items-center justify-between">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleVoteCard(card.id)}
-                                className="h-6 px-2"
-                              >
-                                <ThumbsUp className="h-3 w-3 mr-1" />
-                                <span className="text-xs">{card.votes}</span>
-                              </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
-                                    <MoreHorizontal className="h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedCardForAction(card);
-                                      setShowActionDialog(true);
-                                    }}
-                                  >
-                                    <Target className="h-4 w-4 mr-2" />
-                                    Create Action Item
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
-                        ))}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                          <SortableContext 
+                            items={columnCards.map(c => c.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {columnCards.map((card, index) => (
+                              <RetrospectiveCard
+                                key={card.id}
+                                card={card}
+                                cardColor={getCardColor(index)}
+                                userDisplayName={getUserDisplayName(card.created_by)}
+                                onVote={() => handleVoteCard(card.id)}
+                                onDelete={() => handleDeleteCard(card.id)}
+                                onCreateAction={() => {
+                                  setSelectedCardForAction(card);
+                                  setShowActionDialog(true);
+                                }}
+                                isOwner={card.created_by === user?.id}
+                              />
+                            ))}
+                          </SortableContext>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+                
+                <DragOverlay>
+                  {activeId ? (
+                    <div className="opacity-90">
+                      {(() => {
+                        const card = cards.find(c => c.id === activeId);
+                        if (!card) return null;
+                        const index = cards.findIndex(c => c.id === activeId);
+                        return (
+                          <RetrospectiveCard
+                            card={card}
+                            cardColor={getCardColor(index)}
+                            userDisplayName={getUserDisplayName(card.created_by)}
+                            onVote={() => {}}
+                            onDelete={() => {}}
+                            onCreateAction={() => {}}
+                            isOwner={card.created_by === user?.id}
+                          />
+                        );
+                      })()}
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
             )}
           </TabsContent>
 
@@ -645,13 +821,27 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="whoResponsible">Who (Responsible Person)</Label>
-                <Input
-                  id="whoResponsible"
+                <Label htmlFor="who_responsible">Who (Responsible Person)</Label>
+                <Select
                   value={actionForm.who_responsible}
-                  onChange={(e) => setActionForm({ ...actionForm, who_responsible: e.target.value })}
-                  placeholder="Team member name"
-                />
+                  onValueChange={(value) => setActionForm(prev => ({ ...prev, who_responsible: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select responsible person" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stakeholders.map((stakeholder) => (
+                      <SelectItem key={stakeholder.id} value={stakeholder.name}>
+                        <div className="flex flex-col">
+                          <span>{stakeholder.name}</span>
+                          {stakeholder.raci && (
+                            <span className="text-xs text-muted-foreground">RACI: {stakeholder.raci}</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div>
