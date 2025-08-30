@@ -156,6 +156,8 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   const [showCardDialog, setShowCardDialog] = useState(false);
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showConvertTaskDialog, setShowConvertTaskDialog] = useState(false);
+  const [actionItemToConvert, setActionItemToConvert] = useState<ActionItem | null>(null);
   const [retrospectiveToDelete, setRetrospectiveToDelete] = useState<string | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState('');
   const [selectedCardForAction, setSelectedCardForAction] = useState<RetrospectiveCard | null>(null);
@@ -639,19 +641,31 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     }
   };
 
-  const convertActionItemToTask = async (actionItem: ActionItem) => {
-    if (!user || actionItem.converted_to_task) return;
+  const showConvertTaskConfirmation = (actionItem: ActionItem) => {
+    setActionItemToConvert(actionItem);
+    setShowConvertTaskDialog(true);
+  };
+
+  const convertActionItemToTask = async () => {
+    if (!user || !actionItemToConvert || actionItemToConvert.converted_to_task) return;
 
     try {
+      // Get the source card info for better description
+      const sourceCard = cards.find(c => c.id === actionItemToConvert.from_card_id);
+      const retrospectiveInfo = (() => {
+        const iteration = iterations.find(i => i.id === selectedRetrospective?.iteration_id);
+        return `${iteration?.iteration_name || 'Unknown Iteration'} - ${selectedRetrospective?.framework}`;
+      })();
+
       // Create task in backlog
       const { data: taskData, error: taskError } = await supabase
         .from('task_backlog')
         .insert([{
           project_id: projectId,
-          title: actionItem.what_task,
-          description: `Retrospective Action Item: ${actionItem.what_task}\n\nApproach: ${actionItem.how_approach}`,
+          title: actionItemToConvert.what_task,
+          description: `From Retrospective: ${retrospectiveInfo}\nSource Card: ${sourceCard?.text || 'N/A'}\n\nApproach: ${actionItemToConvert.how_approach}\n\nResponsible: ${actionItemToConvert.who_responsible}\nTarget Sprint: ${actionItemToConvert.when_sprint}`,
           source_type: 'retrospective',
-          source_id: actionItem.from_card_id,
+          source_id: actionItemToConvert.from_card_id,
           created_by: user.id,
           priority: 'medium'
         }])
@@ -668,15 +682,17 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           task_id: taskData.id,
           backlog_status: 'Converted'
         })
-        .eq('id', actionItem.id);
+        .eq('id', actionItemToConvert.id);
 
       if (updateError) throw updateError;
 
       toast({
-        title: 'Success',
-        description: 'Action item converted to task successfully'
+        title: 'Task Created',
+        description: 'Action item has been converted to a task in the backlog'
       });
 
+      setShowConvertTaskDialog(false);
+      setActionItemToConvert(null);
       fetchActionItems();
     } catch (error) {
       console.error('Error converting action item:', error);
@@ -1163,14 +1179,14 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                               </div>
                               
                               <div className="flex flex-col gap-2">
-                                {!item.converted_to_task && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => convertActionItemToTask(item)}
-                                  >
-                                    Convert to Task
-                                  </Button>
-                                )}
+                                 {!item.converted_to_task && (
+                                   <Button
+                                     size="sm"
+                                     onClick={() => showConvertTaskConfirmation(item)}
+                                   >
+                                     Convert to Task
+                                   </Button>
+                                 )}
                                 {item.converted_to_task && item.task_id && (
                                   <Badge variant="default" className="text-xs">
                                     Task Created
@@ -1455,6 +1471,54 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
               <Button type="submit">Create Retrospective</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to Task Confirmation Dialog */}
+      <Dialog open={showConvertTaskDialog} onOpenChange={setShowConvertTaskDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convert Action Item to Task</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {actionItemToConvert && (
+              <>
+                <div>
+                  <h4 className="font-semibold text-sm">Action Item:</h4>
+                  <p className="text-sm text-muted-foreground">{actionItemToConvert.what_task}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm">Details:</h4>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p><strong>Who:</strong> {actionItemToConvert.who_responsible}</p>
+                    <p><strong>When:</strong> {actionItemToConvert.when_sprint}</p>
+                    <p><strong>How:</strong> {actionItemToConvert.how_approach}</p>
+                  </div>
+                </div>
+                <div className="bg-muted/50 p-3 rounded-md">
+                  <p className="text-sm">
+                    This will create a new task in the project backlog with the label "From Retrospective" 
+                    and include all the action item details.
+                  </p>
+                </div>
+              </>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setShowConvertTaskDialog(false);
+                  setActionItemToConvert(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="button" onClick={convertActionItemToTask}>
+                Create Task
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
