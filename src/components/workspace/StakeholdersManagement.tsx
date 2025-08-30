@@ -13,6 +13,7 @@ import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { supabase } from '@/integrations/supabase/client';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/services/api';
 
 interface StakeholdersManagementProps {
   projectId: string;
@@ -71,14 +72,13 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
   const fetchStakeholders = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('stakeholders')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setStakeholders(data as Stakeholder[] || []);
+      const response = await apiClient.getStakeholders(projectId);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch stakeholders');
+      }
+      
+      setStakeholders(response.data?.stakeholders || []);
     } catch (error: any) {
       toast({
         title: "Error loading stakeholders",
@@ -96,39 +96,36 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
 
     try {
       if (editingStakeholder) {
-        const { error } = await supabase
-          .from('stakeholders')
-          .update({
-            name: formData.name,
-            email: formData.email || null,
-            department: formData.department || null,
-            raci: formData.raci || null,
-            influence_level: formData.influence_level || null,
-            notes: formData.notes || null
-          })
-          .eq('id', editingStakeholder.id);
+        const response = await apiClient.updateStakeholder(projectId, editingStakeholder.id, {
+          name: formData.name,
+          email: formData.email || undefined,
+          department: formData.department || undefined,
+          raci: formData.raci || undefined,
+          influence_level: formData.influence_level || undefined,
+          notes: formData.notes || undefined
+        });
 
-        if (error) throw error;
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to update stakeholder');
+        }
         
         toast({
           title: "Stakeholder updated",
           description: "Stakeholder information has been updated successfully.",
         });
       } else {
-        const { error } = await supabase
-          .from('stakeholders')
-          .insert({
-            project_id: projectId,
-            name: formData.name,
-            email: formData.email || null,
-            department: formData.department || null,
-            raci: formData.raci || null,
-            influence_level: formData.influence_level || null,
-            notes: formData.notes || null,
-            created_by: user.id
-          });
+        const response = await apiClient.createStakeholder(projectId, {
+          name: formData.name,
+          email: formData.email || undefined,
+          department: formData.department || undefined,
+          raci: formData.raci || undefined,
+          influence_level: formData.influence_level || undefined,
+          notes: formData.notes || undefined
+        });
 
-        if (error) throw error;
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to create stakeholder');
+        }
         
         toast({
           title: "Stakeholder added",
@@ -149,12 +146,11 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
 
   const handleDelete = async (stakeholderId: string) => {
     try {
-      const { error } = await supabase
-        .from('stakeholders')
-        .delete()
-        .eq('id', stakeholderId);
+      const response = await apiClient.deleteStakeholder(projectId, stakeholderId);
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete stakeholder');
+      }
       
       toast({
         title: "Stakeholder deleted",

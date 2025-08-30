@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/services/api';
 
 interface Task {
   id: string;
@@ -78,14 +79,13 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
 
   const fetchStakeholders = async () => {
     try {
-      const { data, error } = await supabase
-        .from('stakeholders')
-        .select('id, name, email, department')
-        .eq('project_id', projectId)
-        .order('name');
-
-      if (error) throw error;
-      setStakeholders(data || []);
+      const response = await apiClient.getStakeholders(projectId);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch stakeholders');
+      }
+      
+      setStakeholders(response.data?.stakeholders || []);
     } catch (error: any) {
       console.error('Error fetching stakeholders:', error);
     }

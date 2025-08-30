@@ -350,6 +350,19 @@ class ApiClient {
     });
   }
 
+  async updateStakeholder(projectId: string, stakeholderId: string, data: { name?: string; email?: string; department?: string; raci?: string; influence_level?: string; notes?: string; }): Promise<ApiResponse<{ message: string; stakeholder: any }>> {
+    return this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders/${stakeholderId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteStakeholder(projectId: string, stakeholderId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders/${stakeholderId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Audit Service Methods
   async getProjectHistory(projectId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/audit-service/projects/${projectId}/history`, { method: 'GET' });
