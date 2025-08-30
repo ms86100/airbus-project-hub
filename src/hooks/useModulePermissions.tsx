@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 
 export type ModuleName = 
   | 'overview'
@@ -21,7 +21,7 @@ interface ModulePermissions {
 }
 
 export function useModulePermissions(projectId: string) {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const [permissions, setPermissions] = useState<ModulePermissions>({});
   const [isProjectOwner, setIsProjectOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
