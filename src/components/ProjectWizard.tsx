@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -114,79 +114,28 @@ const ProjectWizard = () => {
 
     setIsCreating(true);
     try {
-      // Create project
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .insert({
-          name: projectData.projectName,
-          description: projectData.objective,
-          start_date: projectData.startDate,
-          end_date: projectData.endDate,
-          created_by: user.id,
-          status: 'planning'
-        })
-        .select()
-        .single();
+      // Use API client to create project with wizard data
+      const response = await apiClient.createProjectWizard({
+        projectName: projectData.projectName,
+        objective: projectData.objective,
+        startDate: projectData.startDate,
+        endDate: projectData.endDate,
+        tasks: projectData.tasks,
+        milestones: projectData.milestones,
+        inviteEmails: projectData.inviteEmails
+      });
 
-      if (projectError) throw projectError;
-
-      // Create milestones
-      const milestonesWithProjectId = projectData.milestones.map(milestone => ({
-        name: milestone.name,
-        due_date: milestone.dueDate,
-        status: milestone.status || 'planning',
-        project_id: project.id,
-        created_by: user.id
-      }));
-
-      const { data: createdMilestones, error: milestoneError } = await supabase
-        .from('milestones')
-        .insert(milestonesWithProjectId)
-        .select();
-
-      if (milestoneError) throw milestoneError;
-
-      // Create tasks with milestone assignments
-      const tasksToCreate = [];
-      for (const milestone of projectData.milestones) {
-        const createdMilestone = createdMilestones.find(m => m.name === milestone.name);
-        if (createdMilestone) {
-          for (const task of milestone.tasks) {
-            tasksToCreate.push({
-              title: task.title,
-              description: task.description,
-              due_date: task.dueDate,
-              status: task.status || 'todo',
-              priority: task.priority || 'medium',
-              milestone_id: createdMilestone.id,
-              project_id: project.id,
-              created_by: user.id
-            });
-          }
-        }
-      }
-
-      if (tasksToCreate.length > 0) {
-        const { error: taskError } = await supabase
-          .from('tasks')
-          .insert(tasksToCreate);
-
-        if (taskError) throw taskError;
-      }
-
-      // Handle team invitations (you can implement email invitations later)
-      if (projectData.inviteEmails.length > 0) {
-        // For now, just log the invitations
-        console.log('Team invitations to send:', projectData.inviteEmails);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create project');
       }
 
       toast({
         title: "Project Created Successfully!",
-        description: `${projectData.projectName} has been created with ${projectData.tasks.length} tasks across ${projectData.milestones.length} milestones.`,
+        description: response.data?.message || `${projectData.projectName} has been created with ${projectData.tasks.length} tasks across ${projectData.milestones.length} milestones.`,
       });
 
       // Show celebration animation then success modal
-      setCreatedProjectId(project.id);
+      setCreatedProjectId(response.data?.project?.id);
       setShowCelebration(true);
       
       // Show success modal after celebration
@@ -195,11 +144,11 @@ const ProjectWizard = () => {
         setShowSuccessModal(true);
       }, 2500);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating project:', error);
       toast({
         title: "Error Creating Project",
-        description: "Failed to create the project. Please try again.",
+        description: error.message || "Failed to create the project. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -271,6 +271,32 @@ Deno.serve(async (req) => {
       });
     }
 
+    // POST /log-access - Log module access
+    if (method === 'POST' && path.endsWith('/log-access')) {
+      const {
+        userId,
+        projectId,
+        module,
+        accessType,
+        accessLevel
+      } = await parseRequestBody(req);
+
+      try {
+        await supabase.rpc('log_module_access', {
+          _user_id: userId,
+          _project_id: projectId,
+          _module: module,
+          _access_type: accessType,
+          _access_level: accessLevel
+        });
+
+        return createSuccessResponse({ message: 'Access logged successfully' });
+      } catch (error) {
+        console.error('Error logging module access:', error);
+        return createErrorResponse('Failed to log access', 'LOG_FAILED');
+      }
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
 
   } catch (error) {

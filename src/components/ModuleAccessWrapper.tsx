@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useModulePermissions, ModuleName, AccessLevel } from '@/hooks/useModulePermissions';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Lock } from 'lucide-react';
@@ -27,12 +27,12 @@ export function ModuleAccessWrapper({
 
     const logAccess = async () => {
       try {
-        await supabase.rpc('log_module_access', {
-          _user_id: user.id,
-          _project_id: projectId,
-          _module: module,
-          _access_type: 'accessed',
-          _access_level: requiredAccess
+        await apiClient.logModuleAccess({
+          userId: user.id,
+          projectId: projectId,
+          module: module,
+          accessType: 'accessed',
+          accessLevel: requiredAccess
         });
       } catch (error) {
         console.error('Error logging module access:', error);

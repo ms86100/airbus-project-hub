@@ -70,6 +70,92 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Project created', project });
     }
 
+    // POST /projects/create - Create project with wizard data
+    if (method === 'POST' && path.endsWith('/projects/create')) {
+      const {
+        projectName,
+        objective,
+        startDate,
+        endDate,
+        tasks,
+        milestones,
+        inviteEmails
+      } = await parseRequestBody(req);
+
+      if (!projectName || !objective) {
+        return createErrorResponse('Project name and objective are required', 'MISSING_DATA');
+      }
+
+      // Create project
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .insert({
+          name: projectName,
+          description: objective,
+          start_date: startDate,
+          end_date: endDate,
+          created_by: user.id,
+          status: 'planning'
+        })
+        .select()
+        .single();
+
+      if (projectError) throw projectError;
+
+      // Create milestones
+      if (milestones && milestones.length > 0) {
+        const milestonesWithProjectId = milestones.map(milestone => ({
+          name: milestone.name,
+          due_date: milestone.dueDate,
+          status: milestone.status || 'planning',
+          project_id: project.id,
+          created_by: user.id
+        }));
+
+        const { data: createdMilestones, error: milestoneError } = await supabase
+          .from('milestones')
+          .insert(milestonesWithProjectId)
+          .select();
+
+        if (milestoneError) throw milestoneError;
+
+        // Create tasks with milestone assignments
+        if (tasks && tasks.length > 0) {
+          const tasksToCreate = [];
+          for (const milestone of milestones) {
+            const createdMilestone = createdMilestones.find(m => m.name === milestone.name);
+            if (createdMilestone) {
+              for (const task of milestone.tasks) {
+                tasksToCreate.push({
+                  title: task.title,
+                  description: task.description,
+                  due_date: task.dueDate,
+                  status: task.status || 'todo',
+                  priority: task.priority || 'medium',
+                  milestone_id: createdMilestone.id,
+                  project_id: project.id,
+                  created_by: user.id
+                });
+              }
+            }
+          }
+
+          if (tasksToCreate.length > 0) {
+            const { error: taskError } = await supabase
+              .from('tasks')
+              .insert(tasksToCreate);
+
+            if (taskError) throw taskError;
+          }
+        }
+      }
+
+      return createSuccessResponse({
+        project,
+        message: `${projectName} has been created with ${tasks?.length || 0} tasks across ${milestones?.length || 0} milestones.`
+      });
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
   } catch (error) {
     console.error('Wizard service error:', error);

@@ -545,6 +545,36 @@ class ApiClient {
   async getCapacityData(projectId: string): Promise<ApiResponse<{ projectId: string; iterations: any[]; members: any[]; }>> {
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, { method: 'GET' });
   }
+
+  // Module access logging
+  async logModuleAccess(data: {
+    userId: string;
+    projectId: string;
+    module: string;
+    accessType: string;
+    accessLevel?: string;
+  }): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest('/access-service/log-access', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Wizard service methods
+  async createProjectWizard(projectData: {
+    projectName: string;
+    objective: string;
+    startDate: string;
+    endDate: string;
+    tasks: any[];
+    milestones: any[];
+    inviteEmails: string[];
+  }): Promise<ApiResponse<{ project: any; message: string }>> {
+    return this.makeRequest('/wizard-service/projects/create', {
+      method: 'POST',
+      body: JSON.stringify(projectData),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();
