@@ -1173,7 +1173,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           )}
           
           <Dialog open={showTeamDialog} onOpenChange={setShowTeamDialog}>
-            <DialogContent className="z-[50] max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogContent className="z-[50] max-w-md">
               <DialogHeader>
                 <DialogTitle>Save Team</DialogTitle>
                 <DialogDescription>
@@ -1211,14 +1211,14 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           </Dialog>
 
           <Dialog open={showMemberDialog} onOpenChange={setShowMemberDialog}>
-            <DialogContent className="z-[50] max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogContent className="z-[50] max-w-md">
               <DialogHeader>
                 <DialogTitle>{editingMember ? 'Edit' : 'Add'} Team Member</DialogTitle>
                 <DialogDescription>
                   {editingMember ? 'Update team member details.' : 'Add a new team member to this iteration.'}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleMemberSubmit} className="space-y-4" onClick={(e) => e.stopPropagation()}>
+              <form onSubmit={handleMemberSubmit} className="space-y-4">
                 <div>
                   <Label htmlFor="stakeholder">Team Member</Label>
                   <Select value={memberForm.stakeholder_id} onValueChange={(value) => setMemberForm({ ...memberForm, stakeholder_id: value })}>
