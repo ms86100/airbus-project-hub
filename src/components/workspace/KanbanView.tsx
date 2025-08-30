@@ -38,6 +38,8 @@ interface Task {
   due_date?: string;
   milestone_id?: string;
   owner_id?: string;
+  source?: 'task' | 'retrospective';
+  retrospective_id?: string;
 }
 
 interface Milestone {
@@ -89,7 +91,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     try {
       setLoading(true);
       
-      // Fetch tasks
+      // Fetch regular tasks
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
         .select('*')
@@ -97,6 +99,36 @@ export function KanbanView({ projectId }: KanbanViewProps) {
         .order('created_at');
 
       if (tasksError) throw tasksError;
+
+      // Fetch retrospective action items that haven't been converted to tasks yet
+      const { data: retrospectiveItems, error: retroError } = await supabase
+        .from('retrospective_action_items')
+        .select(`
+          id,
+          what_task,
+          how_approach,
+          who_responsible,
+          retrospective_id,
+          task_id,
+          retrospectives!inner(project_id)
+        `)
+        .eq('retrospectives.project_id', projectId)
+        .is('task_id', null)
+        .order('created_at');
+
+      if (retroError) throw retroError;
+
+      // Convert retrospective items to task-like objects
+      const retrospectiveTasks: Task[] = (retrospectiveItems || []).map(item => ({
+        id: `retro-${item.id}`,
+        title: item.what_task || 'Untitled Action Item',
+        description: item.how_approach || '',
+        status: 'todo', // Default status for retrospective items
+        priority: 'medium', // Default priority
+        owner_id: item.who_responsible,
+        source: 'retrospective' as const,
+        retrospective_id: item.retrospective_id,
+      }));
 
       // Fetch milestones for grouping
       const { data: milestonesData, error: milestonesError } = await supabase
@@ -107,7 +139,13 @@ export function KanbanView({ projectId }: KanbanViewProps) {
 
       if (milestonesError) throw milestonesError;
 
-      setTasks(tasksData || []);
+      // Combine regular tasks with retrospective items
+      const regularTasks: Task[] = (tasksData || []).map(task => ({
+        ...task,
+        source: 'task' as const,
+      }));
+
+      setTasks([...regularTasks, ...retrospectiveTasks]);
       setMilestones(milestonesData || []);
     } catch (error: any) {
       toast({
@@ -193,7 +231,26 @@ export function KanbanView({ projectId }: KanbanViewProps) {
 
       const oldStatus = task.status;
 
-      // Update the task in the database
+      // Handle retrospective items differently
+      if (task.source === 'retrospective') {
+        // For retrospective items, we just update the local state
+        // since they don't exist as actual tasks in the database yet
+        setTasks(prevTasks => 
+          prevTasks.map(t => 
+            t.id === taskId 
+              ? { ...t, status: newStatus }
+              : t
+          )
+        );
+
+        toast({
+          title: "Retrospective Item Updated",
+          description: `"${task.title}" moved to ${newStatus.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
+        });
+        return;
+      }
+
+      // Update regular tasks in the database
       const { error } = await supabase
         .from('tasks')
         .update({ status: newStatus })
@@ -341,6 +398,11 @@ export function KanbanView({ projectId }: KanbanViewProps) {
           <div className="flex items-start justify-between">
             <CardTitle className="text-sm font-medium leading-tight">
               {task.title}
+              {task.source === 'retrospective' && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  From Retrospective
+                </Badge>
+              )}
             </CardTitle>
             <MoreHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </div>
