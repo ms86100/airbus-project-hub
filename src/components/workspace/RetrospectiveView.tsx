@@ -192,11 +192,16 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   useEffect(() => {
     if (selectedRetrospective) {
       fetchColumns();
-      fetchCards();
       fetchActionItems();
-      fetchCardVotes();
     }
   }, [selectedRetrospective]);
+
+  useEffect(() => {
+    if (selectedRetrospective && columns.length > 0) {
+      fetchCards();
+      fetchCardVotes();
+    }
+  }, [selectedRetrospective, columns]);
 
   const fetchIterations = async () => {
     try {
