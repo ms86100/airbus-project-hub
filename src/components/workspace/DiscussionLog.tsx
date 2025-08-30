@@ -486,7 +486,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Discussion Log</h1>
-          <p className="text-muted-foreground">Manage project discussions and action items for {projectName}</p>
+          <p className="text-muted-foreground">Manage project discussions for {projectName}</p>
         </div>
         <Dialog open={showDiscussionDialog} onOpenChange={setShowDiscussionDialog}>
           <DialogTrigger asChild>

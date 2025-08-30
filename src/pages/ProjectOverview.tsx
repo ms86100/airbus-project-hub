@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Edit3, Trash2, Calendar, Users, CheckCircle, Clock, AlertCircle, Plus } from 'lucide-react';
+import { ArrowLeft, Edit3, Trash2, Calendar, Users, CheckCircle, Clock, AlertCircle, Plus, ChevronDown, Table } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import DashboardLayout from '@/components/DashboardLayout';
 import { RoadmapView } from '@/components/workspace/RoadmapView';
 import { KanbanView } from '@/components/workspace/KanbanView';
@@ -279,7 +280,6 @@ const ProjectOverview = () => {
                 <TabsList className="w-full h-auto p-0 bg-transparent">
                   <TabsTrigger value="overview" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Overview</TabsTrigger>
                   <TabsTrigger value="tasks" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Tasks & Milestones</TabsTrigger>
-                  <TabsTrigger value="table" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Table View</TabsTrigger>
                   <TabsTrigger value="roadmap" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Roadmap</TabsTrigger>
                   <TabsTrigger value="kanban" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Kanban</TabsTrigger>
                   <TabsTrigger value="stakeholders" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Stakeholders</TabsTrigger>
@@ -338,6 +338,61 @@ const ProjectOverview = () => {
 
               <TabsContent value="tasks" className="p-6">
                 <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Tasks & Milestones</h2>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline">
+                          <Table className="h-4 w-4 mr-2" />
+                          View Options
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover">
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            // Show table view inline
+                            const tableView = document.getElementById('table-view-container');
+                            const cardView = document.getElementById('card-view-container');
+                            if (tableView && cardView) {
+                              tableView.style.display = 'block';
+                              cardView.style.display = 'none';
+                            }
+                          }}
+                        >
+                          <Table className="h-4 w-4 mr-2" />
+                          Table View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            // Show card view inline
+                            const tableView = document.getElementById('table-view-container');
+                            const cardView = document.getElementById('card-view-container');
+                            if (tableView && cardView) {
+                              tableView.style.display = 'none';
+                              cardView.style.display = 'block';
+                            }
+                          }}
+                        >
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Card View
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  
+                  {/* Table View Container */}
+                  <div id="table-view-container" style={{ display: 'none' }}>
+                    <TasksTableView 
+                      tasks={tasks} 
+                      milestones={milestones}
+                      onTaskUpdate={fetchProjectData}
+                      onMilestoneUpdate={fetchProjectData}
+                    />
+                  </div>
+                  
+                  {/* Card View Container */}
+                  <div id="card-view-container">
                   {milestones.map((milestone) => {
                     const milestoneTasks = tasks.filter(t => t.milestone_id === milestone.id);
                     
@@ -421,30 +476,23 @@ const ProjectOverview = () => {
                         </div>
                       </CardContent>
                     </Card>
-                  )}
-                  
-                  {milestones.length === 0 && (
-                    <Card>
-                      <CardContent className="flex flex-col items-center justify-center py-12">
-                        <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No milestones yet</h3>
-                        <p className="text-muted-foreground text-center">
-                          Create milestones to organize your project tasks.
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </TabsContent>
+                   )}
+                   
+                   {milestones.length === 0 && (
+                     <Card>
+                       <CardContent className="flex flex-col items-center justify-center py-12">
+                         <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+                         <h3 className="text-lg font-semibold mb-2">No milestones yet</h3>
+                         <p className="text-muted-foreground text-center">
+                           Create milestones to organize your project tasks.
+                         </p>
+                       </CardContent>
+                     </Card>
+                   )}
+                   </div>
+                 </div>
+               </TabsContent>
 
-              <TabsContent value="table" className="p-6">
-                <TasksTableView 
-                  tasks={tasks} 
-                  milestones={milestones}
-                  onTaskUpdate={fetchProjectData}
-                  onMilestoneUpdate={fetchProjectData}
-                />
-              </TabsContent>
 
 
               <TabsContent value="roadmap" className="p-0">
