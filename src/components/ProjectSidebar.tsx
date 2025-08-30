@@ -160,31 +160,39 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
           
           <SidebarGroupContent className="px-2">
             <SidebarMenu className="space-y-1">
-              {sidebarItems.map((item) => {
-                const itemIsActive = isActive(item.path);
-                
-                // Check if user has permission to view this module
-                if (!canRead(item.module)) {
-                  return null; // Hide modules user doesn't have access to
-                }
+              {loading ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                sidebarItems.map((item) => {
+                  const itemIsActive = isActive(item.path);
+                  
+                  // Check if user has permission to view this module
+                  console.log('Checking access for module:', item.module, 'canRead result:', canRead(item.module));
+                  if (!canRead(item.module)) {
+                    console.log('Hiding module:', item.module, 'no read access');
+                    return null; // Hide modules user doesn't have access to
+                  }
 
-                return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton asChild className="w-full">
-                      <NavLink 
-                        to={`/project/${projectId}/${item.path}`} 
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${getNavCls({ isActive: itemIsActive })}`}
-                      >
-                        <item.icon className="h-4 w-4 flex-shrink-0" />
-                        <div className="flex flex-col items-start min-w-0 flex-1">
-                          <span className="font-medium text-sm truncate w-full">{item.title}</span>
-                          <span className="text-xs opacity-60 truncate w-full">{item.description}</span>
-                        </div>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton asChild className="w-full">
+                        <NavLink 
+                          to={`/project/${projectId}/${item.path}`} 
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${getNavCls({ isActive: itemIsActive })}`}
+                        >
+                          <item.icon className="h-4 w-4 flex-shrink-0" />
+                          <div className="flex flex-col items-start min-w-0 flex-1">
+                            <span className="font-medium text-sm truncate w-full">{item.title}</span>
+                            <span className="text-xs opacity-60 truncate w-full">{item.description}</span>
+                          </div>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -209,7 +217,6 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                   </button>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              
               
               <SidebarMenuItem>
                 <Dialog open={showAuditLog} onOpenChange={setShowAuditLog}>

@@ -123,7 +123,13 @@ export function useModulePermissions(projectId: string) {
   };
 
   const hasPermission = (module: ModuleName, requiredAccess: AccessLevel = 'read'): boolean => {
-    console.log('Checking permission for module:', module, 'requiredAccess:', requiredAccess, 'isProjectOwner:', isProjectOwner, 'isAdmin:', isAdmin);
+    console.log('Checking permission for module:', module, 'requiredAccess:', requiredAccess, 'isProjectOwner:', isProjectOwner, 'isAdmin:', isAdmin, 'loading:', loading);
+    
+    // During loading, deny access to prevent showing unauthorized modules
+    if (loading) {
+      console.log('Still loading permissions - denying access');
+      return false;
+    }
     
     if (isProjectOwner || isAdmin) {
       console.log('User has owner/admin access - granted');
@@ -151,13 +157,13 @@ export function useModulePermissions(projectId: string) {
 
   const canRead = (module: ModuleName): boolean => {
     const result = hasPermission(module, 'read');
-    console.log('canRead result for', module, ':', result);
+    console.log('canRead result for', module, ':', result, 'loading:', loading);
     return result;
   };
   
   const canWrite = (module: ModuleName): boolean => {
     const result = hasPermission(module, 'write');
-    console.log('canWrite result for', module, ':', result);
+    console.log('canWrite result for', module, ':', result, 'loading:', loading);
     return result;
   };
 
