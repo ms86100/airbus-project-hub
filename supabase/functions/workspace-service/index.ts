@@ -407,7 +407,7 @@ Deno.serve(async (req) => {
       const pathParts = path.split('/');
       const taskIdIndex = pathParts.findIndex(part => part === 'tasks') + 1;
       const taskId = pathParts[taskIdIndex];
-      const taskData = await req.json();
+      const rawData = await req.json();
 
       if (!taskId) return createErrorResponse('Task ID is required', 'MISSING_TASK_ID');
 
@@ -422,6 +422,20 @@ Deno.serve(async (req) => {
 
       const access = await hasProjectAccess(user.id, task.project_id);
       if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+
+      // Sanitize and whitelist updatable fields (convert empty strings to null for nullable columns)
+      const allowedFields = ['title', 'description', 'status', 'priority', 'due_date', 'owner_id', 'milestone_id'] as const;
+      const taskData: Record<string, any> = {};
+      for (const key of allowedFields) {
+        if (Object.prototype.hasOwnProperty.call(rawData, key)) {
+          let value = (rawData as any)[key];
+          if (typeof value === 'string' && value.trim() === '') {
+            // Convert empty strings to null for date/uuid/text nullable fields
+            value = null;
+          }
+          taskData[key] = value;
+        }
+      }
 
       const { data: updatedTask, error } = await supabaseAuth
         .from('tasks')

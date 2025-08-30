@@ -410,7 +410,15 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
     if (!editingTask) return;
 
     try {
-      const response = await apiClient.updateTask(editingTask.id, editFormData);
+      const payload = {
+        title: editFormData.title,
+        description: editFormData.description?.trim() || null,
+        status: editFormData.status,
+        priority: editFormData.priority,
+        due_date: editFormData.due_date || null,
+        owner_id: editFormData.owner_id || null,
+      };
+      const response = await apiClient.updateTask(editingTask.id, payload);
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to update task');
