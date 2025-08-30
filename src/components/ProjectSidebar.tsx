@@ -4,7 +4,7 @@ import { Calendar, LayoutGrid, Users, Settings, ArrowLeft, AlertTriangle, Messag
 import { AccessControlDialog } from '@/components/access-control/AccessControlDialog';
 import { AuditLogView } from '@/components/audit/AuditLogView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useModulePermissions } from '@/hooks/useModulePermissions';
+import { useModulePermissions, ModuleName } from '@/hooks/useModulePermissions';
 import {
   Sidebar,
   SidebarContent,
@@ -23,55 +23,93 @@ interface ProjectSidebarProps {
   projectId: string;
 }
 
-const sidebarItems = [
+const sidebarItems: Array<{
+  id: string;
+  title: string;
+  icon: any;
+  path: string;
+  description: string;
+  module: ModuleName;
+}> = [
+  { 
+    id: 'overview', 
+    title: 'Overview', 
+    icon: LayoutGrid, 
+    path: 'overview',
+    description: 'Project overview and dashboard',
+    module: 'overview' as ModuleName
+  },
+  { 
+    id: 'tasks', 
+    title: 'Tasks & Milestones', 
+    icon: Calendar, 
+    path: 'status',
+    description: 'Manage tasks and milestones',
+    module: 'tasks_milestones' as ModuleName
+  },
   { 
     id: 'roadmap', 
     title: 'Roadmap', 
     icon: Calendar, 
     path: 'roadmap',
-    description: 'Timeline view of milestones and tasks'
+    description: 'Timeline view of milestones and tasks',
+    module: 'roadmap' as ModuleName
   },
   { 
     id: 'kanban', 
     title: 'Kanban', 
     icon: LayoutGrid, 
     path: 'kanban',
-    description: 'Drag and drop tasks by status'
+    description: 'Drag and drop tasks by status',
+    module: 'kanban' as ModuleName
   },
   { 
     id: 'stakeholders', 
     title: 'Stakeholders', 
     icon: Users, 
     path: 'stakeholders',
-    description: 'Project stakeholder registry'
-  },
-  { 
-    id: 'status', 
-    title: 'Status Management', 
-    icon: Settings, 
-    path: 'status',
-    description: 'Configure task statuses'
+    description: 'Project stakeholder registry',
+    module: 'stakeholders' as ModuleName
   },
   { 
     id: 'risks', 
     title: 'Risk Register', 
     icon: AlertTriangle, 
     path: 'risks',
-    description: 'Identify and manage project risks'
+    description: 'Identify and manage project risks',
+    module: 'risk_register' as ModuleName
+  },
+  { 
+    id: 'discussions', 
+    title: 'Discussions', 
+    icon: MessageCircle, 
+    path: 'discussions',
+    description: 'Project discussions and meetings',
+    module: 'discussions' as ModuleName
+  },
+  { 
+    id: 'backlog', 
+    title: 'Task Backlog', 
+    icon: Settings, 
+    path: 'backlog',
+    description: 'Manage task backlog',
+    module: 'task_backlog' as ModuleName
   },
   { 
     id: 'capacity', 
     title: 'Team Capacity', 
     icon: BarChart3, 
     path: 'capacity',
-    description: 'Manage team capacity planning'
+    description: 'Manage team capacity planning',
+    module: 'team_capacity' as ModuleName
   },
   { 
     id: 'retrospective', 
     title: 'Retrospectives', 
     icon: RotateCcw, 
     path: 'retrospective',
-    description: 'Sprint retrospectives and team feedback'
+    description: 'Sprint retrospectives and team feedback',
+    module: 'retrospectives' as ModuleName
   },
 ];
 
@@ -126,18 +164,7 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                 const itemIsActive = isActive(item.path);
                 
                 // Check if user has permission to view this module
-                const moduleMap: Record<string, any> = {
-                  'roadmap': 'roadmap',
-                  'kanban': 'kanban',
-                  'stakeholders': 'stakeholders',
-                  'status': 'tasks_milestones',
-                  'risks': 'risk_register',
-                  'capacity': 'team_capacity',
-                  'retrospective': 'retrospectives'
-                };
-                
-                const moduleName = moduleMap[item.id];
-                if (moduleName && !canRead(moduleName)) {
+                if (!canRead(item.module)) {
                   return null; // Hide modules user doesn't have access to
                 }
 

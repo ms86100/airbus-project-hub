@@ -17,6 +17,8 @@ interface ProjectWorkspaceContentProps {
 export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }: ProjectWorkspaceContentProps) {
   const renderModule = () => {
     switch (currentModule) {
+      case 'overview':
+        return <StatusManagementView projectId={projectId} />;
       case 'roadmap':
         return <RoadmapView />;
       case 'kanban':

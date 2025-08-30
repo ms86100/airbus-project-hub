@@ -103,10 +103,16 @@ export function useModulePermissions(projectId: string) {
       }
 
       const userPermissions: ModulePermissions = {};
-      console.log('Fetched permissions data:', permissionsData);
-      permissionsData.forEach(permission => {
-        userPermissions[permission.module] = permission.access_level as AccessLevel;
-      });
+      console.log('Fetched permissions data for user:', user.id, 'project:', projectId, 'data:', permissionsData);
+      
+      if (permissionsData && permissionsData.length > 0) {
+        permissionsData.forEach(permission => {
+          userPermissions[permission.module] = permission.access_level as AccessLevel;
+          console.log('Setting permission:', permission.module, '=', permission.access_level);
+        });
+      } else {
+        console.log('No module permissions found for user:', user.id, 'in project:', projectId);
+      }
 
       setPermissions(userPermissions);
     } catch (error) {
