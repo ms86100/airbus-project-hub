@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useApiAuth } from '@/hooks/useApiAuth';
+import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,13 +68,12 @@ interface Task {
 const ProjectOverview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const { canRead } = useModulePermissions(id || '');
 
   const [project, setProject] = useState<Project | null>(null);
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [workspaceData, setWorkspaceData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
@@ -105,35 +104,21 @@ const ProjectOverview = () => {
 
   const fetchProjectData = async () => {
     try {
-      // Fetch project
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', id)
-        .single();
+      setLoading(true);
+      
+      // Fetch project details
+      const projectResponse = await apiClient.getProject(id!);
+      if (!projectResponse.success) {
+        throw new Error(projectResponse.error || 'Failed to fetch project');
+      }
+      setProject(projectResponse.data);
 
-      if (projectError) throw projectError;
-      setProject(projectData);
-
-      // Fetch milestones
-      const { data: milestonesData, error: milestonesError } = await supabase
-        .from('milestones')
-        .select('*')
-        .eq('project_id', id)
-        .order('due_date');
-
-      if (milestonesError) throw milestonesError;
-      setMilestones(milestonesData);
-
-      // Fetch tasks
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('project_id', id)
-        .order('created_at');
-
-      if (tasksError) throw tasksError;
-      setTasks(tasksData);
+      // Fetch workspace data (summary, recent tasks, milestones)
+      const workspaceResponse = await apiClient.getWorkspace(id!);
+      if (!workspaceResponse.success) {
+        throw new Error(workspaceResponse.error || 'Failed to fetch workspace data');
+      }
+      setWorkspaceData(workspaceResponse.data);
 
     } catch (error) {
       console.error('Error fetching project data:', error);
@@ -151,12 +136,11 @@ const ProjectOverview = () => {
     if (!project || !user || deleteConfirmText !== project.name) return;
 
     try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', project.id);
-
-      if (error) throw error;
+      const response = await apiClient.deleteProject(project.id);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete project');
+      }
 
       toast({
         title: "Project Deleted",
@@ -324,9 +308,9 @@ const ProjectOverview = () => {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-3xl font-bold text-foreground">{tasks.length}</div>
+                        <div className="text-3xl font-bold text-foreground">{workspaceData?.summary?.tasks || 0}</div>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {tasks.filter(t => t.status === 'completed').length} completed
+                          {workspaceData?.recentTasks?.filter((t: any) => t.status === 'completed').length || 0} completed
                         </p>
                       </CardContent>
                     </Card>
@@ -339,9 +323,9 @@ const ProjectOverview = () => {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-3xl font-bold text-foreground">{milestones.length}</div>
+                        <div className="text-3xl font-bold text-foreground">{workspaceData?.summary?.milestones || 0}</div>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {milestones.filter(m => m.status === 'completed').length} completed
+                          {workspaceData?.upcomingMilestones?.filter((m: any) => m.status === 'completed').length || 0} completed
                         </p>
                       </CardContent>
                     </Card>
