@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -101,36 +101,28 @@ export function RoadmapView() {
     try {
       setLoading(true);
       
-      // Fetch tasks
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('project_id', id)
-        .order('created_at');
-
-      if (tasksError) throw tasksError;
-
-      // Fetch milestones
-      const { data: milestonesData, error: milestonesError } = await supabase
-        .from('milestones')
-        .select('*')
-        .eq('project_id', id)
-        .order('due_date');
-
-      if (milestonesError) throw milestonesError;
+      // Fetch roadmap data (includes milestones and tasks)
+      const roadmapResponse = await apiClient.getRoadmap(id!);
+      if (!roadmapResponse.success) {
+        throw new Error(roadmapResponse.error || 'Failed to fetch roadmap data');
+      }
+      
+      // Extract milestones and tasks from roadmap response
+      const roadmapData = roadmapResponse.data;
+      setMilestones(roadmapData.milestones || []);
+      
+      // For now, get tasks from milestones data or fetch separately if needed
+      // This assumes roadmap service returns tasks with milestones
+      const allTasks = roadmapData.milestones?.flatMap((m: any) => m.tasks || []) || [];
+      setTasks(allTasks);
 
       // Fetch stakeholders
-      const { data: stakeholdersData, error: stakeholdersError } = await supabase
-        .from('stakeholders')
-        .select('*')
-        .eq('project_id', id)
-        .order('name');
-
-      if (stakeholdersError) throw stakeholdersError;
-
-      setTasks(tasksData || []);
-      setMilestones(milestonesData || []);
-      setStakeholders(stakeholdersData || []);
+      const stakeholdersResponse = await apiClient.getStakeholders(id!);
+      if (!stakeholdersResponse.success) {
+        throw new Error(stakeholdersResponse.error || 'Failed to fetch stakeholders');
+      }
+      setStakeholders(stakeholdersResponse.data.stakeholders || []);
+      
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({

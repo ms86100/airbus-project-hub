@@ -279,6 +279,19 @@ class ApiClient {
     });
   }
 
+  async updateMilestone(projectId: string, milestoneId: string, data: { name?: string; description?: string; dueDate?: string; status?: 'planning' | 'in_progress' | 'completed' | 'blocked'; }): Promise<ApiResponse<{ message: string; milestone: any }>> {
+    return this.makeRequest(`/roadmap-service/projects/${projectId}/roadmap/${milestoneId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteMilestone(projectId: string, milestoneId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/roadmap-service/projects/${projectId}/roadmap/${milestoneId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Backlog Service Methods
   async getBacklog(projectId: string): Promise<ApiResponse<{ projectId: string; items: any[] }>> {
     return this.makeRequest(`/backlog-service/projects/${projectId}/backlog`, { method: 'GET' });
