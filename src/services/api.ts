@@ -21,12 +21,19 @@ class ApiClient {
     if (storedSession) {
       try {
         const session = JSON.parse(storedSession);
-        return session?.access_token || null;
+        console.log('🔑 Retrieved session from localStorage:', session);
+        
+        // Check multiple possible token field names
+        const token = session?.access_token || session?.token || session?.accessToken;
+        console.log('🎫 Extracted token:', token ? `${token.substring(0, 20)}...` : 'null');
+        
+        return token || null;
       } catch (error) {
         console.error('Error parsing stored session:', error);
         return null;
       }
     }
+    console.log('❌ No stored session found in localStorage');
     return null;
   }
 
@@ -35,6 +42,9 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const token = await this.getAuthToken();
+    
+    console.log(`🌐 Making request to: ${endpoint}`);
+    console.log(`🔐 Using token: ${token ? `${token.substring(0, 20)}...` : 'None'}`);
     
     const headers = {
       'Content-Type': 'application/json',
@@ -50,6 +60,7 @@ class ApiClient {
       });
 
       const result = await response.json();
+      console.log(`📡 Response from ${endpoint}:`, result);
       return result;
     } catch (error) {
       console.error('API request failed:', error);

@@ -82,6 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(response.data.user);
         
         // Store session in localStorage for persistence
+        console.log('💾 Storing session:', response.data.session);
+        console.log('💾 Storing user:', response.data.user);
         localStorage.setItem('auth_session', JSON.stringify(response.data.session));
         localStorage.setItem('auth_user', JSON.stringify(response.data.user));
         
