@@ -8,6 +8,8 @@ import { DiscussionLog } from '@/components/workspace/DiscussionLog';
 import { TaskBacklog } from '@/components/workspace/TaskBacklog';
 import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
+import { ModuleAccessWrapper } from '@/components/ModuleAccessWrapper';
+import { ModuleName } from '@/hooks/useModulePermissions';
 
 interface ProjectWorkspaceContentProps {
   projectId: string;
@@ -15,36 +17,88 @@ interface ProjectWorkspaceContentProps {
 }
 
 export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }: ProjectWorkspaceContentProps) {
-  const renderModule = () => {
-    switch (currentModule) {
+  const getModuleConfig = (module: string): { component: React.ReactNode; moduleName: ModuleName; requiredAccess: 'read' | 'write' } => {
+    switch (module) {
       case 'overview':
-        return <StatusManagementView projectId={projectId} />;
+        return { 
+          component: <StatusManagementView projectId={projectId} />, 
+          moduleName: 'overview' as ModuleName, 
+          requiredAccess: 'read' 
+        };
       case 'roadmap':
-        return <RoadmapView />;
+        return { 
+          component: <RoadmapView />, 
+          moduleName: 'roadmap' as ModuleName, 
+          requiredAccess: 'read' 
+        };
       case 'kanban':
-        return <KanbanView projectId={projectId} />;
+        return { 
+          component: <KanbanView projectId={projectId} />, 
+          moduleName: 'kanban' as ModuleName, 
+          requiredAccess: 'write' 
+        };
       case 'stakeholders':
-        return <StakeholdersView projectId={projectId} />;
+        return { 
+          component: <StakeholdersView projectId={projectId} />, 
+          moduleName: 'stakeholders' as ModuleName, 
+          requiredAccess: 'read' 
+        };
       case 'discussions':
-        return <DiscussionLog projectId={projectId} projectName="Current Project" />;
+        return { 
+          component: <DiscussionLog projectId={projectId} projectName="Current Project" />, 
+          moduleName: 'discussions' as ModuleName, 
+          requiredAccess: 'read' 
+        };
       case 'backlog':
-        return <TaskBacklog projectId={projectId} />;
+        return { 
+          component: <TaskBacklog projectId={projectId} />, 
+          moduleName: 'task_backlog' as ModuleName, 
+          requiredAccess: 'read' 
+        };
       case 'status':
-        return <StatusManagementView projectId={projectId} />;
+        return { 
+          component: <StatusManagementView projectId={projectId} />, 
+          moduleName: 'tasks_milestones' as ModuleName, 
+          requiredAccess: 'read' 
+        };
       case 'risks':
-        return <RiskRegisterView projectId={projectId} />;
+        return { 
+          component: <RiskRegisterView projectId={projectId} />, 
+          moduleName: 'risk_register' as ModuleName, 
+          requiredAccess: 'read' 
+        };
       case 'capacity':
-        return <TeamCapacityTracker projectId={projectId} />;
+        return { 
+          component: <TeamCapacityTracker projectId={projectId} />, 
+          moduleName: 'team_capacity' as ModuleName, 
+          requiredAccess: 'read' 
+        };
       case 'retrospective':
-        return <RetrospectiveView projectId={projectId} />;
+        return { 
+          component: <RetrospectiveView projectId={projectId} />, 
+          moduleName: 'retrospectives' as ModuleName, 
+          requiredAccess: 'read' 
+        };
       default:
-        return <RoadmapView />;
+        return { 
+          component: <RoadmapView />, 
+          moduleName: 'roadmap' as ModuleName, 
+          requiredAccess: 'read' 
+        };
     }
   };
 
+  const config = getModuleConfig(currentModule);
+
   return (
     <div className="flex-1 overflow-hidden">
-      {renderModule()}
+      <ModuleAccessWrapper 
+        projectId={projectId} 
+        module={config.moduleName} 
+        requiredAccess={config.requiredAccess}
+      >
+        {config.component}
+      </ModuleAccessWrapper>
     </div>
   );
 }

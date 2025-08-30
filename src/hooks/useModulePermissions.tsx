@@ -123,20 +123,43 @@ export function useModulePermissions(projectId: string) {
   };
 
   const hasPermission = (module: ModuleName, requiredAccess: AccessLevel = 'read'): boolean => {
-    if (isProjectOwner || isAdmin) return true;
+    console.log('Checking permission for module:', module, 'requiredAccess:', requiredAccess, 'isProjectOwner:', isProjectOwner, 'isAdmin:', isAdmin);
     
-    const modulePermission = permissions[module];
-    if (!modulePermission) return false;
-    
-    if (requiredAccess === 'read') {
-      return modulePermission === 'read' || modulePermission === 'write';
+    if (isProjectOwner || isAdmin) {
+      console.log('User has owner/admin access - granted');
+      return true;
     }
     
-    return modulePermission === 'write';
+    const modulePermission = permissions[module];
+    console.log('Module permission for', module, ':', modulePermission);
+    
+    if (!modulePermission) {
+      console.log('No permission found for module:', module);
+      return false;
+    }
+    
+    if (requiredAccess === 'read') {
+      const hasAccess = modulePermission === 'read' || modulePermission === 'write';
+      console.log('Read access check for', module, ':', hasAccess);
+      return hasAccess;
+    }
+    
+    const hasWriteAccess = modulePermission === 'write';
+    console.log('Write access check for', module, ':', hasWriteAccess);
+    return hasWriteAccess;
   };
 
-  const canRead = (module: ModuleName): boolean => hasPermission(module, 'read');
-  const canWrite = (module: ModuleName): boolean => hasPermission(module, 'write');
+  const canRead = (module: ModuleName): boolean => {
+    const result = hasPermission(module, 'read');
+    console.log('canRead result for', module, ':', result);
+    return result;
+  };
+  
+  const canWrite = (module: ModuleName): boolean => {
+    const result = hasPermission(module, 'write');
+    console.log('canWrite result for', module, ':', result);
+    return result;
+  };
 
   return {
     permissions,
