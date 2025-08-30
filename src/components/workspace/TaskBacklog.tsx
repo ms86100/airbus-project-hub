@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { apiClient } from '@/services/api';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface TaskBacklogProps {
@@ -52,7 +52,7 @@ const priorityOptions = [
 ];
 
 export function TaskBacklog({ projectId }: TaskBacklogProps) {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);

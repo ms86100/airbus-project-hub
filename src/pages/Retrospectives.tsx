@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
@@ -17,7 +17,7 @@ interface Project {
 }
 
 const Retrospectives = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useApiAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
