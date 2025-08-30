@@ -387,10 +387,24 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
         .update({ votes: card.votes + 1 })
         .eq('id', cardId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error voting on card:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to vote on card: ' + error.message,
+          variant: 'destructive'
+        });
+        return;
+      }
+      
       fetchCards();
     } catch (error) {
       console.error('Error voting card:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to vote on card',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -441,8 +455,21 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
         .update({ column_id: targetColumnId })
         .eq('id', cardId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error moving card:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to move card: ' + error.message,
+          variant: 'destructive'
+        });
+        return;
+      }
+      
       fetchCards();
+      toast({
+        title: 'Success',
+        description: 'Card moved successfully'
+      });
     } catch (error) {
       console.error('Error moving card:', error);
       toast({
