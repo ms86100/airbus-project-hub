@@ -17,7 +17,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface Task {
   id: string;
@@ -55,6 +55,7 @@ type ItemType = 'task' | 'milestone';
 type TableItem = (Task | Milestone) & { type: ItemType; milestone_name?: string };
 
 export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpdate }: TasksTableViewProps) {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
