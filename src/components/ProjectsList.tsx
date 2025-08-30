@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
+import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ interface ProjectFormData {
 
 const ProjectsList = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   
   const [projects, setProjects] = useState<Project[]>([]);
@@ -62,13 +62,13 @@ const ProjectsList = () => {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await apiClient.getProjects();
 
-      if (error) throw error;
-      setProjects(data || []);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch projects');
+      }
+      
+      setProjects(response.data || []);
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast({
@@ -85,18 +85,20 @@ const ProjectsList = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .insert([{
-          ...formData,
-          created_by: user.id
-        }])
-        .select()
-        .single();
+      const response = await apiClient.createProject({
+        name: formData.name,
+        description: formData.description,
+        startDate: formData.start_date,
+        endDate: formData.end_date,
+        priority: formData.priority,
+        status: formData.status,
+      });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create project');
+      }
 
-      setProjects([data, ...projects]);
+      setProjects([response.data, ...projects]);
       setShowCreateDialog(false);
       resetForm();
       
@@ -118,16 +120,20 @@ const ProjectsList = () => {
     if (!editingProject) return;
 
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .update(formData)
-        .eq('id', editingProject.id)
-        .select()
-        .single();
+      const response = await apiClient.updateProject(editingProject.id, {
+        name: formData.name,
+        description: formData.description,
+        startDate: formData.start_date,
+        endDate: formData.end_date,
+        priority: formData.priority,
+        status: formData.status,
+      });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update project');
+      }
 
-      setProjects(projects.map(p => p.id === editingProject.id ? data : p));
+      setProjects(projects.map(p => p.id === editingProject.id ? response.data : p));
       setShowEditDialog(false);
       setEditingProject(null);
       resetForm();
@@ -148,12 +154,11 @@ const ProjectsList = () => {
 
   const handleDeleteProject = async (projectId: string) => {
     try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId);
+      const response = await apiClient.deleteProject(projectId);
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete project');
+      }
 
       setProjects(projects.filter(p => p.id !== projectId));
       

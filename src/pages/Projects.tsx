@@ -1,12 +1,12 @@
 import React from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProjectsList from '@/components/ProjectsList';
 
 const Projects = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useApiAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
