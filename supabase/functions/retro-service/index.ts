@@ -12,6 +12,7 @@ import {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -89,6 +90,12 @@ Deno.serve(async (req) => {
     if (authError || !user) {
       return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
     }
+
+    // Create an authenticated client so Postgres auth.uid() is populated for triggers/audit
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
     // GET /retro-service/projects/:id/retrospectives
     if (method === 'GET' && path.includes('/projects/') && path.endsWith('/retrospectives')) {
@@ -219,7 +226,7 @@ Deno.serve(async (req) => {
         iterationId = latestIteration.id;
       }
 
-      const { data: retrospective, error: createError } = await supabase
+      const { data: retrospective, error: createError } = await supabaseAuth
         .from('retrospectives')
         .insert({
           project_id: projectId,
@@ -250,7 +257,7 @@ Deno.serve(async (req) => {
         column_order: idx,
       }));
 
-      const { error: colError } = await supabase
+      const { error: colError } = await supabaseAuth
         .from('retrospective_columns')
         .insert(toInsert);
 
@@ -287,7 +294,7 @@ Deno.serve(async (req) => {
       const body: CreateRetroActionBody = await parseRequestBody(req);
       if (!body.what_task) return createErrorResponse('what_task is required', 'MISSING_FIELDS');
 
-      const { data: action, error } = await supabase
+      const { data: action, error } = await supabaseAuth
         .from('retrospective_action_items')
         .insert({
           retrospective_id: retrospectiveId,
