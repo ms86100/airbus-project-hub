@@ -311,14 +311,17 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
 
   const fetchCardVotes = async () => {
     if (!selectedRetrospective) return;
+
+    // Avoid malformed query when there are no cards
+    if (!cards || cards.length === 0) {
+      setCardVotes([]);
+      return;
+    }
     
     try {
       const { data, error } = await supabase
         .from('retrospective_card_votes')
-        .select(`
-          *,
-          profiles!retrospective_card_votes_user_id_fkey(full_name, email)
-        `)
+        .select('*')
         .in('card_id', cards.map(c => c.id));
 
       if (error) throw error;
@@ -419,12 +422,20 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     if (!user) return;
 
     try {
-      // Check if user already voted
-      const existingVote = cardVotes.find(v => v.card_id === cardId && v.user_id === user.id);
-      if (existingVote) {
+      // Check if user already voted (more robust check)
+      const { data: existingVotes, error: checkError } = await supabase
+        .from('retrospective_card_votes')
+        .select('id')
+        .eq('card_id', cardId)
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (checkError) throw checkError;
+
+      if (existingVotes && existingVotes.length > 0) {
         toast({
-          title: 'Info',
-          description: 'You have already voted on this card',
+          title: 'Already Voted',
+          description: 'You can only vote once per card',
           variant: 'default'
         });
         return;
@@ -438,7 +449,18 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           user_id: user.id
         }]);
 
-      if (voteError) throw voteError;
+      if (voteError) {
+        // Handle the specific duplicate key constraint error
+        if (voteError.message.includes('duplicate key value violates unique constraint')) {
+          toast({
+            title: 'Already Voted',
+            description: 'You can only vote once per card',
+            variant: 'default'
+          });
+          return;
+        }
+        throw voteError;
+      }
 
       // Update card vote count
       const card = cards.find(c => c.id === cardId);
@@ -454,14 +476,14 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
       fetchCards();
       fetchCardVotes();
       toast({
-        title: 'Success',
-        description: 'Vote added successfully!'
+        title: 'Vote Added',
+        description: 'Your vote has been recorded successfully!'
       });
     } catch (error: any) {
       console.error('Error voting card:', error);
       toast({
         title: 'Error',
-        description: 'Failed to vote on card: ' + error.message,
+        description: 'Failed to add vote. Please try again.',
         variant: 'destructive'
       });
     }
