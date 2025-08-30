@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, Edit2, Trash2, Users, Calendar, TrendingUp, TrendingDown, Settings } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInDays, eachDayOfInterval } from 'date-fns';
 
 interface CapacitySettings {
   id: string;
@@ -114,6 +114,14 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     }
   }, [selectedIteration]);
 
+  // Auto-calculate working days when dates change
+  useEffect(() => {
+    if (iterationForm.start_date && iterationForm.end_date) {
+      const workingDays = calculateWorkingDays(iterationForm.start_date, iterationForm.end_date);
+      setIterationForm(prev => ({ ...prev, working_days: workingDays }));
+    }
+  }, [iterationForm.start_date, iterationForm.end_date]);
+
   const fetchSettings = async () => {
     try {
       const { data, error } = await supabase
@@ -187,6 +195,25 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     } catch (error) {
       console.error('Error fetching members:', error);
     }
+  };
+
+  const calculateWorkingDays = (startDate: string, endDate: string): number => {
+    if (!startDate || !endDate) return 0;
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (start > end) return 0;
+    
+    const days = eachDayOfInterval({ start, end });
+    
+    // Count only weekdays (Monday = 1, Sunday = 0)
+    const workingDays = days.filter(day => {
+      const dayOfWeek = day.getDay();
+      return dayOfWeek !== 0 && dayOfWeek !== 6; // Exclude Sunday (0) and Saturday (6)
+    });
+    
+    return workingDays.length;
   };
 
   const calculateEffectiveCapacity = (
