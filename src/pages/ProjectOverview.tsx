@@ -195,6 +195,13 @@ const ProjectOverview = () => {
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <Button
+                  onClick={() => navigate(`/project/${id}/roadmap`)}
+                  className="w-full sm:w-auto"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Open Workspace
+                </Button>
+                <Button
                   variant="outline"
                   onClick={() => navigate(`/project/${id}/edit`)}
                   className="w-full sm:w-auto"
