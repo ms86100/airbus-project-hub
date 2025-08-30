@@ -9,7 +9,7 @@ interface AuthContextType {
   userRole: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; message?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -116,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: response.error || 'Registration failed' };
       }
       
-      return { error: null };
+      return { error: null, message: response.data?.message || "Registration successful" };
     } catch (error) {
       return { error };
     }

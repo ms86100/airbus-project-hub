@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const { signIn, signUp } = useApiAuth();
+  const { signIn, signUp } = useAuth();
   const { toast } = useToast();
 
   const handleSignIn = async (e: React.FormEvent) => {

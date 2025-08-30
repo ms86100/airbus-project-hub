@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuth } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/DashboardLayout';
 import Dashboard from '@/components/Dashboard';
 
 const Index = () => {
-  const { user, loading } = useApiAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
