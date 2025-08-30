@@ -56,15 +56,21 @@ Deno.serve(async (req) => {
       return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
     }
 
+    // Create a user-scoped Supabase client so RLS applies correctly
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const db = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: req.headers.get('Authorization') || '',
+        },
+      },
+    });
+
     // GET /projects
     if (method === 'GET' && (normalizedPath === '/projects' || normalizedPath === '/projects/')) {
-      const { data: projects, error } = await supabase
+      const { data: projects, error } = await db
         .from('projects')
-        .select(`
-          *,
-          profiles!projects_created_by_fkey(full_name, email),
-          departments(name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -83,7 +89,7 @@ Deno.serve(async (req) => {
         return createErrorResponse('Project name is required', 'MISSING_NAME');
       }
 
-      const { data: project, error } = await supabase
+      const { data: project, error } = await db
         .from('projects')
         .insert({
           name: projectData.name,
@@ -95,11 +101,7 @@ Deno.serve(async (req) => {
           created_by: user.id,
           department_id: projectData.departmentId,
         })
-        .select(`
-          *,
-          profiles!projects_created_by_fkey(full_name, email),
-          departments(name)
-        `)
+        .select('*')
         .single();
 
       if (error) {
@@ -115,13 +117,9 @@ Deno.serve(async (req) => {
       const params = extractPathParams(normUrl, '/projects/:id');
       const projectId = params.id;
 
-      const { data: project, error } = await supabase
+      const { data: project, error } = await db
         .from('projects')
-        .select(`
-          *,
-          profiles!projects_created_by_fkey(full_name, email),
-          departments(name)
-        `)
+        .select('*')
         .eq('id', projectId)
         .single();
 
@@ -143,7 +141,7 @@ Deno.serve(async (req) => {
       const updateData: UpdateProjectRequest = await parseRequestBody(req);
 
       // Check if user has permission to update this project
-      const { data: existingProject, error: fetchError } = await supabase
+      const { data: existingProject, error: fetchError } = await db
         .from('projects')
         .select('created_by')
         .eq('id', projectId)
@@ -154,7 +152,7 @@ Deno.serve(async (req) => {
       }
 
       // Check if user is the creator or has admin role
-      const { data: userRoles } = await supabase
+      const { data: userRoles } = await db
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id);
@@ -166,7 +164,7 @@ Deno.serve(async (req) => {
         return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
       }
 
-      const { data: project, error } = await supabase
+      const { data: project, error } = await db
         .from('projects')
         .update({
           name: updateData.name,
@@ -178,11 +176,7 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', projectId)
-        .select(`
-          *,
-          profiles!projects_created_by_fkey(full_name, email),
-          departments(name)
-        `)
+        .select('*')
         .single();
 
       if (error) {
@@ -199,7 +193,7 @@ Deno.serve(async (req) => {
       const projectId = params.id;
 
       // Check if user has admin role for deletion
-      const { data: userRoles } = await supabase
+      const { data: userRoles } = await db
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id);
@@ -210,7 +204,7 @@ Deno.serve(async (req) => {
         return createErrorResponse('Admin access required for deletion', 'FORBIDDEN', 403);
       }
 
-      const { error } = await supabase
+      const { error } = await db
         .from('projects')
         .delete()
         .eq('id', projectId);
@@ -227,7 +221,7 @@ Deno.serve(async (req) => {
     if (method === 'GET' && normalizedPath.endsWith('/stats')) {
       try {
         // Check if user is admin
-        const { data: isAdmin } = await supabase
+        const { data: isAdmin } = await db
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
@@ -239,7 +233,7 @@ Deno.serve(async (req) => {
         }
 
         // Fetch project stats
-        const { data: projectData, error: projectError } = await supabase
+        const { data: projectData, error: projectError } = await db
           .from('projects')
           .select('status');
 
@@ -253,7 +247,7 @@ Deno.serve(async (req) => {
         const completedProjects = projectData?.filter(p => p.status === 'completed').length || 0;
 
         // Fetch user count
-        const { count: userCount, error: userError } = await supabase
+        const { count: userCount, error: userError } = await db
           .from('profiles')
           .select('*', { count: 'exact', head: true });
 
