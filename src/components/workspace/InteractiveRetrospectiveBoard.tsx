@@ -308,19 +308,29 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
 
     // If dropped in same column, just reorder
     if (card.column_id === newColumnId) {
-      // Handle reordering within same column
+      // Handle reordering within same column - for now, just refresh
+      await fetchRetrospectiveData();
       return;
     }
 
     // Move card to new column
     try {
+      console.log('Moving card:', cardId, 'to column:', newColumnId);
       const response = await apiClient.moveRetrospectiveCard(cardId, newColumnId);
       if (response.success) {
         toast({
           title: 'Success',
           description: 'Card moved successfully'
         });
+        // Refresh data to see the changes
         await fetchRetrospectiveData();
+      } else {
+        console.error('Move response error:', response.error);
+        toast({
+          title: 'Error', 
+          description: response.error || 'Failed to move card',
+          variant: 'destructive'
+        });
       }
     } catch (error) {
       console.error('Error moving card:', error);
