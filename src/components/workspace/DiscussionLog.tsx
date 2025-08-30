@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,7 +72,7 @@ interface DiscussionLogProps {
 }
 
 export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);

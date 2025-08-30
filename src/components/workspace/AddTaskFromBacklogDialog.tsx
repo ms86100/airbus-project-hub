@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface AddTaskFromBacklogDialogProps {
@@ -25,7 +25,7 @@ interface BacklogItem {
 }
 
 export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }: AddTaskFromBacklogDialogProps) {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);

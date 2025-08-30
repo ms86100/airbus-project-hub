@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -18,7 +18,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, userRole, signOut } = useAuth();
+  const { user, signOut } = useApiAuth();
 
   const getRoleBadgeVariant = (role: string | null) => {
     switch (role) {
@@ -58,11 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            {userRole && (
-              <Badge variant={getRoleBadgeVariant(userRole)} className="shadow-sm">
-                {getRoleDisplayName(userRole)}
-              </Badge>
-            )}
+            {/* Role badge removed - can be added back by fetching user role separately */}
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -80,7 +76,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <div className="flex flex-col space-y-2">
                     <p className="text-sm font-semibold leading-none text-text-primary">{user?.email}</p>
                     <p className="text-xs leading-none text-text-muted font-medium">
-                      {getRoleDisplayName(userRole)}
+                      User
                     </p>
                   </div>
                 </DropdownMenuLabel>

@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, AlertTriangle, Clock, User, Trash2, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { apiClient } from '@/services/api';
 
 interface Risk {
@@ -69,7 +69,7 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
-  const { user } = useAuth();
+  const { user } = useApiAuth();
 
   const [newRisk, setNewRisk] = useState({
     risk_code: '',

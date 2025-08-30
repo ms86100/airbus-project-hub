@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface StakeholdersManagementProps {
@@ -47,7 +47,7 @@ const influenceOptions = [
 ];
 
 export function StakeholdersManagement({ projectId }: StakeholdersManagementProps) {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [loading, setLoading] = useState(true);

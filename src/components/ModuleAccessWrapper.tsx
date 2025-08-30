@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useModulePermissions, ModuleName, AccessLevel } from '@/hooks/useModulePermissions';
 import { apiClient } from '@/services/api';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Lock } from 'lucide-react';
 
@@ -18,7 +18,7 @@ export function ModuleAccessWrapper({
   requiredAccess = 'read', 
   children 
 }: ModuleAccessWrapperProps) {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { hasPermission, loading } = useModulePermissions(projectId);
 
   // Log module access attempt

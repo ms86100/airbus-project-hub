@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -73,7 +73,7 @@ interface TeamCapacityTrackerProps {
 }
 
 export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   
   const [settings, setSettings] = useState<CapacitySettings | null>(null);

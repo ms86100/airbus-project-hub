@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface Task {
@@ -54,7 +54,7 @@ const priorityOptions = [
 ];
 
 export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);

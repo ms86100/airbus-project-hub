@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { ProjectSidebar } from '@/components/ProjectSidebar';
@@ -8,7 +8,7 @@ import { ProjectWorkspaceContent } from '@/components/ProjectWorkspaceContent';
 
 const ProjectWorkspace = () => {
   const { id: projectId, module = 'roadmap' } = useParams();
-  const { user, loading } = useAuth();
+  const { user, loading } = useApiAuth();
   const navigate = useNavigate();
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
@@ -47,7 +47,7 @@ export interface ProjectData {
 }
 
 const ProjectWizard = () => {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 

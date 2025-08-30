@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/services/api';
 
@@ -38,7 +38,7 @@ const priorityOptions = [
 ];
 
 export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDialogProps) {
-  const { user } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
