@@ -87,7 +87,8 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     start_date: '',
     end_date: '',
     working_days: 10,
-    committed_story_points: 0
+    committed_story_points: 0,
+    copyFromIteration: ''
   });
 
   const [memberForm, setMemberForm] = useState<{
@@ -271,8 +272,9 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     if (!user) return;
 
     try {
-      const iterationData = {
-        ...iterationForm,
+      const { copyFromIteration, ...iterationData } = iterationForm;
+      const finalIterationData = {
+        ...iterationData,
         project_id: projectId,
         created_by: user.id
       };
@@ -281,15 +283,22 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       if (editingIteration) {
         result = await supabase
           .from('team_capacity_iterations')
-          .update(iterationData)
+          .update(finalIterationData)
           .eq('id', editingIteration.id);
       } else {
         result = await supabase
           .from('team_capacity_iterations')
-          .insert([iterationData]);
+          .insert([finalIterationData])
+          .select();
       }
 
       if (result.error) throw result.error;
+
+      // If creating a new iteration and copying from existing iteration
+      if (!editingIteration && copyFromIteration && result.data) {
+        const newIterationId = result.data[0].id;
+        await copyMembersFromIteration(copyFromIteration, newIterationId);
+      }
 
       toast({
         title: 'Success',
@@ -417,13 +426,52 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     }
   };
 
+  const copyMembersFromIteration = async (sourceIterationId: string, targetIterationId: string) => {
+    try {
+      const { data: sourceMembers, error } = await supabase
+        .from('team_capacity_members')
+        .select('*')
+        .eq('iteration_id', sourceIterationId);
+
+      if (error) throw error;
+
+      if (sourceMembers && sourceMembers.length > 0) {
+        const membersToInsert = sourceMembers.map(member => ({
+          ...member,
+          id: undefined, // Let the database generate new IDs
+          iteration_id: targetIterationId,
+          created_by: user?.id
+        }));
+
+        const { error: insertError } = await supabase
+          .from('team_capacity_members')
+          .insert(membersToInsert);
+
+        if (insertError) throw insertError;
+
+        toast({
+          title: 'Success',
+          description: `Copied ${sourceMembers.length} team members from previous iteration`
+        });
+      }
+    } catch (error) {
+      console.error('Error copying members:', error);
+      toast({
+        title: 'Warning',
+        description: 'Iteration created but failed to copy team members',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const resetIterationForm = () => {
     setIterationForm({
       iteration_name: '',
       start_date: '',
       end_date: '',
       working_days: 10,
-      committed_story_points: 0
+      committed_story_points: 0,
+      copyFromIteration: ''
     });
     setEditingIteration(null);
   };
@@ -444,7 +492,8 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       start_date: iteration.start_date,
       end_date: iteration.end_date,
       working_days: iteration.working_days,
-      committed_story_points: iteration.committed_story_points
+      committed_story_points: iteration.committed_story_points,
+      copyFromIteration: ''
     });
     setShowIterationDialog(true);
   };
@@ -629,30 +678,47 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="working_days">Working Days</Label>
-                    <Input
-                      id="working_days"
-                      type="number"
-                      value={iterationForm.working_days}
-                      onChange={(e) => setIterationForm({ ...iterationForm, working_days: parseInt(e.target.value) })}
-                      min="1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="committed_story_points">Committed Story Points</Label>
-                    <Input
-                      id="committed_story_points"
-                      type="number"
-                      value={iterationForm.committed_story_points}
-                      onChange={(e) => setIterationForm({ ...iterationForm, committed_story_points: parseInt(e.target.value) })}
-                      min="0"
-                      required
-                    />
-                  </div>
-                </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <Label htmlFor="working_days">Working Days</Label>
+                     <Input
+                       id="working_days"
+                       type="number"
+                       value={iterationForm.working_days}
+                       onChange={(e) => setIterationForm({ ...iterationForm, working_days: parseInt(e.target.value) })}
+                       min="1"
+                       required
+                     />
+                   </div>
+                   <div>
+                     <Label htmlFor="committed_story_points">Committed Story Points</Label>
+                     <Input
+                       id="committed_story_points"
+                       type="number"
+                       value={iterationForm.committed_story_points}
+                       onChange={(e) => setIterationForm({ ...iterationForm, committed_story_points: parseInt(e.target.value) })}
+                       min="0"
+                       required
+                     />
+                   </div>
+                 </div>
+                 {!editingIteration && iterations.length > 0 && (
+                   <div>
+                     <Label htmlFor="copyFromIteration">Copy Team from Previous Iteration (Optional)</Label>
+                     <Select value={iterationForm.copyFromIteration} onValueChange={(value) => setIterationForm({ ...iterationForm, copyFromIteration: value })}>
+                       <SelectTrigger>
+                         <SelectValue placeholder="Select iteration to copy team from" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         {iterations.map((iteration) => (
+                           <SelectItem key={iteration.id} value={iteration.id}>
+                             {iteration.iteration_name} ({format(new Date(iteration.start_date), 'MMM dd')} - {format(new Date(iteration.end_date), 'MMM dd, yyyy')})
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                   </div>
+                 )}
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setShowIterationDialog(false)}>
                     Cancel
