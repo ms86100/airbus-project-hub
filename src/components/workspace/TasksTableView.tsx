@@ -6,6 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Search, Filter, Eye, Edit, Trash2, Clock, CheckCircle, AlertCircle, Target, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -55,6 +59,9 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set(milestones.map(m => m.id)));
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deletingTask, setDeletingTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -134,6 +141,58 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
       toast({
         title: "Error",
         description: "Failed to move task",
+        variant: "destructive",
+      });
+    }
+  }, [onTaskUpdate]);
+
+  const handleDeleteTask = useCallback(async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+
+      setDeletingTask(null);
+      onTaskUpdate?.();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
+    }
+  }, [onTaskUpdate]);
+
+  const handleEditTask = useCallback(async (task: Task, updatedData: Partial<Task>) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update(updatedData)
+        .eq('id', task.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+
+      setEditingTask(null);
+      onTaskUpdate?.();
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
         variant: "destructive",
       });
     }
@@ -386,6 +445,9 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
                                 getStatusBadgeVariant={getStatusBadgeVariant}
                                 getPriorityBadgeVariant={getPriorityBadgeVariant}
                                 formatDate={formatDate}
+                                onView={() => setViewingTask(task)}
+                                onEdit={() => setEditingTask(task)}
+                                onDelete={() => setDeletingTask(task)}
                               />
                             ))}
                           </TableBody>
@@ -416,6 +478,97 @@ export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpd
           )}
         </div>
       </DndContext>
+
+      {/* View Task Modal */}
+      <Dialog open={!!viewingTask} onOpenChange={() => setViewingTask(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Task Details
+            </DialogTitle>
+          </DialogHeader>
+          {viewingTask && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Title</Label>
+                <p className="text-sm text-muted-foreground mt-1">{viewingTask.title}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Description</Label>
+                <p className="text-sm text-muted-foreground mt-1">{viewingTask.description || 'No description'}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Status</Label>
+                  <div className="mt-1">
+                    <Badge variant={getStatusBadgeVariant(viewingTask.status)}>
+                      {viewingTask.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Priority</Label>
+                  <div className="mt-1">
+                    <Badge variant={getPriorityBadgeVariant(viewingTask.priority)}>
+                      {viewingTask.priority}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Due Date</Label>
+                <p className="text-sm text-muted-foreground mt-1">{formatDate(viewingTask.due_date)}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Task Modal */}
+      <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Task
+            </DialogTitle>
+          </DialogHeader>
+          {editingTask && (
+            <div className="space-y-4">
+              <EditTaskForm 
+                task={editingTask} 
+                onSave={(updatedData) => handleEditTask(editingTask, updatedData)}
+                onCancel={() => setEditingTask(null)}
+                milestones={milestones}
+                getStatusBadgeVariant={getStatusBadgeVariant}
+                getPriorityBadgeVariant={getPriorityBadgeVariant}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Task Confirmation */}
+      <AlertDialog open={!!deletingTask} onOpenChange={() => setDeletingTask(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingTask?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deletingTask && handleDeleteTask(deletingTask.id)}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete Task
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -427,6 +580,9 @@ interface DraggableTaskRowProps {
   getStatusBadgeVariant: (status: string) => any;
   getPriorityBadgeVariant: (priority: string) => any;
   formatDate: (date: string) => string;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
 function DraggableTaskRow({ 
@@ -434,7 +590,10 @@ function DraggableTaskRow({
   getStatusIcon, 
   getStatusBadgeVariant, 
   getPriorityBadgeVariant, 
-  formatDate 
+  formatDate,
+  onView,
+  onEdit,
+  onDelete
 }: DraggableTaskRowProps) {
   const {
     attributes,
@@ -497,13 +656,13 @@ function DraggableTaskRow({
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onView}>
             <Eye className="h-3 w-3" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onEdit}>
             <Edit className="h-3 w-3" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive" onClick={onDelete}>
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>
@@ -528,5 +687,123 @@ function MilestoneDropZone({ children, milestoneId }: MilestoneDropZoneProps) {
     >
       {children}
     </div>
+  );
+}
+
+// Edit Task Form Component
+interface EditTaskFormProps {
+  task: Task;
+  onSave: (updatedData: Partial<Task>) => void;
+  onCancel: () => void;
+  milestones: Milestone[];
+  getStatusBadgeVariant: (status: string) => any;
+  getPriorityBadgeVariant: (priority: string) => any;
+}
+
+function EditTaskForm({ task, onSave, onCancel, milestones }: EditTaskFormProps) {
+  const [formData, setFormData] = useState({
+    title: task.title,
+    description: task.description || '',
+    status: task.status,
+    priority: task.priority,
+    due_date: task.due_date || '',
+    milestone_id: task.milestone_id || ''
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="title">Title *</Label>
+        <Input
+          id="title"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows={3}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="status">Status</Label>
+          <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border shadow-lg z-[9999]">
+              <SelectItem value="todo">To Do</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="priority">Priority</Label>
+          <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border shadow-lg z-[9999]">
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="due_date">Due Date</Label>
+          <Input
+            id="due_date"
+            type="date"
+            value={formData.due_date}
+            onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="milestone">Milestone</Label>
+          <Select value={formData.milestone_id} onValueChange={(value) => setFormData({ ...formData, milestone_id: value })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select milestone" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border shadow-lg z-[9999]">
+              <SelectItem value="">Unassigned</SelectItem>
+              {milestones.map((milestone) => (
+                <SelectItem key={milestone.id} value={milestone.id}>
+                  {milestone.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit">
+          Save Changes
+        </Button>
+      </div>
+    </form>
   );
 }
