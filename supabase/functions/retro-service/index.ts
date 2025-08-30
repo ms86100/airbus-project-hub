@@ -12,7 +12,8 @@ import {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 interface CreateRetrospectiveBody {
   framework?: string;
@@ -28,9 +29,9 @@ interface CreateRetroActionBody {
   backlog_ref_id?: string;
 }
 
-async function hasProjectAccess(client: any, userId: string, projectId: string) {
+async function hasProjectAccess(userId: string, projectId: string) {
   // Project exists?
-  const { data: project } = await client
+  const { data: project } = await supabase
     .from('projects')
     .select('id, created_by')
     .eq('id', projectId)
@@ -39,7 +40,7 @@ async function hasProjectAccess(client: any, userId: string, projectId: string) 
   if (!project) return { ok: false, reason: 'PROJECT_NOT_FOUND' };
 
   // Admin?
-  const { data: adminRole } = await client
+  const { data: adminRole } = await supabase
     .from('user_roles')
     .select('role')
     .eq('user_id', userId)
@@ -49,7 +50,7 @@ async function hasProjectAccess(client: any, userId: string, projectId: string) 
   if (project.created_by === userId || adminRole) return { ok: true };
 
   // Member?
-  const { data: membership } = await client
+  const { data: membership } = await supabase
     .from('project_members')
     .select('id')
     .eq('project_id', projectId)
@@ -59,7 +60,7 @@ async function hasProjectAccess(client: any, userId: string, projectId: string) 
   if (membership) return { ok: true };
 
   // Any module permission?
-  const { data: modulePerm } = await client
+  const { data: modulePerm } = await supabase
     .from('module_permissions')
     .select('id')
     .eq('project_id', projectId)
@@ -83,24 +84,19 @@ Deno.serve(async (req) => {
   logRequest(method, path);
 
   try {
-    // Create per-request Supabase clients (admin for auth, user-scoped for DB)
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: req.headers.get('authorization') || '' } }
-    });
-
     // All endpoints require authentication
-    const { user, error: authError } = await validateAuthToken(req, supabaseAdmin);
+    const { user, error: authError } = await validateAuthToken(req, supabase);
     if (authError || !user) {
       return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
     }
+
     // GET /retro-service/projects/:id/retrospectives
     if (method === 'GET' && path.includes('/projects/') && path.endsWith('/retrospectives')) {
       const params = extractPathParams(url, '/retro-service/projects/:id/retrospectives');
       const projectId = params.id;
       if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
 
-      const access = await hasProjectAccess(supabase, user.id, projectId);
+      const access = await hasProjectAccess(user.id, projectId);
       if (!access.ok) {
         const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
@@ -108,7 +104,15 @@ Deno.serve(async (req) => {
 
       const { data: retrospectives, error } = await supabase
         .from('retrospectives')
-        .select('*')
+        .select(`
+          id, project_id, iteration_id, framework, status, created_at, updated_at, created_by,
+          columns:retrospective_columns (
+            id, title, subtitle, column_order, created_at, updated_at,
+            cards:retrospective_cards (
+              id, text, votes, card_order, created_at, updated_at, created_by
+            )
+          )
+        `)
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
@@ -126,7 +130,7 @@ Deno.serve(async (req) => {
       const projectId = params.id;
       if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
 
-      const access = await hasProjectAccess(supabase, user.id, projectId);
+      const access = await hasProjectAccess(user.id, projectId);
       if (!access.ok) {
         const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
@@ -197,7 +201,7 @@ Deno.serve(async (req) => {
 
       if (!retro) return createErrorResponse('Retrospective not found', 'RETRO_NOT_FOUND', 404);
 
-      const access = await hasProjectAccess(supabase, user.id, retro.project_id);
+      const access = await hasProjectAccess(user.id, retro.project_id);
       if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
 
       const body: CreateRetroActionBody = await parseRequestBody(req);
