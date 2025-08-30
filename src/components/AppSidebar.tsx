@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Home, FolderOpen, Users, Settings, Plane, BarChart3, Calendar, Bell, RotateCcw } from "lucide-react"
+import { Home, FolderOpen, Users, Settings, Plane, BarChart3, Calendar, Bell, RotateCcw, Shield } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
 import {
@@ -24,6 +24,7 @@ const navigation = [
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Notifications", url: "/notifications", icon: Bell },
+  { title: "Access Control", url: "/access-control", icon: Shield },
 ]
 
 const settings = [

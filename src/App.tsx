@@ -14,6 +14,7 @@ import Projects from "./pages/Projects";
 import ProjectWorkspace from "./components/ProjectWorkspace";
 import Retrospectives from "./pages/Retrospectives";
 import TeamCapacity from "./pages/TeamCapacity";
+import AccessControl from "./pages/AccessControl";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/project/:id/edit" element={<EditProject />} />
             <Route path="/retrospectives" element={<Retrospectives />} />
             <Route path="/team-capacity" element={<TeamCapacity />} />
+            <Route path="/access-control" element={<AccessControl />} />
             <Route path="/project/:id/:module" element={<ProjectWorkspace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

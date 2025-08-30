@@ -183,24 +183,6 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               
-              {isProjectOwner && (
-                <SidebarMenuItem>
-                  <AccessControlDialog 
-                    projectId={projectId}
-                    trigger={
-                      <SidebarMenuButton className="w-full">
-                        <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground w-full text-left">
-                          <Shield className="h-4 w-4 flex-shrink-0" />
-                          <div className="flex flex-col items-start min-w-0 flex-1">
-                            <span className="font-medium text-sm truncate w-full">Access Control</span>
-                            <span className="text-xs opacity-60 truncate w-full">Manage collaborator permissions</span>
-                          </div>
-                        </button>
-                      </SidebarMenuButton>
-                    }
-                  />
-                </SidebarMenuItem>
-              )}
               
               <SidebarMenuItem>
                 <Dialog open={showAuditLog} onOpenChange={setShowAuditLog}>
