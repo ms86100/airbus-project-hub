@@ -98,11 +98,11 @@ interface CardVote {
 const FRAMEWORK_TEMPLATES = {
   classic: {
     name: "Classic",
-    description: "A simple format focusing on actions to start, stop, or continue.",
+    description: "A structured reflection on what worked, what didn't, and what to change.",
     columns: [
-      { title: "Start", subtitle: "What should we start doing?" },
-      { title: "Stop", subtitle: "What should we stop doing?" },
-      { title: "Continue", subtitle: "What should we continue doing?" }
+      { title: "What went well?", subtitle: "Things that worked successfully" },
+      { title: "What could have been better?", subtitle: "Areas for improvement" },
+      { title: "What will we do differently?", subtitle: "Actions to take next time" }
     ]
   },
   "4ls": {
