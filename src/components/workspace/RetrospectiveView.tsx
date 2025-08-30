@@ -94,9 +94,15 @@ interface CardVote {
 
 const FRAMEWORK_TEMPLATES = {
   Classic: [
-    { title: "What went well? 👍", subtitle: "Things we should continue doing" },
-    { title: "What didn't go well? 👎", subtitle: "Things that need improvement" },
-    { title: "Action items 🎯", subtitle: "What we will do differently" }
+    { title: "Start 🚀", subtitle: "What should we start doing?" },
+    { title: "Stop ✋", subtitle: "What should we stop doing?" },
+    { title: "Continue ✅", subtitle: "What should we continue doing?" }
+  ],
+  "4Ls": [
+    { title: "Liked 👍", subtitle: "What did we like?" },
+    { title: "Learned 🧠", subtitle: "What did we learn?" },
+    { title: "Lacked 😕", subtitle: "What was missing or lacking?" },
+    { title: "Longed For 🌟", subtitle: "What did we long for?" }
   ],
   KISS: [
     { title: "Keep 💚", subtitle: "What should we continue doing?" },
@@ -109,6 +115,11 @@ const FRAMEWORK_TEMPLATES = {
     { title: "Anchor ⚓", subtitle: "What slowed us down?" },
     { title: "Rocks 🪨", subtitle: "What risks do we see ahead?" },
     { title: "Island 🏝️", subtitle: "What is our destination/goal?" }
+  ],
+  "Mad/Sad/Glad": [
+    { title: "Mad 😡", subtitle: "What frustrated us?" },
+    { title: "Sad 😢", subtitle: "What disappointed us?" },
+    { title: "Glad 😊", subtitle: "What made us happy?" }
   ]
 };
 
@@ -299,12 +310,12 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                 <div>
                   <Label htmlFor="iteration">Iteration *</Label>
                   <Select value={createForm.iteration_id} onValueChange={(value) => setCreateForm(prev => ({ ...prev, iteration_id: value }))}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-background border-border">
                       <SelectValue placeholder="Select an iteration" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background border-border shadow-lg z-[100]">
                       {iterations.map((iteration) => (
-                        <SelectItem key={iteration.id} value={iteration.id}>
+                        <SelectItem key={iteration.id} value={iteration.id} className="hover:bg-muted focus:bg-muted">
                           {iteration.iteration_name} ({iteration.start_date} - {iteration.end_date})
                         </SelectItem>
                       ))}
@@ -314,12 +325,12 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                 <div>
                   <Label htmlFor="framework">Framework</Label>
                   <Select value={createForm.framework} onValueChange={(value) => setCreateForm(prev => ({ ...prev, framework: value }))}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-background border-border">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background border-border shadow-lg z-[100]">
                       {Object.keys(FRAMEWORK_TEMPLATES).map((framework) => (
-                        <SelectItem key={framework} value={framework}>
+                        <SelectItem key={framework} value={framework} className="hover:bg-muted focus:bg-muted">
                           {framework}
                         </SelectItem>
                       ))}

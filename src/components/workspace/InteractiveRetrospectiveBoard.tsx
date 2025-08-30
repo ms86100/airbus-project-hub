@@ -459,12 +459,12 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
                 value={actionItemForm.who_responsible}
                 onValueChange={(value) => setActionItemForm(prev => ({ ...prev, who_responsible: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-background border-border">
                   <SelectValue placeholder="Select responsible person" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border-border shadow-lg z-[100]">
                   {stakeholders.map((stakeholder) => (
-                    <SelectItem key={stakeholder.id} value={stakeholder.name}>
+                    <SelectItem key={stakeholder.id} value={stakeholder.name} className="hover:bg-muted focus:bg-muted">
                       {stakeholder.name}
                     </SelectItem>
                   ))}
