@@ -1048,12 +1048,12 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                               value={selectedTeamPerIteration[iteration.id] || ''} 
                               onValueChange={(value) => setSelectedTeamPerIteration(prev => ({ ...prev, [iteration.id]: value }))}
                             >
-                              <SelectTrigger className="bg-background border z-50 min-w-[150px]">
+                              <SelectTrigger className="bg-background border min-w-[150px]">
                                 <SelectValue placeholder="Apply Team" />
                               </SelectTrigger>
-                              <SelectContent className="bg-popover border z-50">
+                              <SelectContent className="bg-popover border z-[100] max-h-[200px] overflow-y-auto" position="popper" sideOffset={5}>
                                 {teams.map((team) => (
-                                  <SelectItem key={team.id} value={team.id} className="hover:bg-accent">
+                                  <SelectItem key={team.id} value={team.id} className="hover:bg-accent cursor-pointer">
                                     {team.team_name}
                                   </SelectItem>
                                 ))}
@@ -1216,12 +1216,12 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                 <div>
                   <Label htmlFor="stakeholder">Team Member</Label>
                   <Select value={memberForm.stakeholder_id} onValueChange={(value) => setMemberForm({ ...memberForm, stakeholder_id: value })}>
-                    <SelectTrigger className="bg-background border z-50">
+                    <SelectTrigger className="bg-background border">
                       <SelectValue placeholder="Select a team member" />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover border z-50">
+                    <SelectContent className="bg-popover border z-[100] max-h-[200px] overflow-y-auto" position="popper" sideOffset={5}>
                       {stakeholders.map((stakeholder) => (
-                        <SelectItem key={stakeholder.id} value={stakeholder.id} className="hover:bg-accent">
+                        <SelectItem key={stakeholder.id} value={stakeholder.id} className="hover:bg-accent cursor-pointer">
                           {stakeholder.name} {stakeholder.department && `(${stakeholder.department})`}
                         </SelectItem>
                       ))}
