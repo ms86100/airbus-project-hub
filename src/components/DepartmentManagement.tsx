@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useApiAuth } from "@/hooks/useApiAuth";
 import { apiClient } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -15,17 +15,38 @@ interface Department {
 }
 
 export default function DepartmentManagement() {
-  const { user, userRole } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [newDepartmentName, setNewDepartmentName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserRole();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (userRole === "admin") {
       fetchDepartments();
     }
   }, [userRole]);
+
+  const fetchUserRole = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await apiClient.getUserRole(user.id);
+      
+      if (response.success) {
+        setUserRole(response.data?.role || null);
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
 
   const fetchDepartments = async () => {
     try {
