@@ -132,6 +132,40 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Access Control Service Methods
+  async getProjectAccess(projectId: string): Promise<ApiResponse<{ projectId: string; permissions: any[] }>> {
+    return this.makeRequest(`/access-service/projects/${projectId}/access`, {
+      method: 'GET',
+    });
+  }
+
+  async grantModulePermission(projectId: string, data: {
+    userId: string;
+    module: string;
+    accessLevel: 'read' | 'write';
+  }): Promise<ApiResponse<{ message: string; permission: any }>> {
+    return this.makeRequest(`/access-service/projects/${projectId}/access`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateModulePermission(projectId: string, userId: string, data: {
+    module: string;
+    accessLevel: 'read' | 'write';
+  }): Promise<ApiResponse<{ message: string; permission: any }>> {
+    return this.makeRequest(`/access-service/projects/${projectId}/access/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async revokeModulePermission(projectId: string, userId: string, module: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/access-service/projects/${projectId}/access/${userId}?module=${module}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

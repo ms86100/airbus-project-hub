@@ -4,4 +4,7 @@ project_id = "knivoexfpvqohsvpsziq"
 verify_jwt = false
 
 [functions.projects-service]
-verify_jwt = true
+verify_jwt = false
+
+[functions.access-service]
+verify_jwt = false
