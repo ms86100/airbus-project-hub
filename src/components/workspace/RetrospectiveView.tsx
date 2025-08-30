@@ -162,20 +162,28 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
 
   const fetchRetrospectives = async () => {
     try {
+      console.log('🔄 Fetching retrospectives for project:', projectId);
       const response = await apiClient.getRetrospectives(projectId);
+      console.log('🔄 Retrospectives response:', response);
+      
       if (response.success) {
-        const data = response.data || [];
+        const data = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data && typeof response.data === 'object' && 'retrospectives' in response.data)
+            ? (response.data as any).retrospectives || []
+            : [];
+        console.log('🔄 Setting retrospectives data:', data);
         setRetrospectives(data);
         
         if (data.length > 0 && !selectedRetrospective && !showRetrospectivesList) {
           setSelectedRetrospective(data[0]);
         }
       } else {
-        console.error('Error fetching retrospectives:', response.error);
+        console.error('❌ Error fetching retrospectives:', response.error);
       }
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching retrospectives:', error);
+      console.error('❌ Error fetching retrospectives:', error);
       setLoading(false);
     }
   };
