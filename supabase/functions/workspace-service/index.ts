@@ -297,7 +297,8 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: discussion, error } = await supabaseAuth
+      // Create discussion with explicit created_by to avoid audit log issues
+      const { data: discussion, error } = await supabase
         .from('project_discussions')
         .insert({
           ...discussionData,
@@ -596,7 +597,8 @@ Deno.serve(async (req) => {
         return createErrorResponse('discussion_id is required for action items', 'MISSING_DISCUSSION_ID');
       }
 
-      const { data: actionItem, error } = await supabaseAuth
+      // Create action item with explicit created_by to avoid audit log issues
+      const { data: actionItem, error } = await supabase
         .from('discussion_action_items')
         .insert({
           ...actionItemData,

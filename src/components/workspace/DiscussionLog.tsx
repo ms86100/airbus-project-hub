@@ -781,14 +781,21 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => convertToBacklog(actionItem)}
-                              title="Convert to Backlog Item"
-                            >
-                              <ArrowRight className="h-4 w-4" />
-                            </Button>
+                            {actionItem.status !== 'completed' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => convertToBacklog(actionItem)}
+                                title="Convert to Backlog Item"
+                              >
+                                <ArrowRight className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {actionItem.status === 'completed' && (
+                              <Badge variant="secondary" className="text-xs">
+                                Converted
+                              </Badge>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
