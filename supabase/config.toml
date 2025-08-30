@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.roadmap-service]
 verify_jwt = false
+
+[functions.backlog-service]
+verify_jwt = false

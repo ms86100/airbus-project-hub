@@ -256,6 +256,26 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // Backlog Service Methods
+  async getBacklog(projectId: string): Promise<ApiResponse<{ projectId: string; items: any[] }>> {
+    return this.makeRequest(`/backlog-service/projects/${projectId}/backlog`, { method: 'GET' });
+  }
+
+  async createBacklogItem(projectId: string, data: {
+    title: string;
+    description?: string;
+    priority?: string;
+    status?: 'backlog' | 'in_progress' | 'blocked' | 'done';
+    ownerId?: string;
+    targetDate?: string;
+    sourceType?: string;
+  }): Promise<ApiResponse<{ message: string; item: any }>> {
+    return this.makeRequest(`/backlog-service/projects/${projectId}/backlog`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();
