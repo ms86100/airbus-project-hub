@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useApiAuth } from '@/hooks/useApiAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,7 @@ interface DashboardStats {
 }
 
 const Dashboard = () => {
-  const { user, userRole } = useAuth();
+  const { user } = useApiAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -42,17 +42,22 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
+      fetchUserRole();
       fetchProjects();
-      if (userRole === 'admin') {
-        fetchStats();
-      }
     }
-  }, [user, userRole]);
+  }, [user]);
+
+  useEffect(() => {
+    if (userRole === 'admin') {
+      fetchStats();
+    }
+  }, [userRole]);
 
   useEffect(() => {
     // Check if project coordinator needs department assignment
@@ -75,6 +80,23 @@ const Dashboard = () => {
       setUserProfile(data);
     } catch (error) {
       console.error("Error fetching user profile:", error);
+    }
+  };
+
+  const fetchUserRole = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+      
+      if (error && error.code !== "PGRST116") throw error;
+      setUserRole(data?.role || null);
+    } catch (error) {
+      console.error("Error fetching user role:", error);
     }
   };
 
