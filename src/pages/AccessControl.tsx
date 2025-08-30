@@ -95,17 +95,15 @@ export default function AccessControl() {
 
       if (error) throw error;
 
-      // Get user emails for the permissions
+      // Get user emails using the security definer function
       const userIds = [...new Set(data?.map(p => p.user_id) || [])];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .in('id', userIds);
+      const { data: userEmails } = await supabase
+        .rpc('get_user_emails_by_ids', { _user_ids: userIds });
 
       const permissionsWithDetails = data?.map(permission => ({
         ...permission,
         project_name: permission.projects.name,
-        user_email: profiles?.find(p => p.id === permission.user_id)?.email || 'Unknown'
+        user_email: userEmails?.find(u => u.id === permission.user_id)?.email || 'Unknown'
       })) || [];
 
       setPermissions(permissionsWithDetails);

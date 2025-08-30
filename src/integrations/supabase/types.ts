@@ -1167,6 +1167,17 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      get_user_email_by_id: {
+        Args: { _user_id: string }
+        Returns: string
+      }
+      get_user_emails_by_ids: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          email: string
+          id: string
+        }[]
+      }
       has_module_permission: {
         Args: {
           _module: Database["public"]["Enums"]["module_name"]
