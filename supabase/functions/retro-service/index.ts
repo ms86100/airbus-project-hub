@@ -139,11 +139,28 @@ Deno.serve(async (req) => {
       const body: CreateRetrospectiveBody = await parseRequestBody(req);
       const framework = body.framework || 'Classic';
 
+      // If no iterationId provided, get the latest one for this project
+      let iterationId = body.iterationId;
+      if (!iterationId) {
+        const { data: latestIteration } = await supabase
+          .from('team_capacity_iterations')
+          .select('id')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (!latestIteration) {
+          return createErrorResponse('No iteration found for this project. Please create a team capacity iteration first.', 'NO_ITERATION');
+        }
+        iterationId = latestIteration.id;
+      }
+
       const { data: retrospective, error: createError } = await supabase
         .from('retrospectives')
         .insert({
           project_id: projectId,
-          iteration_id: body.iterationId || null,
+          iteration_id: iterationId,
           framework,
           status: 'active',
           created_by: user.id,
