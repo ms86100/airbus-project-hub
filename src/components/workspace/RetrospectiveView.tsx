@@ -13,11 +13,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Plus, ThumbsUp, MoreHorizontal, Target, Trash2, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners, useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { RetrospectiveCard } from './RetrospectiveCard';
+import { DroppableColumn } from './DroppableColumn';
 
 interface RetrospectiveViewProps {
   projectId: string;
@@ -615,6 +617,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 collisionDetection={closestCorners}
+                modifiers={[restrictToVerticalAxis]}
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {columns.map((column) => {
@@ -648,33 +651,20 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                             {columnCards.length} card{columnCards.length !== 1 ? 's' : ''}
                           </Badge>
                         </CardHeader>
-                        <CardContent 
-                          id={column.id}
-                          className="space-y-3 p-4 min-h-[200px]"
-                          style={{ 
-                            background: `linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)/0.1) 100%)` 
-                          }}
-                        >
-                          <SortableContext 
-                            items={columnCards.map(c => c.id)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            {columnCards.map((card, index) => (
-                              <RetrospectiveCard
-                                key={card.id}
-                                card={card}
-                                cardColor={getCardColor(index)}
-                                userDisplayName={getUserDisplayName(card.created_by)}
-                                onVote={() => handleVoteCard(card.id)}
-                                onDelete={() => handleDeleteCard(card.id)}
-                                onCreateAction={() => {
-                                  setSelectedCardForAction(card);
-                                  setShowActionDialog(true);
-                                }}
-                                isOwner={card.created_by === user?.id}
-                              />
-                            ))}
-                          </SortableContext>
+                        <CardContent className="p-0">
+                          <DroppableColumn
+                            column={column}
+                            cards={columnCards}
+                            getCardColor={getCardColor}
+                            getUserDisplayName={getUserDisplayName}
+                            onVote={handleVoteCard}
+                            onDelete={handleDeleteCard}
+                            onCreateAction={(card) => {
+                              setSelectedCardForAction(card);
+                              setShowActionDialog(true);
+                            }}
+                            userId={user?.id}
+                          />
                         </CardContent>
                       </Card>
                     );
@@ -683,7 +673,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                 
                 <DragOverlay>
                   {activeId ? (
-                    <div className="opacity-90">
+                    <div className="opacity-90 rotate-3 scale-105">
                       {(() => {
                         const card = cards.find(c => c.id === activeId);
                         if (!card) return null;
