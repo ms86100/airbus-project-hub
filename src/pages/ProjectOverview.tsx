@@ -15,6 +15,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { RoadmapView } from '@/components/workspace/RoadmapView';
 import { KanbanView } from '@/components/workspace/KanbanView';
 import { StakeholdersManagement } from '@/components/workspace/StakeholdersManagement';
+import { RiskRegisterView } from '@/components/workspace/RiskRegisterView';
 import { TaskCard } from '@/components/workspace/TaskManagement';
 import { AddTaskDialog } from '@/components/workspace/AddTaskDialog';
 
@@ -275,6 +276,7 @@ const ProjectOverview = () => {
                   <TabsTrigger value="roadmap" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Roadmap</TabsTrigger>
                   <TabsTrigger value="kanban" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Kanban</TabsTrigger>
                   <TabsTrigger value="stakeholders" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Stakeholders</TabsTrigger>
+                  <TabsTrigger value="risks" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Risk Register</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -435,6 +437,12 @@ const ProjectOverview = () => {
               <TabsContent value="stakeholders" className="p-0">
                 <div className="h-[700px] w-full">
                   <StakeholdersManagement projectId={id!} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="risks" className="p-0">
+                <div className="h-[700px] w-full overflow-y-auto">
+                  <RiskRegisterView projectId={id!} />
                 </div>
               </TabsContent>
             </Tabs>
