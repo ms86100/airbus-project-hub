@@ -27,6 +27,7 @@ interface CreateRetroActionBody {
   who_responsible?: string;
   how_approach?: string;
   backlog_ref_id?: string;
+  from_card_id?: string;
 }
 
 async function hasProjectAccess(userId: string, projectId: string) {
@@ -259,6 +260,55 @@ Deno.serve(async (req) => {
 
       if (error) {
         console.error('Error creating action item:', error);
+        return createErrorResponse('Failed to create action item', 'CREATE_ERROR');
+      }
+
+      return createSuccessResponse({
+        message: 'Action item created successfully',
+        action,
+      });
+    }
+
+    // POST /retro-service/retrospectives/:id/action-items (alias)
+    if (method === 'POST' && path.includes('/retrospectives/') && path.endsWith('/action-items')) {
+      const pathParts = path.split('/');
+      const retroIdIndex = pathParts.findIndex((p) => p === 'retrospectives') + 1;
+      const retrospectiveId = pathParts[retroIdIndex];
+      if (!retrospectiveId) return createErrorResponse('Retrospective ID is required', 'MISSING_RETRO_ID');
+
+      const { data: retro } = await db
+        .from('retrospectives')
+        .select('id, project_id')
+        .eq('id', retrospectiveId)
+        .maybeSingle();
+
+      if (!retro) return createErrorResponse('Retrospective not found', 'RETRO_NOT_FOUND', 404);
+
+      const access = await hasProjectAccess(user.id, retro.project_id);
+      if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+
+      const body: CreateRetroActionBody = await parseRequestBody(req);
+      if (!body.what_task) return createErrorResponse('what_task is required', 'MISSING_FIELDS');
+
+      const insertPayload: any = {
+        retrospective_id: retrospectiveId,
+        what_task: body.what_task,
+        when_sprint: body.when_sprint || null,
+        who_responsible: body.who_responsible || null,
+        how_approach: body.how_approach || null,
+        backlog_ref_id: body.backlog_ref_id || null,
+        created_by: user.id,
+      };
+      if (body.from_card_id) insertPayload.from_card_id = body.from_card_id;
+
+      const { data: action, error } = await db
+        .from('retrospective_action_items')
+        .insert(insertPayload)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating action item (alias):', error);
         return createErrorResponse('Failed to create action item', 'CREATE_ERROR');
       }
 
