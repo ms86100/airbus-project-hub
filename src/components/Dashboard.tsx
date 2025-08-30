@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +8,7 @@ import { Plus, Users, FolderOpen, Calendar, BarChart3, Clock, AlertCircle } from
 import { useToast } from '@/hooks/use-toast';
 import DepartmentManagement from '@/components/DepartmentManagement';
 import DepartmentSelectionDialog from '@/components/DepartmentSelectionDialog';
+import { apiClient } from '@/services/api';
 
 interface Project {
   id: string;
@@ -70,14 +70,13 @@ const Dashboard = () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*, departments(name)")
-        .eq("id", user.id)
-        .single();
+      const response = await apiClient.getUserProfile(user.id);
       
-      if (error && error.code !== "PGRST116") throw error;
-      setUserProfile(data);
+      if (response.success) {
+        setUserProfile(response.data);
+      } else {
+        console.error("Error fetching user profile:", response.error);
+      }
     } catch (error) {
       console.error("Error fetching user profile:", error);
     }
@@ -87,14 +86,13 @@ const Dashboard = () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
+      const response = await apiClient.getUserRole(user.id);
       
-      if (error && error.code !== "PGRST116") throw error;
-      setUserRole(data?.role || null);
+      if (response.success) {
+        setUserRole(response.data?.role || null);
+      } else {
+        console.error("Error fetching user role:", response.error);
+      }
     } catch (error) {
       console.error("Error fetching user role:", error);
     }
@@ -102,14 +100,19 @@ const Dashboard = () => {
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(6);
-
-      if (error) throw error;
-      setProjects(data || []);
+      const response = await apiClient.getProjects();
+      
+      if (response.success) {
+        // Get first 6 projects for dashboard display
+        setProjects((response.data || []).slice(0, 6));
+      } else {
+        console.error('Error fetching projects:', response.error);
+        toast({
+          title: "Error",
+          description: "Failed to load projects",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast({
@@ -124,30 +127,13 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      // Fetch project stats
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('status');
-
-      if (projectError) throw projectError;
-
-      const totalProjects = projectData?.length || 0;
-      const activeProjects = projectData?.filter(p => p.status === 'active').length || 0;
-      const completedProjects = projectData?.filter(p => p.status === 'completed').length || 0;
-
-      // Fetch user count (admin only)
-      const { count: userCount, error: userError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      if (userError) throw userError;
-
-      setStats({
-        totalProjects,
-        activeProjects,
-        completedProjects,
-        totalUsers: userCount || 0
-      });
+      const response = await apiClient.getProjectStats();
+      
+      if (response.success) {
+        setStats(response.data);
+      } else {
+        console.error('Error fetching stats:', response.error);
+      }
     } catch (error) {
       console.error('Error fetching stats:', error);
     }

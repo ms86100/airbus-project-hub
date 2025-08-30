@@ -219,6 +219,57 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Project deleted successfully' });
     }
 
+    // GET /projects-service/stats - Get project statistics (admin only)
+    if (method === 'GET' && path.endsWith('/stats')) {
+      try {
+        // Check if user is admin
+        const { data: isAdmin } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .single();
+
+        if (!isAdmin) {
+          return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+        }
+
+        // Fetch project stats
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('status');
+
+        if (projectError) {
+          console.error('Error fetching project stats:', projectError);
+          return createErrorResponse('Failed to fetch project stats', 'FETCH_ERROR');
+        }
+
+        const totalProjects = projectData?.length || 0;
+        const activeProjects = projectData?.filter(p => p.status === 'active').length || 0;
+        const completedProjects = projectData?.filter(p => p.status === 'completed').length || 0;
+
+        // Fetch user count
+        const { count: userCount, error: userError } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+
+        if (userError) {
+          console.error('Error fetching user count:', userError);
+          return createErrorResponse('Failed to fetch user count', 'FETCH_ERROR');
+        }
+
+        return createSuccessResponse({
+          totalProjects,
+          activeProjects,
+          completedProjects,
+          totalUsers: userCount || 0
+        });
+      } catch (error) {
+        console.error('Error in stats endpoint:', error);
+        return createErrorResponse('Internal server error', 'INTERNAL_ERROR', 500);
+      }
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
 
   } catch (error) {

@@ -117,6 +117,274 @@ Deno.serve(async (req) => {
       });
     }
 
+    // GET /workspace-service/projects/:id/risks
+    if (method === 'GET' && path.includes('/projects/') && path.endsWith('/risks')) {
+      const params = extractPathParams(url, '/workspace-service/projects/:id/risks');
+      const projectId = params.id;
+      if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: risks, error } = await supabase
+        .from('risk_register')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching risks:', error);
+        return createErrorResponse('Failed to fetch risks', 'FETCH_ERROR');
+      }
+
+      return createSuccessResponse(risks || []);
+    }
+
+    // POST /workspace-service/projects/:id/risks
+    if (method === 'POST' && path.includes('/projects/') && path.endsWith('/risks')) {
+      const params = extractPathParams(url, '/workspace-service/projects/:id/risks');
+      const projectId = params.id;
+      const riskData = await req.json();
+
+      if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: risk, error } = await supabase
+        .from('risk_register')
+        .insert({
+          ...riskData,
+          project_id: projectId,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating risk:', error);
+        return createErrorResponse('Failed to create risk', 'CREATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Risk created successfully', risk });
+    }
+
+    // PUT /workspace-service/projects/:id/risks/:riskId
+    if (method === 'PUT' && path.includes('/risks/') && !path.endsWith('/risks')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const riskIdIndex = pathParts.findIndex(part => part === 'risks') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const riskId = pathParts[riskIdIndex];
+      const riskData = await req.json();
+
+      if (!projectId || !riskId) return createErrorResponse('Project ID and Risk ID are required', 'MISSING_IDS');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: risk, error } = await supabase
+        .from('risk_register')
+        .update(riskData)
+        .eq('id', riskId)
+        .eq('project_id', projectId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating risk:', error);
+        return createErrorResponse('Failed to update risk', 'UPDATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Risk updated successfully', risk });
+    }
+
+    // DELETE /workspace-service/projects/:id/risks/:riskId
+    if (method === 'DELETE' && path.includes('/risks/') && !path.endsWith('/risks')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const riskIdIndex = pathParts.findIndex(part => part === 'risks') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const riskId = pathParts[riskIdIndex];
+
+      if (!projectId || !riskId) return createErrorResponse('Project ID and Risk ID are required', 'MISSING_IDS');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { error } = await supabase
+        .from('risk_register')
+        .delete()
+        .eq('id', riskId)
+        .eq('project_id', projectId);
+
+      if (error) {
+        console.error('Error deleting risk:', error);
+        return createErrorResponse('Failed to delete risk', 'DELETE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Risk deleted successfully' });
+    }
+
+    // GET /workspace-service/projects/:id/discussions
+    if (method === 'GET' && path.includes('/projects/') && path.endsWith('/discussions')) {
+      const params = extractPathParams(url, '/workspace-service/projects/:id/discussions');
+      const projectId = params.id;
+      if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: discussions, error } = await supabase
+        .from('project_discussions')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('meeting_date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching discussions:', error);
+        return createErrorResponse('Failed to fetch discussions', 'FETCH_ERROR');
+      }
+
+      return createSuccessResponse(discussions || []);
+    }
+
+    // POST /workspace-service/projects/:id/discussions
+    if (method === 'POST' && path.includes('/projects/') && path.endsWith('/discussions')) {
+      const params = extractPathParams(url, '/workspace-service/projects/:id/discussions');
+      const projectId = params.id;
+      const discussionData = await req.json();
+
+      if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: discussion, error } = await supabase
+        .from('project_discussions')
+        .insert({
+          ...discussionData,
+          project_id: projectId,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating discussion:', error);
+        return createErrorResponse('Failed to create discussion', 'CREATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Discussion created successfully', discussion });
+    }
+
+    // GET /workspace-service/projects/:id/action-items
+    if (method === 'GET' && path.includes('/projects/') && path.endsWith('/action-items')) {
+      const params = extractPathParams(url, '/workspace-service/projects/:id/action-items');
+      const projectId = params.id;
+      if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: actionItems, error } = await supabase
+        .from('discussion_action_items')
+        .select(`
+          *,
+          project_discussions!inner(project_id)
+        `)
+        .eq('project_discussions.project_id', projectId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching action items:', error);
+        return createErrorResponse('Failed to fetch action items', 'FETCH_ERROR');
+      }
+
+      return createSuccessResponse(actionItems || []);
+    }
+
+    // GET /workspace-service/projects/:id/tasks
+    if (method === 'GET' && path.includes('/projects/') && path.endsWith('/tasks')) {
+      const params = extractPathParams(url, '/workspace-service/projects/:id/tasks');
+      const projectId = params.id;
+      if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: tasks, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching tasks:', error);
+        return createErrorResponse('Failed to fetch tasks', 'FETCH_ERROR');
+      }
+
+      return createSuccessResponse(tasks || []);
+    }
+
+    // POST /workspace-service/projects/:id/tasks  
+    if (method === 'POST' && path.includes('/projects/') && path.endsWith('/tasks')) {
+      const params = extractPathParams(url, '/workspace-service/projects/:id/tasks');
+      const projectId = params.id;
+      const taskData = await req.json();
+
+      if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: task, error } = await supabase
+        .from('tasks')
+        .insert({
+          ...taskData,
+          project_id: projectId,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating task:', error);
+        return createErrorResponse('Failed to create task', 'CREATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Task created successfully', task });
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
   } catch (error) {
     console.error('Workspace service error:', error);

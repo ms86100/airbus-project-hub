@@ -401,6 +401,61 @@ class ApiClient {
     return this.makeRequest(`/audit-service/projects/${projectId}/logs`, { method: 'GET' });
   }
 
+  // Dashboard & User Methods
+  async getUserProfile(userId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/auth-service/users/${userId}/profile`, { method: 'GET' });
+  }
+
+  async getUserRole(userId: string): Promise<ApiResponse<{ role: string }>> {
+    return this.makeRequest(`/auth-service/users/${userId}/role`, { method: 'GET' });
+  }
+
+  async getProjectStats(): Promise<ApiResponse<{ totalProjects: number; activeProjects: number; completedProjects: number; totalUsers: number }>> {
+    return this.makeRequest(`/projects-service/stats`, { method: 'GET' });
+  }
+
+  // Discussion Methods (workspace service)
+  async getDiscussions(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/discussions`, { method: 'GET' });
+  }
+
+  async createDiscussion(projectId: string, discussionData: any): Promise<ApiResponse<{ message: string; discussion: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/discussions`, {
+      method: 'POST',
+      body: JSON.stringify(discussionData),
+    });
+  }
+
+  async updateDiscussion(projectId: string, discussionId: string, discussionData: any): Promise<ApiResponse<{ message: string; discussion: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/discussions/${discussionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(discussionData),
+    });
+  }
+
+  async deleteDiscussion(projectId: string, discussionId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/discussions/${discussionId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Action Items Methods (workspace service)
+  async getActionItems(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/action-items`, { method: 'GET' });
+  }
+
+  async createActionItem(projectId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/action-items`, {
+      method: 'POST',
+      body: JSON.stringify(actionItemData),
+    });
+  }
+
+  // Task Methods (workspace service)
+  async getTasks(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, { method: 'GET' });
+  }
+
   // Risk Register Methods (workspace service)
   async getRisks(projectId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/workspace-service/projects/${projectId}/risks`, { method: 'GET' });
@@ -422,6 +477,20 @@ class ApiClient {
 
   async deleteRisk(projectId: string, riskId: string): Promise<ApiResponse<{ message: string }>> {
     return this.makeRequest(`/workspace-service/projects/${projectId}/risks/${riskId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Action Items Methods (workspace service) - extended
+  async updateActionItem(projectId: string, actionItemId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/action-items/${actionItemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(actionItemData),
+    });
+  }
+
+  async deleteActionItem(projectId: string, actionItemId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/action-items/${actionItemId}`, {
       method: 'DELETE',
     });
   }
