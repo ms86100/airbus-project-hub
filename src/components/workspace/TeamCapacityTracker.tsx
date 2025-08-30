@@ -246,8 +246,8 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     <Input
                       id="working_days"
                       type="number"
-                      value={iterationForm.working_days}
-                      onChange={(e) => setIterationForm(prev => ({ ...prev, working_days: parseInt(e.target.value) || 0 }))}
+                      value={iterationForm.working_days.toString()}
+                      onChange={(e) => setIterationForm(prev => ({ ...prev, working_days: parseInt(e.target.value) || 10 }))}
                       min="1"
                       max="30"
                       required
