@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, Edit2, Trash2, Users, Calendar, TrendingUp, TrendingDown, Settings } from 'lucide-react';
-import { format, differenceInDays, eachDayOfInterval } from 'date-fns';
+import { format, differenceInDays, eachDayOfInterval, isWeekend } from 'date-fns';
 
 interface CapacitySettings {
   id: string;
@@ -124,6 +124,34 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       console.error('Error fetching stakeholders:', error);
     }
   };
+
+  // Calculate working days between two dates (excluding weekends)
+  const calculateWorkingDays = (startDate: string, endDate: string): number => {
+    if (!startDate || !endDate) return 0;
+    
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (start > end) return 0;
+      
+      const allDays = eachDayOfInterval({ start, end });
+      const workingDays = allDays.filter(day => !isWeekend(day));
+      
+      return workingDays.length;
+    } catch (error) {
+      console.error('Error calculating working days:', error);
+      return 0;
+    }
+  };
+
+  // Effect to automatically calculate working days when dates change
+  useEffect(() => {
+    if (iterationForm.start_date && iterationForm.end_date) {
+      const workingDays = calculateWorkingDays(iterationForm.start_date, iterationForm.end_date);
+      setIterationForm(prev => ({ ...prev, working_days: workingDays }));
+    }
+  }, [iterationForm.start_date, iterationForm.end_date]);
 
   const resetIterationForm = () => {
     setIterationForm({
@@ -242,16 +270,18 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="working_days">Working Days</Label>
+                    <Label htmlFor="working_days">Working Days (Auto-calculated)</Label>
                     <Input
                       id="working_days"
                       type="number"
                       value={iterationForm.working_days.toString()}
-                      onChange={(e) => setIterationForm(prev => ({ ...prev, working_days: parseInt(e.target.value) || 0 }))}
-                      min="1"
-                      max="30"
-                      required
+                      readOnly
+                      className="bg-muted cursor-not-allowed"
+                      title="Automatically calculated based on start and end dates (excluding weekends)"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Excludes weekends (Sat & Sun)
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="committed_story_points">Story Points</Label>
