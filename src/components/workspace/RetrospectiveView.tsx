@@ -141,6 +141,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   const [retrospectives, setRetrospectives] = useState<Retrospective[]>([]);
   const [selectedRetrospective, setSelectedRetrospective] = useState<Retrospective | null>(null);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
+  const [iterations, setIterations] = useState<TeamCapacityIteration[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRetrospectivesList, setShowRetrospectivesList] = useState(false);
 
@@ -157,6 +158,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     if (user) {
       fetchRetrospectives();
       fetchStakeholders();
+      fetchIterations();
     }
   }, [user, projectId]);
 
@@ -200,9 +202,30 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     }
   };
 
+  const fetchIterations = async () => {
+    try {
+      const response = await apiClient.getCapacityIterations(projectId);
+      if (response.success) {
+        const iterationsList = Array.isArray(response.data) ? response.data : [];
+        setIterations(iterationsList);
+      }
+    } catch (error) {
+      console.error('Error fetching iterations:', error);
+    }
+  };
+
   const handleCreateRetrospective = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    if (!createForm.iteration_id) {
+      toast({
+        title: 'Error',
+        description: 'Please select an iteration',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     try {
       const response = await apiClient.createRetrospective(projectId, {
@@ -257,6 +280,21 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
               <DialogTitle>Create Retrospective</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateRetrospective} className="space-y-4">
+              <div>
+                <Label htmlFor="iteration">Iteration *</Label>
+                <Select value={createForm.iteration_id} onValueChange={(value) => setCreateForm(prev => ({ ...prev, iteration_id: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an iteration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {iterations.map((iteration) => (
+                      <SelectItem key={iteration.id} value={iteration.id}>
+                        {iteration.iteration_name} ({iteration.start_date} - {iteration.end_date})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label htmlFor="framework">Framework</Label>
                 <Select value={createForm.framework} onValueChange={(value) => setCreateForm(prev => ({ ...prev, framework: value }))}>
