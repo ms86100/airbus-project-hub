@@ -248,12 +248,12 @@ class ApiClient {
     return this.makeRequest('/capacity-service/stats', { method: 'GET' });
   }
 
-  // Retrospectives Service Methods
-  async getRetrospectives(projectId: string): Promise<ApiResponse<any[]>> {
+  // Retrospectives Service Methods (retro-service)
+  async getRetrospectivesLegacy(projectId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/retro-service/projects/${projectId}/retrospectives`, { method: 'GET' });
   }
 
-  async createRetrospective(projectId: string, data: { framework?: string; iterationId?: string; columns?: { title: string; subtitle?: string }[] }): Promise<ApiResponse<{ message: string; retrospective: any }>> {
+  async createRetrospectiveLegacy(projectId: string, data: { framework?: string; iterationId?: string; columns?: { title: string; subtitle?: string }[] }): Promise<ApiResponse<{ message: string; retrospective: any }>> {
     return this.makeRequest(`/retro-service/projects/${projectId}/retrospectives`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -602,6 +602,82 @@ class ApiClient {
     return this.makeRequest('/access-service/log-access', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  // Retrospective Service Methods (retro-service)
+  async getRetrospectives(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/retro-service/projects/${projectId}/retrospectives`, { method: 'GET' });
+  }
+
+  async createRetrospective(projectId: string, retroData: { framework: string; iterationId?: string }): Promise<ApiResponse<{ message: string; retrospective: any }>> {
+    return this.makeRequest(`/retro-service/projects/${projectId}/retrospectives`, {
+      method: 'POST',
+      body: JSON.stringify(retroData),
+    });
+  }
+
+  async getRetrospectiveColumns(retrospectiveId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/retro-service/retrospectives/${retrospectiveId}/columns`, { method: 'GET' });
+  }
+
+  async getRetrospectiveCards(retrospectiveId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/retro-service/retrospectives/${retrospectiveId}/cards`, { method: 'GET' });
+  }
+
+  async createRetrospectiveCard(retrospectiveId: string, cardData: any): Promise<ApiResponse<{ message: string; card: any }>> {
+    return this.makeRequest(`/retro-service/retrospectives/${retrospectiveId}/cards`, {
+      method: 'POST',
+      body: JSON.stringify(cardData),
+    });
+  }
+
+  async updateRetrospectiveCard(cardId: string, cardData: any): Promise<ApiResponse<{ message: string; card: any }>> {
+    return this.makeRequest(`/retro-service/cards/${cardId}`, {
+      method: 'PUT',
+      body: JSON.stringify(cardData),
+    });
+  }
+
+  async deleteRetrospectiveCard(cardId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/retro-service/cards/${cardId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async voteCard(cardId: string): Promise<ApiResponse<{ message: string; vote: any }>> {
+    return this.makeRequest(`/retro-service/cards/${cardId}/vote`, {
+      method: 'POST',
+    });
+  }
+
+  async unvoteCard(cardId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/retro-service/cards/${cardId}/unvote`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getRetrospectiveActionItems(retrospectiveId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/retro-service/retrospectives/${retrospectiveId}/action-items`, { method: 'GET' });
+  }
+
+  async createRetrospectiveActionItem(retrospectiveId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
+    return this.makeRequest(`/retro-service/retrospectives/${retrospectiveId}/action-items`, {
+      method: 'POST',
+      body: JSON.stringify(actionItemData),
+    });
+  }
+
+  async updateRetrospectiveActionItem(actionItemId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
+    return this.makeRequest(`/retro-service/action-items/${actionItemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(actionItemData),
+    });
+  }
+
+  async deleteRetrospectiveActionItem(actionItemId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/retro-service/action-items/${actionItemId}`, {
+      method: 'DELETE',
     });
   }
 
