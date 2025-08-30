@@ -241,6 +241,182 @@ Deno.serve(async (req) => {
       });
     }
 
+    // POST /retro-service/columns/:id/cards
+    if (method === 'POST' && path.includes('/columns/') && path.endsWith('/cards')) {
+      const pathParts = path.split('/');
+      const columnIdIndex = pathParts.findIndex((p) => p === 'columns') + 1;
+      const columnId = pathParts[columnIdIndex];
+      if (!columnId) return createErrorResponse('Column ID is required', 'MISSING_COLUMN_ID');
+
+      const body: { text: string; card_order: number } = await parseRequestBody(req);
+      if (!body.text) return createErrorResponse('text is required', 'MISSING_FIELDS');
+
+      // Find retrospective for access check
+      const { data: column } = await db
+        .from('retrospective_columns')
+        .select('retrospective_id')
+        .eq('id', columnId)
+        .maybeSingle();
+
+      if (!column) return createErrorResponse('Column not found', 'COLUMN_NOT_FOUND', 404);
+
+      const { data: retro } = await db
+        .from('retrospectives')
+        .select('project_id')
+        .eq('id', column.retrospective_id)
+        .maybeSingle();
+
+      if (!retro) return createErrorResponse('Retrospective not found', 'RETRO_NOT_FOUND', 404);
+
+      const access = await hasProjectAccess(user.id, retro.project_id);
+      if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+
+      const { data: card, error } = await db
+        .from('retrospective_cards')
+        .insert({
+          column_id: columnId,
+          text: body.text,
+          card_order: body.card_order || 0,
+          votes: 0,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating card:', error);
+        return createErrorResponse('Failed to create card', 'CREATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Card created successfully', card });
+    }
+
+    // POST /retro-service/cards/:id/vote
+    if (method === 'POST' && path.includes('/cards/') && path.endsWith('/vote')) {
+      const pathParts = path.split('/');
+      const cardIdIndex = pathParts.findIndex((p) => p === 'cards') + 1;
+      const cardId = pathParts[cardIdIndex];
+      if (!cardId) return createErrorResponse('Card ID is required', 'MISSING_CARD_ID');
+
+      // Find retrospective for access check
+      const { data: cardData } = await db
+        .from('retrospective_cards')
+        .select(`
+          id, votes,
+          column:retrospective_columns!inner(
+            retrospective:retrospectives!inner(project_id)
+          )
+        `)
+        .eq('id', cardId)
+        .maybeSingle();
+
+      if (!cardData) return createErrorResponse('Card not found', 'CARD_NOT_FOUND', 404);
+
+      const projectId = (cardData.column as any).retrospective.project_id;
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+
+      // Check if user already voted
+      const { data: existingVote } = await db
+        .from('retrospective_card_votes')
+        .select('id')
+        .eq('card_id', cardId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingVote) {
+        // Remove vote
+        await db.from('retrospective_card_votes').delete().eq('id', existingVote.id);
+        await db.from('retrospective_cards').update({ votes: Math.max(0, cardData.votes - 1) }).eq('id', cardId);
+        return createSuccessResponse({ message: 'Vote removed' });
+      } else {
+        // Add vote
+        await db.from('retrospective_card_votes').insert({ card_id: cardId, user_id: user.id });
+        await db.from('retrospective_cards').update({ votes: cardData.votes + 1 }).eq('id', cardId);
+        return createSuccessResponse({ message: 'Vote added' });
+      }
+    }
+
+    // DELETE /retro-service/cards/:id
+    if (method === 'DELETE' && path.includes('/cards/')) {
+      const pathParts = path.split('/');
+      const cardIdIndex = pathParts.findIndex((p) => p === 'cards') + 1;
+      const cardId = pathParts[cardIdIndex];
+      if (!cardId) return createErrorResponse('Card ID is required', 'MISSING_CARD_ID');
+
+      // Find and verify ownership/access
+      const { data: cardData } = await db
+        .from('retrospective_cards')
+        .select(`
+          id, created_by,
+          column:retrospective_columns!inner(
+            retrospective:retrospectives!inner(project_id, created_by)
+          )
+        `)
+        .eq('id', cardId)
+        .maybeSingle();
+
+      if (!cardData) return createErrorResponse('Card not found', 'CARD_NOT_FOUND', 404);
+
+      const projectId = (cardData.column as any).retrospective.project_id;
+      const retroCreatedBy = (cardData.column as any).retrospective.created_by;
+      
+      // Only card creator or retrospective creator can delete
+      if (cardData.created_by !== user.id && retroCreatedBy !== user.id) {
+        const access = await hasProjectAccess(user.id, projectId);
+        if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+      }
+
+      const { error } = await db.from('retrospective_cards').delete().eq('id', cardId);
+      if (error) {
+        console.error('Error deleting card:', error);
+        return createErrorResponse('Failed to delete card', 'DELETE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Card deleted successfully' });
+    }
+
+    // PUT /retro-service/cards/:id/move
+    if (method === 'PUT' && path.includes('/cards/') && path.endsWith('/move')) {
+      const pathParts = path.split('/');
+      const cardIdIndex = pathParts.findIndex((p) => p === 'cards') + 1;
+      const cardId = pathParts[cardIdIndex];
+      if (!cardId) return createErrorResponse('Card ID is required', 'MISSING_CARD_ID');
+
+      const body: { column_id: string } = await parseRequestBody(req);
+      if (!body.column_id) return createErrorResponse('column_id is required', 'MISSING_FIELDS');
+
+      // Verify access to both old and new columns
+      const { data: cardData } = await db
+        .from('retrospective_cards')
+        .select(`
+          id,
+          column:retrospective_columns!inner(
+            retrospective:retrospectives!inner(project_id)
+          )
+        `)
+        .eq('id', cardId)
+        .maybeSingle();
+
+      if (!cardData) return createErrorResponse('Card not found', 'CARD_NOT_FOUND', 404);
+
+      const projectId = (cardData.column as any).retrospective.project_id;
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+
+      const { error } = await db
+        .from('retrospective_cards')
+        .update({ column_id: body.column_id })
+        .eq('id', cardId);
+
+      if (error) {
+        console.error('Error moving card:', error);
+        return createErrorResponse('Failed to move card', 'MOVE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Card moved successfully' });
+    }
+
     // GET /retro-service/stats - Get global retrospective statistics
     if (method === 'GET' && path.endsWith('/stats')) {
       // Check if user is admin (only admins can see global stats)

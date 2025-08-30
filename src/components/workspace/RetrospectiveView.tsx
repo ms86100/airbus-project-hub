@@ -6,21 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, ThumbsUp, MoreHorizontal, Target, Trash2, User } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners, useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import { RetrospectiveCard } from './RetrospectiveCard';
-import { DroppableColumn } from './DroppableColumn';
+import { Plus, Target, Calendar, BarChart3 } from 'lucide-react';
+import { InteractiveRetrospectiveBoard } from './InteractiveRetrospectiveBoard';
+import { RetrospectiveAnalytics } from './RetrospectiveAnalytics';
 
 interface RetrospectiveViewProps {
   projectId: string;
@@ -47,11 +39,12 @@ interface RetrospectiveColumn {
   id: string;
   retrospective_id: string;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   column_order: number;
+  cards?: RetrospectiveCardData[];
 }
 
-interface RetrospectiveCard {
+interface RetrospectiveCardData {
   id: string;
   column_id: string;
   text: string;
@@ -143,7 +136,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [iterations, setIterations] = useState<TeamCapacityIteration[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showRetrospectivesList, setShowRetrospectivesList] = useState(false);
+  const [view, setView] = useState<'list' | 'board' | 'analytics'>('list');
 
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -176,10 +169,6 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
             : [];
         console.log('🔄 Setting retrospectives data:', data);
         setRetrospectives(data);
-        
-        if (data.length > 0 && !selectedRetrospective && !showRetrospectivesList) {
-          setSelectedRetrospective(data[0]);
-        }
       } else {
         console.error('❌ Error fetching retrospectives:', response.error);
       }
@@ -263,6 +252,28 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     );
   }
 
+  // Handle view changes based on selected retrospective
+  if (view === 'board' && selectedRetrospective) {
+    return (
+      <InteractiveRetrospectiveBoard
+        retrospective={selectedRetrospective}
+        onBack={() => {
+          setView('list');
+          setSelectedRetrospective(null);
+        }}
+      />
+    );
+  }
+
+  if (view === 'analytics') {
+    return (
+      <RetrospectiveAnalytics
+        projectId={projectId}
+        onBack={() => setView('list')}
+      />
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -270,74 +281,100 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           <h1 className="text-2xl font-bold">Retrospectives</h1>
           <p className="text-muted-foreground">Team retrospectives and action items</p>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Retrospective
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setView('analytics')}>
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Analytics
           </Button>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create Retrospective</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateRetrospective} className="space-y-4">
-              <div>
-                <Label htmlFor="iteration">Iteration *</Label>
-                <Select value={createForm.iteration_id} onValueChange={(value) => setCreateForm(prev => ({ ...prev, iteration_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an iteration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {iterations.map((iteration) => (
-                      <SelectItem key={iteration.id} value={iteration.id}>
-                        {iteration.iteration_name} ({iteration.start_date} - {iteration.end_date})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="framework">Framework</Label>
-                <Select value={createForm.framework} onValueChange={(value) => setCreateForm(prev => ({ ...prev, framework: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(FRAMEWORK_TEMPLATES).map((framework) => (
-                      <SelectItem key={framework} value={framework}>
-                        {framework}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Create</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Retrospective
+            </Button>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Create Retrospective</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreateRetrospective} className="space-y-4">
+                <div>
+                  <Label htmlFor="iteration">Iteration *</Label>
+                  <Select value={createForm.iteration_id} onValueChange={(value) => setCreateForm(prev => ({ ...prev, iteration_id: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an iteration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {iterations.map((iteration) => (
+                        <SelectItem key={iteration.id} value={iteration.id}>
+                          {iteration.iteration_name} ({iteration.start_date} - {iteration.end_date})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="framework">Framework</Label>
+                  <Select value={createForm.framework} onValueChange={(value) => setCreateForm(prev => ({ ...prev, framework: value }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(FRAMEWORK_TEMPLATES).map((framework) => (
+                        <SelectItem key={framework} value={framework}>
+                          {framework}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Create</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {retrospectives.length > 0 ? (
-        <div className="space-y-6">
-          {retrospectives.map((retro) => (
-            <Card key={retro.id} className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold">Retrospective</h3>
-                  <p className="text-sm text-muted-foreground">Framework: {retro.framework}</p>
+        <div className="grid gap-4">
+          {retrospectives.map((retro) => {
+            const iteration = iterations.find(i => i.id === retro.iteration_id);
+            return (
+              <Card key={retro.id} className="p-6 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">{retro.framework} Retrospective</h3>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                      {iteration && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {iteration.iteration_name}
+                        </span>
+                      )}
+                      <span>Created {new Date(retro.created_at || '').toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="capitalize">{retro.status}</Badge>
+                    <Button 
+                      onClick={() => {
+                        setSelectedRetrospective(retro);
+                        setView('board');
+                      }}
+                    >
+                      Open Board
+                    </Button>
+                  </div>
                 </div>
-                <Badge variant="outline">{retro.status}</Badge>
-              </div>
-              <p className="text-muted-foreground">
-                This retrospective is using the {retro.framework} framework. 
-                Full retrospective functionality is available through the dedicated retrospective service.
-              </p>
-            </Card>
-          ))}
+                <p className="text-muted-foreground">
+                  Interactive {retro.framework} retrospective board with voting and action items.
+                </p>
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <Card>

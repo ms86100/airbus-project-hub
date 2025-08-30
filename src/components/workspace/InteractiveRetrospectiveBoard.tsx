@@ -1,0 +1,497 @@
+import React, { useState, useEffect } from 'react';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners } from '@dnd-kit/core';
+import { SortableContext, arrayMove } from '@dnd-kit/sortable';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import { useApiAuth } from '@/hooks/useApiAuth';
+import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/services/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, ThumbsUp, Target, Trash2, MoreHorizontal, ArrowLeft } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { RetrospectiveCard } from './RetrospectiveCard';
+import { DroppableColumn } from './DroppableColumn';
+
+interface InteractiveRetrospectiveBoardProps {
+  retrospective: {
+    id: string;
+    framework: string;
+    project_id: string;
+    iteration_id: string;
+    status: string;
+    columns?: RetrospectiveColumn[];
+  };
+  onBack: () => void;
+}
+
+interface RetrospectiveColumn {
+  id: string;
+  retrospective_id: string;
+  title: string;
+  subtitle?: string;
+  column_order: number;
+  cards?: RetrospectiveCard[];
+}
+
+interface RetrospectiveCard {
+  id: string;
+  column_id: string;
+  text: string;
+  votes: number;
+  card_order: number;
+  created_by: string;
+  created_at?: string;
+}
+
+interface Stakeholder {
+  id: string;
+  name: string;
+  email?: string;
+}
+
+interface ActionItemForm {
+  what_task: string;
+  when_sprint: string;
+  who_responsible: string;
+  how_approach: string;
+}
+
+const CARD_COLORS = [
+  'hsl(var(--accent-light))',
+  'hsl(var(--primary-light))', 
+  'hsl(var(--surface-alt))',
+  'hsl(var(--secondary))',
+  'hsl(142 76% 90%)', // success light
+  'hsl(38 92% 90%)', // warning light
+  'hsl(199 89% 90%)' // info light
+];
+
+const getCardColor = (index: number) => {
+  return CARD_COLORS[index % CARD_COLORS.length];
+};
+
+export function InteractiveRetrospectiveBoard({ retrospective, onBack }: InteractiveRetrospectiveBoardProps) {
+  const { user } = useApiAuth();
+  const { toast } = useToast();
+
+  const [columns, setColumns] = useState<RetrospectiveColumn[]>([]);
+  const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeCard, setActiveCard] = useState<RetrospectiveCard | null>(null);
+  
+  // Dialog states
+  const [showAddCardDialog, setShowAddCardDialog] = useState(false);
+  const [showActionItemDialog, setShowActionItemDialog] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<RetrospectiveCard | null>(null);
+  const [selectedColumnId, setSelectedColumnId] = useState<string>('');
+
+  // Form states
+  const [newCardText, setNewCardText] = useState('');
+  const [actionItemForm, setActionItemForm] = useState<ActionItemForm>({
+    what_task: '',
+    when_sprint: '',
+    who_responsible: '',
+    how_approach: ''
+  });
+
+  useEffect(() => {
+    if (retrospective.columns) {
+      setColumns(retrospective.columns);
+      setLoading(false);
+    } else {
+      fetchRetrospectiveData();
+    }
+    fetchStakeholders();
+  }, [retrospective.id]);
+
+  const fetchRetrospectiveData = async () => {
+    try {
+      const response = await apiClient.getRetrospectives(retrospective.project_id);
+      if (response.success) {
+        const retros = Array.isArray(response.data) ? response.data : [];
+        const currentRetro = retros.find(r => r.id === retrospective.id);
+        if (currentRetro?.columns) {
+          // Sort columns by order and cards by order
+          const sortedColumns = currentRetro.columns
+            .sort((a, b) => a.column_order - b.column_order)
+            .map(col => ({
+              ...col,
+              cards: col.cards?.sort((a, b) => a.card_order - b.card_order) || []
+            }));
+          setColumns(sortedColumns);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching retrospective data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load retrospective data',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStakeholders = async () => {
+    try {
+      const response = await apiClient.getStakeholders(retrospective.project_id);
+      if (response.success) {
+        const stakeholdersList = Array.isArray(response.data) ? response.data : response.data?.stakeholders || [];
+        setStakeholders(stakeholdersList);
+      }
+    } catch (error) {
+      console.error('Error fetching stakeholders:', error);
+    }
+  };
+
+  const handleAddCard = async () => {
+    if (!newCardText.trim() || !selectedColumnId) return;
+
+    try {
+      const response = await apiClient.createRetrospectiveCard(selectedColumnId, {
+        text: newCardText,
+        card_order: 0 // Will be handled by backend
+      });
+
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Card added successfully'
+        });
+        setNewCardText('');
+        setShowAddCardDialog(false);
+        setSelectedColumnId('');
+        await fetchRetrospectiveData();
+      }
+    } catch (error) {
+      console.error('Error adding card:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add card',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleVote = async (cardId: string) => {
+    try {
+      const response = await apiClient.voteOnRetrospectiveCard(cardId);
+      if (response.success) {
+        await fetchRetrospectiveData();
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to vote on card',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+    try {
+      const response = await apiClient.deleteRetrospectiveCard(cardId);
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Card deleted successfully'
+        });
+        await fetchRetrospectiveData();
+      }
+    } catch (error) {
+      console.error('Error deleting card:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete card',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleCreateActionItem = (card: RetrospectiveCard) => {
+    setSelectedCard(card);
+    setActionItemForm({
+      what_task: card.text,
+      when_sprint: '',
+      who_responsible: '',
+      how_approach: ''
+    });
+    setShowActionItemDialog(true);
+  };
+
+  const handleSubmitActionItem = async () => {
+    if (!selectedCard || !actionItemForm.what_task.trim()) return;
+
+    try {
+      const response = await apiClient.createRetrospectiveActionItem(retrospective.id, {
+        ...actionItemForm,
+        from_card_id: selectedCard.id
+      });
+
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Action item created successfully'
+        });
+        setShowActionItemDialog(false);
+        setSelectedCard(null);
+        setActionItemForm({
+          what_task: '',
+          when_sprint: '',
+          who_responsible: '',
+          how_approach: ''
+        });
+      }
+    } catch (error) {
+      console.error('Error creating action item:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create action item',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const card = findCardById(active.id as string);
+    setActiveCard(card);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveCard(null);
+
+    if (!over) return;
+
+    const cardId = active.id as string;
+    const newColumnId = over.id as string;
+
+    // Find current card and column
+    const card = findCardById(cardId);
+    if (!card) return;
+
+    // If dropped in same column, just reorder
+    if (card.column_id === newColumnId) {
+      // Handle reordering within same column
+      return;
+    }
+
+    // Move card to new column
+    try {
+      const response = await apiClient.moveRetrospectiveCard(cardId, newColumnId);
+      if (response.success) {
+        await fetchRetrospectiveData();
+      }
+    } catch (error) {
+      console.error('Error moving card:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to move card',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const findCardById = (cardId: string): RetrospectiveCard | null => {
+    for (const column of columns) {
+      const card = column.cards?.find(c => c.id === cardId);
+      if (card) return card;
+    }
+    return null;
+  };
+
+  const getUserDisplayName = (userId: string) => {
+    return user?.id === userId ? 'You' : 'Team Member';
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Retrospective Board</h1>
+            <p className="text-muted-foreground">Framework: {retrospective.framework}</p>
+          </div>
+        </div>
+        <Badge variant="outline" className="capitalize">{retrospective.status}</Badge>
+      </div>
+
+      {/* Kanban Board */}
+      <DndContext
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        collisionDetection={closestCorners}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {columns.map((column) => (
+            <Card key={column.id} className="flex flex-col h-fit">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{column.title}</CardTitle>
+                    {column.subtitle && (
+                      <p className="text-sm text-muted-foreground mt-1">{column.subtitle}</p>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedColumnId(column.id);
+                      setShowAddCardDialog(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1">
+                <DroppableColumn
+                  column={column}
+                  cards={column.cards || []}
+                  getCardColor={getCardColor}
+                  getUserDisplayName={getUserDisplayName}
+                  onVote={handleVote}
+                  onDelete={handleDeleteCard}
+                  onCreateAction={handleCreateActionItem}
+                  userId={user?.id}
+                />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <DragOverlay>
+          {activeCard ? (
+            <RetrospectiveCard
+              card={activeCard}
+              cardColor={getCardColor(0)}
+              userDisplayName={getUserDisplayName(activeCard.created_by)}
+              onVote={() => {}}
+              onDelete={() => {}}
+              onCreateAction={() => {}}
+              isOwner={activeCard.created_by === user?.id}
+            />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      {/* Add Card Dialog */}
+      <Dialog open={showAddCardDialog} onOpenChange={setShowAddCardDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Card</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="cardText">Card Text</Label>
+              <Textarea
+                id="cardText"
+                value={newCardText}
+                onChange={(e) => setNewCardText(e.target.value)}
+                placeholder="Enter your retrospective item..."
+                className="min-h-[100px]"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowAddCardDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddCard} disabled={!newCardText.trim()}>
+                Add Card
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Action Item Dialog */}
+      <Dialog open={showActionItemDialog} onOpenChange={setShowActionItemDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create Action Item</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="what">What (Task Description)</Label>
+              <Textarea
+                id="what"
+                value={actionItemForm.what_task}
+                onChange={(e) => setActionItemForm(prev => ({ ...prev, what_task: e.target.value }))}
+                placeholder="Describe the action item..."
+                className="min-h-[80px]"
+              />
+            </div>
+            <div>
+              <Label htmlFor="when">When (Sprint/Timeline)</Label>
+              <Input
+                id="when"
+                value={actionItemForm.when_sprint}
+                onChange={(e) => setActionItemForm(prev => ({ ...prev, when_sprint: e.target.value }))}
+                placeholder="Next sprint, Q1 2024, etc."
+              />
+            </div>
+            <div>
+              <Label htmlFor="who">Who (Responsible Person)</Label>
+              <Select
+                value={actionItemForm.who_responsible}
+                onValueChange={(value) => setActionItemForm(prev => ({ ...prev, who_responsible: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select responsible person" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stakeholders.map((stakeholder) => (
+                    <SelectItem key={stakeholder.id} value={stakeholder.name}>
+                      {stakeholder.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="how">How (Approach/Method)</Label>
+              <Textarea
+                id="how"
+                value={actionItemForm.how_approach}
+                onChange={(e) => setActionItemForm(prev => ({ ...prev, how_approach: e.target.value }))}
+                placeholder="Describe the approach or method..."
+                className="min-h-[80px]"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowActionItemDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmitActionItem} disabled={!actionItemForm.what_task.trim()}>
+                Create Action Item
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

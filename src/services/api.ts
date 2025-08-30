@@ -694,8 +694,8 @@ class ApiClient {
     return this.makeRequest(`/retro-service/retrospectives/${retrospectiveId}/cards`, { method: 'GET' });
   }
 
-  async createRetrospectiveCard(retrospectiveId: string, cardData: any): Promise<ApiResponse<{ message: string; card: any }>> {
-    return this.makeRequest(`/retro-service/retrospectives/${retrospectiveId}/cards`, {
+  async createRetrospectiveCard(columnId: string, cardData: { text: string; card_order: number }): Promise<ApiResponse<{ message: string; card: any }>> {
+    return this.makeRequest(`/retro-service/columns/${columnId}/cards`, {
       method: 'POST',
       body: JSON.stringify(cardData),
     });
@@ -723,6 +723,18 @@ class ApiClient {
   async unvoteCard(cardId: string): Promise<ApiResponse<{ message: string }>> {
     return this.makeRequest(`/retro-service/cards/${cardId}/unvote`, {
       method: 'DELETE',
+    });
+  }
+
+  // Alias methods for component compatibility
+  async voteOnRetrospectiveCard(cardId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.voteCard(cardId);
+  }
+
+  async moveRetrospectiveCard(cardId: string, newColumnId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/retro-service/cards/${cardId}/move`, {
+      method: 'PUT',
+      body: JSON.stringify({ column_id: newColumnId }),
     });
   }
 
