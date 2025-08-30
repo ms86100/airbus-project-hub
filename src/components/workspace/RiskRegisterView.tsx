@@ -364,7 +364,7 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
               Add Risk
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto z-[9998]">
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto z-[9998]">
             <DialogHeader>
               <DialogTitle>Add New Risk</DialogTitle>
             </DialogHeader>
@@ -551,7 +551,7 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
         
         {/* Edit Risk Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto z-[9998]">
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto z-[9998]">
             <DialogHeader>
               <DialogTitle>Edit Risk</DialogTitle>
             </DialogHeader>
