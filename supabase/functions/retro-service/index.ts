@@ -12,7 +12,6 @@ import {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -84,25 +83,12 @@ Deno.serve(async (req) => {
 
   logRequest(method, path);
 
-try {
+  try {
     // All endpoints require authentication
     const { user, error: authError } = await validateAuthToken(req, supabase);
     if (authError || !user) {
       return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
     }
-
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return createErrorResponse('Authorization header required', 'MISSING_AUTH_HEADER', 401);
-    }
-
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
-    });
-
-    logRequest(method, path, user);
 
     // GET /retro-service/projects/:id/retrospectives
     if (method === 'GET' && path.includes('/projects/') && path.endsWith('/retrospectives')) {
@@ -116,61 +102,26 @@ try {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-const { data: retrospectives, error: rError } = await supabaseAuth
+      const { data: retrospectives, error } = await supabase
         .from('retrospectives')
-        .select('id, project_id, iteration_id, framework, status, created_at, updated_at, created_by')
+        .select(`
+          id, project_id, iteration_id, framework, status, created_at, updated_at, created_by,
+          columns:retrospective_columns (
+            id, title, subtitle, column_order, created_at, updated_at,
+            cards:retrospective_cards (
+              id, text, votes, card_order, created_at, updated_at, created_by
+            )
+          )
+        `)
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
-      if (rError) {
-        console.error('Error fetching retrospectives:', rError);
+      if (error) {
+        console.error('Error fetching retrospectives:', error);
         return createErrorResponse('Failed to fetch retrospectives', 'FETCH_ERROR');
       }
 
-      if (!retrospectives || retrospectives.length === 0) {
-        return createSuccessResponse([]);
-      }
-
-      const retroIds = retrospectives.map((r: any) => r.id);
-      const { data: columns, error: cError } = await supabaseAuth
-        .from('retrospective_columns')
-        .select('id, retrospective_id, title, subtitle, column_order, created_at, updated_at')
-        .in('retrospective_id', retroIds)
-        .order('column_order', { ascending: true });
-
-      if (cError) {
-        console.error('Error fetching columns:', cError);
-        return createErrorResponse('Failed to fetch retrospective columns', 'FETCH_COLUMNS_ERROR');
-      }
-
-      const columnIds = (columns || []).map((c: any) => c.id);
-      const { data: cards, error: cardsError } = columnIds.length > 0
-        ? await supabaseAuth
-            .from('retrospective_cards')
-            .select('id, column_id, text, votes, card_order, created_at, updated_at, created_by')
-            .in('column_id', columnIds)
-            .order('card_order', { ascending: true })
-        : { data: [], error: null } as any;
-
-      if (cardsError) {
-        console.error('Error fetching cards:', cardsError);
-        return createErrorResponse('Failed to fetch retrospective cards', 'FETCH_CARDS_ERROR');
-      }
-
-      const columnsByRetro: Record<string, any[]> = {};
-      (columns || []).forEach((col: any) => {
-        const colCards = (cards || []).filter((card: any) => card.column_id === col.id);
-        const withCards = { ...col, cards: colCards };
-        if (!columnsByRetro[col.retrospective_id]) columnsByRetro[col.retrospective_id] = [];
-        columnsByRetro[col.retrospective_id].push(withCards);
-      });
-
-      const result = retrospectives.map((r: any) => ({
-        ...r,
-        columns: columnsByRetro[r.id] || [],
-      }));
-
-      return createSuccessResponse(result);
+      return createSuccessResponse(retrospectives || []);
     }
 
     // POST /retro-service/projects/:id/retrospectives
@@ -185,38 +136,14 @@ const { data: retrospectives, error: rError } = await supabaseAuth
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-const body: CreateRetrospectiveBody = await parseRequestBody(req);
+      const body: CreateRetrospectiveBody = await parseRequestBody(req);
       const framework = body.framework || 'Classic';
 
-      // Resolve iterationId if not provided: pick latest iteration for the project
-      let iterationId = body.iterationId || null;
-      if (!iterationId) {
-        const { data: latestIter, error: iterError } = await supabaseAuth
-          .from('team_capacity_iterations')
-          .select('id, end_date, created_at')
-          .eq('project_id', projectId)
-          .order('end_date', { ascending: false })
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (iterError) {
-          console.error('Error resolving latest iteration:', iterError);
-          return createErrorResponse('Failed to resolve iteration for retrospective', 'ITERATION_RESOLVE_ERROR');
-        }
-
-        if (!latestIter) {
-          return createErrorResponse('No capacity iteration found for this project. Please create an iteration first.', 'NO_ITERATION', 400);
-        }
-
-        iterationId = latestIter.id;
-      }
-
-      const { data: retrospective, error: createError } = await supabaseAuth
+      const { data: retrospective, error: createError } = await supabase
         .from('retrospectives')
         .insert({
           project_id: projectId,
-          iteration_id: iterationId,
+          iteration_id: body.iterationId || null,
           framework,
           status: 'active',
           created_by: user.id,
@@ -243,7 +170,7 @@ const body: CreateRetrospectiveBody = await parseRequestBody(req);
         column_order: idx,
       }));
 
-      const { error: colError } = await supabaseAuth
+      const { error: colError } = await supabase
         .from('retrospective_columns')
         .insert(toInsert);
 
@@ -266,7 +193,7 @@ const body: CreateRetrospectiveBody = await parseRequestBody(req);
       if (!retrospectiveId) return createErrorResponse('Retrospective ID is required', 'MISSING_RETRO_ID');
 
       // Find project for access check
-const { data: retro } = await supabaseAuth
+      const { data: retro } = await supabase
         .from('retrospectives')
         .select('id, project_id')
         .eq('id', retrospectiveId)
@@ -280,7 +207,7 @@ const { data: retro } = await supabaseAuth
       const body: CreateRetroActionBody = await parseRequestBody(req);
       if (!body.what_task) return createErrorResponse('what_task is required', 'MISSING_FIELDS');
 
-const { data: action, error } = await supabaseAuth
+      const { data: action, error } = await supabase
         .from('retrospective_action_items')
         .insert({
           retrospective_id: retrospectiveId,
