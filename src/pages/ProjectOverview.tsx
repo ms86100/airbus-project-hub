@@ -17,6 +17,7 @@ import { RoadmapView } from '@/components/workspace/RoadmapView';
 import { KanbanView } from '@/components/workspace/KanbanView';
 import { StakeholdersManagement } from '@/components/workspace/StakeholdersManagement';
 import { RiskRegisterView } from '@/components/workspace/RiskRegisterView';
+import { StatusManagementView } from '@/components/workspace/StatusManagementView';
 import { TaskCard } from '@/components/workspace/TaskManagement';
 import { TasksTableView } from '@/components/workspace/TasksTableView';
 import { AddTaskDialog } from '@/components/workspace/AddTaskDialog';
@@ -347,13 +348,9 @@ const ProjectOverview = () => {
               )}
 
               {canRead('tasks_milestones') && (
-                <TabsContent value="tasks" className="p-6">
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-semibold">Tasks & Milestones</h2>
-                    </div>
-                    {/* Simplified view for tasks - you can expand this */}
-                    <div className="text-muted-foreground">Tasks and Milestones content</div>
+                <TabsContent value="tasks" className="p-0">
+                  <div className="h-[700px] w-full overflow-y-auto">
+                    <StatusManagementView projectId={id!} />
                   </div>
                 </TabsContent>
               )}
