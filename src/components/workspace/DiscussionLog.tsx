@@ -85,6 +85,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
   const [editingDiscussion, setEditingDiscussion] = useState<Discussion | null>(null);
   const [editingActionItem, setEditingActionItem] = useState<ActionItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('discussions');
 
   // Form states
   const [discussionForm, setDiscussionForm] = useState({
@@ -600,7 +601,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
         </Dialog>
       </div>
 
-      <Tabs defaultValue="discussions" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="discussions">Discussions</TabsTrigger>
           <TabsTrigger value="action-items">Action Items</TabsTrigger>
@@ -623,13 +624,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
                         size="sm"
                         onClick={() => {
                           setSelectedDiscussion(discussion);
-                          // Switch to action-items tab with a small delay to ensure state is updated
-                          setTimeout(() => {
-                            const actionItemsTab = document.querySelector('[value="action-items"]') as HTMLElement;
-                            if (actionItemsTab) {
-                              actionItemsTab.click();
-                            }
-                          }, 10);
+                          setActiveTab('action-items');
                         }}
                       >
                         <Users className="h-4 w-4 mr-1" />
