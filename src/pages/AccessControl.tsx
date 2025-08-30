@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Trash2, Plus, Shield } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -48,7 +50,7 @@ export default function AccessControl() {
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [selectedProject, setSelectedProject] = useState('');
-  const [selectedModule, setSelectedModule] = useState('');
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [selectedAccess, setSelectedAccess] = useState<'read' | 'write'>('read');
 
   useEffect(() => {
@@ -118,10 +120,10 @@ export default function AccessControl() {
   };
 
   const grantAccess = async () => {
-    if (!userEmail || !selectedProject || !selectedModule) {
+    if (!userEmail || !selectedProject || selectedModules.length === 0) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in all fields and select at least one module",
         variant: "destructive",
       });
       return;
@@ -147,18 +149,25 @@ export default function AccessControl() {
         return;
       }
 
-      // Add module permission
-      const { error: permissionError } = await supabase
-        .from('module_permissions')
-        .upsert({
-          project_id: selectedProject,
-          user_id: userData.id,
-          module: selectedModule as any,
-          access_level: selectedAccess,
-          granted_by: user?.id,
-        });
+      // Add module permissions for each selected module
+      const permissionPromises = selectedModules.map(module => 
+        supabase
+          .from('module_permissions')
+          .upsert({
+            project_id: selectedProject,
+            user_id: userData.id,
+            module: module as any,
+            access_level: selectedAccess,
+            granted_by: user?.id,
+          })
+      );
 
-      if (permissionError) throw permissionError;
+      const results = await Promise.all(permissionPromises);
+      const errors = results.filter(result => result.error);
+      
+      if (errors.length > 0) {
+        throw new Error(`Failed to grant access to ${errors.length} modules`);
+      }
 
       toast({
         title: "Success",
@@ -168,7 +177,7 @@ export default function AccessControl() {
       // Reset form
       setUserEmail('');
       setSelectedProject('');
-      setSelectedModule('');
+      setSelectedModules([]);
       setSelectedAccess('read');
 
       // Refresh permissions
@@ -245,7 +254,7 @@ export default function AccessControl() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               placeholder="User email"
               value={userEmail}
@@ -263,18 +272,6 @@ export default function AccessControl() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedModule} onValueChange={setSelectedModule}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select module" />
-              </SelectTrigger>
-              <SelectContent>
-                {MODULES.map((module) => (
-                  <SelectItem key={module.name} value={module.name}>
-                    {module.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Select value={selectedAccess} onValueChange={(value: 'read' | 'write') => setSelectedAccess(value)}>
               <SelectTrigger>
                 <SelectValue />
@@ -284,11 +281,48 @@ export default function AccessControl() {
                 <SelectItem value="write">Write</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={grantAccess} disabled={loading} className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Grant Access
-            </Button>
           </div>
+          
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Select Modules</Label>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {MODULES.map((module) => (
+                <div key={module.name} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={module.name}
+                    checked={selectedModules.includes(module.name)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedModules([...selectedModules, module.name]);
+                      } else {
+                        setSelectedModules(selectedModules.filter(m => m !== module.name));
+                      }
+                    }}
+                  />
+                  <Label 
+                    htmlFor={module.name}
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    {module.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            {selectedModules.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {selectedModules.map(module => (
+                  <Badge key={module} variant="secondary">
+                    {MODULES.find(m => m.name === module)?.label}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Button onClick={grantAccess} disabled={loading} className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            Grant Access to {selectedModules.length} Module{selectedModules.length !== 1 ? 's' : ''}
+          </Button>
         </CardContent>
       </Card>
 
