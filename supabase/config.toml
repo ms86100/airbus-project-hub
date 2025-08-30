@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.retro-service]
 verify_jwt = false
+
+[functions.roadmap-service]
+verify_jwt = false

@@ -245,6 +245,17 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+  // Roadmap Service Methods
+  async getRoadmap(projectId: string): Promise<ApiResponse<{ projectId: string; milestones: any[] }>> {
+    return this.makeRequest(`/roadmap-service/projects/${projectId}/roadmap`, { method: 'GET' });
+  }
+
+  async createMilestone(projectId: string, data: { name: string; description?: string; dueDate: string; status?: 'planning' | 'in_progress' | 'completed' | 'blocked'; }): Promise<ApiResponse<{ message: string; milestone: any }>> {
+    return this.makeRequest(`/roadmap-service/projects/${projectId}/roadmap`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();
