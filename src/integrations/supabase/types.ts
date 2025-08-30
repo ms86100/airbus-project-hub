@@ -687,6 +687,7 @@ export type Database = {
           leaves: number
           member_name: string
           role: string
+          stakeholder_id: string | null
           updated_at: string
           work_mode: string
         }
@@ -701,6 +702,7 @@ export type Database = {
           leaves?: number
           member_name: string
           role: string
+          stakeholder_id?: string | null
           updated_at?: string
           work_mode: string
         }
@@ -715,10 +717,19 @@ export type Database = {
           leaves?: number
           member_name?: string
           role?: string
+          stakeholder_id?: string | null
           updated_at?: string
           work_mode?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_capacity_members_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_capacity_settings: {
         Row: {
