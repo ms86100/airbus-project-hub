@@ -460,6 +460,41 @@ Deno.serve(async (req) => {
       return createSuccessResponse(defaultSettings);
     }
 
+    // GET /capacity-service/projects/:id/iterations - Get iterations only (ApiClient compatible)
+    if (method === 'GET' && path.includes('/projects/') && path.endsWith('/iterations')) {
+      const params = extractPathParams(url, '/capacity-service/projects/:id/iterations');
+      const projectId = params.id;
+
+      if (!projectId) {
+        return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+      }
+
+      // Check if user has access to this project
+      const { data: project } = await supabase
+        .from('projects')
+        .select('id, created_by')
+        .eq('id', projectId)
+        .single();
+
+      if (!project) {
+        return createErrorResponse('Project not found', 'PROJECT_NOT_FOUND', 404);
+      }
+
+      // Get capacity iterations for this project
+      const { data: iterations, error: iterationsError } = await supabase
+        .from('team_capacity_iterations')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('start_date', { ascending: false });
+
+      if (iterationsError) {
+        console.error('Error fetching iterations:', iterationsError);
+        return createErrorResponse('Failed to fetch capacity iterations', 'FETCH_ERROR');
+      }
+
+      return createSuccessResponse(iterations || []);
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
 
   } catch (error) {

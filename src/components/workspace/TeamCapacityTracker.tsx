@@ -97,17 +97,23 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
   const fetchIterations = async () => {
     try {
+      console.log('🔄 Fetching iterations for project:', projectId);
       const response = await apiClient.getCapacityIterations(projectId);
+      console.log('📋 Iterations response:', response);
+      
       if (response.success) {
         const data = response.data || [];
+        console.log('📋 Setting iterations data:', data);
         setIterations(data);
         
         if (data.length > 0 && !selectedIteration) {
           setSelectedIteration(data[0]);
         }
+      } else {
+        console.error('❌ Error in iterations response:', response.error);
       }
     } catch (error) {
-      console.error('Error fetching iterations:', error);
+      console.error('❌ Error fetching iterations:', error);
     } finally {
       setLoading(false);
     }
