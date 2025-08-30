@@ -832,7 +832,77 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           </Card>
         )}
 
-        {/* Create Retrospective Dialog remains the same */}
+        {/* Dialogs moved here to be always available */}
+        {/* Create Retrospective Dialog */}
+        <Dialog open={showCreateDialog} onOpenChange={(open) => {
+          console.log('Dialog open state changed to:', open);
+          setShowCreateDialog(open);
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Retrospective</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateRetrospective} className="space-y-4">
+              <div>
+                <Label htmlFor="iteration">Iteration</Label>
+                <Select value={createForm.iteration_id} onValueChange={(value) => setCreateForm({ ...createForm, iteration_id: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an iteration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {iterations.map((iteration) => (
+                      <SelectItem key={iteration.id} value={iteration.id}>
+                        {iteration.iteration_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="framework">Framework</Label>
+                <Select value={createForm.framework} onValueChange={(value) => setCreateForm({ ...createForm, framework: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Classic">Classic (What went well/didn't go well)</SelectItem>
+                    <SelectItem value="KISS">KISS (Keep/Improve/Start/Stop)</SelectItem>
+                    <SelectItem value="Sailboat">Sailboat (Wind/Anchor/Rocks/Island)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Create Retrospective</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Retrospective</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this retrospective? This will permanently delete all cards, action items, and associated data. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setRetrospectiveToDelete(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteRetrospective}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete Retrospective
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
@@ -1211,54 +1281,6 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
         </Tabs>
       )}
 
-      {/* Create Retrospective Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={(open) => {
-        console.log('Dialog open state changed to:', open);
-        setShowCreateDialog(open);
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Retrospective</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateRetrospective} className="space-y-4">
-            <div>
-              <Label htmlFor="iteration">Iteration</Label>
-              <Select value={createForm.iteration_id} onValueChange={(value) => setCreateForm({ ...createForm, iteration_id: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an iteration" />
-                </SelectTrigger>
-                <SelectContent>
-                  {iterations.map((iteration) => (
-                    <SelectItem key={iteration.id} value={iteration.id}>
-                      {iteration.iteration_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="framework">Framework</Label>
-              <Select value={createForm.framework} onValueChange={(value) => setCreateForm({ ...createForm, framework: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Classic">Classic (What went well/didn't go well)</SelectItem>
-                  <SelectItem value="KISS">KISS (Keep/Improve/Start/Stop)</SelectItem>
-                  <SelectItem value="Sailboat">Sailboat (Wind/Anchor/Rocks/Island)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Create Retrospective</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
       {/* Add Card Dialog */}
       <Dialog open={showCardDialog} onOpenChange={setShowCardDialog}>
         <DialogContent>
@@ -1361,6 +1383,54 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                 Cancel
               </Button>
               <Button type="submit">Create Action Item</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Retrospective Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={(open) => {
+        console.log('Dialog open state changed to:', open);
+        setShowCreateDialog(open);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Retrospective</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateRetrospective} className="space-y-4">
+            <div>
+              <Label htmlFor="iteration">Iteration</Label>
+              <Select value={createForm.iteration_id} onValueChange={(value) => setCreateForm({ ...createForm, iteration_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an iteration" />
+                </SelectTrigger>
+                <SelectContent>
+                  {iterations.map((iteration) => (
+                    <SelectItem key={iteration.id} value={iteration.id}>
+                      {iteration.iteration_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="framework">Framework</Label>
+              <Select value={createForm.framework} onValueChange={(value) => setCreateForm({ ...createForm, framework: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Classic">Classic (What went well/didn't go well)</SelectItem>
+                  <SelectItem value="KISS">KISS (Keep/Improve/Start/Stop)</SelectItem>
+                  <SelectItem value="Sailboat">Sailboat (Wind/Anchor/Rocks/Island)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create Retrospective</Button>
             </div>
           </form>
         </DialogContent>
