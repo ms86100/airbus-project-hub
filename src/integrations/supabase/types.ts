@@ -585,7 +585,15 @@ export type Database = {
           updated_at?: string
           votes?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_retrospective_cards_column_id"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "retrospective_columns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       retrospective_columns: {
         Row: {
@@ -615,7 +623,15 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_retrospective_columns_retrospective_id"
+            columns: ["retrospective_id"]
+            isOneToOne: false
+            referencedRelation: "retrospectives"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       retrospectives: {
         Row: {
