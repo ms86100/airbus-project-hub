@@ -221,6 +221,30 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+  // Retrospectives Service Methods
+  async getRetrospectives(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/retro-service/projects/${projectId}/retrospectives`, { method: 'GET' });
+  }
+
+  async createRetrospective(projectId: string, data: { framework?: string; iterationId?: string; columns?: { title: string; subtitle?: string }[] }): Promise<ApiResponse<{ message: string; retrospective: any }>> {
+    return this.makeRequest(`/retro-service/projects/${projectId}/retrospectives`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async addRetrospectiveAction(retrospectiveId: string, data: {
+    what_task: string;
+    when_sprint?: string;
+    who_responsible?: string;
+    how_approach?: string;
+    backlog_ref_id?: string;
+  }): Promise<ApiResponse<{ message: string; action: any }>> {
+    return this.makeRequest(`/retro-service/retrospectives/${retrospectiveId}/actions`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

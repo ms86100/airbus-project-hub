@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.capacity-service]
 verify_jwt = false
+
+[functions.retro-service]
+verify_jwt = false
