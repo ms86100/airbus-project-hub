@@ -157,6 +157,158 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Backlog item created successfully', item });
     }
 
+    // PUT /backlog-service/projects/:id/backlog/:itemId
+    if (method === 'PUT' && path.includes('/backlog/') && !path.endsWith('/backlog')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const itemIdIndex = pathParts.findIndex(part => part === 'backlog') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const itemId = pathParts[itemIdIndex];
+      const updateData = await parseRequestBody(req);
+
+      if (!projectId || !itemId) return createErrorResponse('Project ID and Item ID are required', 'MISSING_IDS');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(
+          access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions',
+          access.reason,
+          status
+        );
+      }
+
+      const { data: item, error } = await supabase
+        .from('task_backlog')
+        .update({
+          title: updateData.title,
+          description: updateData.description,
+          priority: updateData.priority,
+          status: updateData.status as BacklogStatus,
+          owner_id: updateData.ownerId,
+          target_date: updateData.targetDate,
+        })
+        .eq('id', itemId)
+        .eq('project_id', projectId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating backlog item:', error);
+        return createErrorResponse('Failed to update backlog item', 'UPDATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Backlog item updated successfully', item });
+    }
+
+    // DELETE /backlog-service/projects/:id/backlog/:itemId
+    if (method === 'DELETE' && path.includes('/backlog/') && !path.endsWith('/backlog')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const itemIdIndex = pathParts.findIndex(part => part === 'backlog') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const itemId = pathParts[itemIdIndex];
+
+      if (!projectId || !itemId) return createErrorResponse('Project ID and Item ID are required', 'MISSING_IDS');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(
+          access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions',
+          access.reason,
+          status
+        );
+      }
+
+      const { error } = await supabase
+        .from('task_backlog')
+        .delete()
+        .eq('id', itemId)
+        .eq('project_id', projectId);
+
+      if (error) {
+        console.error('Error deleting backlog item:', error);
+        return createErrorResponse('Failed to delete backlog item', 'DELETE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Backlog item deleted successfully' });
+    }
+
+    // POST /backlog-service/projects/:id/backlog/:itemId/move
+    if (method === 'POST' && path.includes('/move')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const itemIdIndex = pathParts.findIndex(part => part === 'backlog') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const itemId = pathParts[itemIdIndex];
+      const { milestoneId } = await parseRequestBody(req);
+
+      if (!projectId || !itemId || !milestoneId) {
+        return createErrorResponse('Project ID, Item ID, and Milestone ID are required', 'MISSING_IDS');
+      }
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(
+          access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions',
+          access.reason,
+          status
+        );
+      }
+
+      // Get the backlog item
+      const { data: backlogItem, error: fetchError } = await supabase
+        .from('task_backlog')
+        .select('*')
+        .eq('id', itemId)
+        .eq('project_id', projectId)
+        .single();
+
+      if (fetchError || !backlogItem) {
+        return createErrorResponse('Backlog item not found', 'ITEM_NOT_FOUND', 404);
+      }
+
+      // Create a task from the backlog item
+      const { data: task, error: createError } = await supabase
+        .from('tasks')
+        .insert({
+          project_id: projectId,
+          milestone_id: milestoneId,
+          title: backlogItem.title,
+          description: backlogItem.description,
+          priority: backlogItem.priority,
+          status: 'todo',
+          due_date: backlogItem.target_date,
+          owner_id: backlogItem.owner_id,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating task from backlog:', createError);
+        return createErrorResponse('Failed to create task from backlog item', 'CREATE_TASK_ERROR');
+      }
+
+      // Update backlog item status to indicate it's been moved
+      const { error: updateError } = await supabase
+        .from('task_backlog')
+        .update({ status: 'done' })
+        .eq('id', itemId);
+
+      if (updateError) {
+        console.error('Error updating backlog status:', updateError);
+        // Continue even if this fails - the task was created successfully
+      }
+
+      return createSuccessResponse({ message: 'Backlog item moved to milestone successfully', task });
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
   } catch (error) {
     console.error('Backlog service error:', error);

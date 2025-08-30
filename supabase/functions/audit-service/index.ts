@@ -134,6 +134,33 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Audit log created', entry });
     }
 
+    // GET /audit-service/projects/:id/logs - Alternative endpoint for logs (ApiClient compatible)
+    if (method === 'GET' && path.includes('/projects/') && path.endsWith('/logs')) {
+      const params = extractPathParams(url, '/audit-service/projects/:id/logs');
+      const projectId = params.id;
+      if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: logs, error } = await supabase
+        .from('audit_log')
+        .select('id, project_id, user_id, module, action, entity_type, entity_id, old_values, new_values, description, created_at')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (error) {
+        console.error('Error fetching audit logs:', error);
+        return createErrorResponse('Failed to fetch audit logs', 'FETCH_ERROR');
+      }
+
+      return createSuccessResponse(logs || []);
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
   } catch (error) {
     console.error('Audit service error:', error);

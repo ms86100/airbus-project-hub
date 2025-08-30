@@ -385,6 +385,266 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Task created successfully', task });
     }
 
+    // PUT /workspace-service/tasks/:taskId
+    if (method === 'PUT' && path.includes('/tasks/') && !path.includes('/projects/')) {
+      const pathParts = path.split('/');
+      const taskIdIndex = pathParts.findIndex(part => part === 'tasks') + 1;
+      const taskId = pathParts[taskIdIndex];
+      const taskData = await req.json();
+
+      if (!taskId) return createErrorResponse('Task ID is required', 'MISSING_TASK_ID');
+
+      // Check if user has access to the project that owns this task
+      const { data: task } = await supabase
+        .from('tasks')
+        .select('project_id')
+        .eq('id', taskId)
+        .single();
+
+      if (!task) return createErrorResponse('Task not found', 'TASK_NOT_FOUND', 404);
+
+      const access = await hasProjectAccess(user.id, task.project_id);
+      if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+
+      const { data: updatedTask, error } = await supabase
+        .from('tasks')
+        .update(taskData)
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating task:', error);
+        return createErrorResponse('Failed to update task', 'UPDATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Task updated successfully', task: updatedTask });
+    }
+
+    // GET /workspace-service/tasks/:taskId/history
+    if (method === 'GET' && path.includes('/tasks/') && path.endsWith('/history')) {
+      const pathParts = path.split('/');
+      const taskIdIndex = pathParts.findIndex(part => part === 'tasks') + 1;
+      const taskId = pathParts[taskIdIndex];
+
+      if (!taskId) return createErrorResponse('Task ID is required', 'MISSING_TASK_ID');
+
+      // Check if user has access to the project that owns this task
+      const { data: task } = await supabase
+        .from('tasks')
+        .select('project_id')
+        .eq('id', taskId)
+        .single();
+
+      if (!task) return createErrorResponse('Task not found', 'TASK_NOT_FOUND', 404);
+
+      const access = await hasProjectAccess(user.id, task.project_id);
+      if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+
+      const { data: history, error } = await supabase
+        .from('task_status_history')
+        .select('*')
+        .eq('task_id', taskId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching task history:', error);
+        return createErrorResponse('Failed to fetch task history', 'FETCH_ERROR');
+      }
+
+      return createSuccessResponse(history || []);
+    }
+
+    // GET /workspace-service/projects/:id/milestones
+    if (method === 'GET' && path.includes('/projects/') && path.endsWith('/milestones')) {
+      const params = extractPathParams(url, '/workspace-service/projects/:id/milestones');
+      const projectId = params.id;
+      if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: milestones, error } = await supabase
+        .from('milestones')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('due_date', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching milestones:', error);
+        return createErrorResponse('Failed to fetch milestones', 'FETCH_ERROR');
+      }
+
+      return createSuccessResponse(milestones || []);
+    }
+
+    // PUT /workspace-service/projects/:id/discussions/:discussionId
+    if (method === 'PUT' && path.includes('/discussions/') && !path.endsWith('/discussions')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const discussionIdIndex = pathParts.findIndex(part => part === 'discussions') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const discussionId = pathParts[discussionIdIndex];
+      const discussionData = await req.json();
+
+      if (!projectId || !discussionId) return createErrorResponse('Project ID and Discussion ID are required', 'MISSING_IDS');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: discussion, error } = await supabase
+        .from('project_discussions')
+        .update(discussionData)
+        .eq('id', discussionId)
+        .eq('project_id', projectId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating discussion:', error);
+        return createErrorResponse('Failed to update discussion', 'UPDATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Discussion updated successfully', discussion });
+    }
+
+    // DELETE /workspace-service/projects/:id/discussions/:discussionId
+    if (method === 'DELETE' && path.includes('/discussions/') && !path.endsWith('/discussions')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const discussionIdIndex = pathParts.findIndex(part => part === 'discussions') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const discussionId = pathParts[discussionIdIndex];
+
+      if (!projectId || !discussionId) return createErrorResponse('Project ID and Discussion ID are required', 'MISSING_IDS');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { error } = await supabase
+        .from('project_discussions')
+        .delete()
+        .eq('id', discussionId)
+        .eq('project_id', projectId);
+
+      if (error) {
+        console.error('Error deleting discussion:', error);
+        return createErrorResponse('Failed to delete discussion', 'DELETE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Discussion deleted successfully' });
+    }
+
+    // POST /workspace-service/projects/:id/action-items
+    if (method === 'POST' && path.includes('/projects/') && path.endsWith('/action-items')) {
+      const params = extractPathParams(url, '/workspace-service/projects/:id/action-items');
+      const projectId = params.id;
+      const actionItemData = await req.json();
+
+      if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      // Need a discussion_id for action items
+      if (!actionItemData.discussion_id) {
+        return createErrorResponse('discussion_id is required for action items', 'MISSING_DISCUSSION_ID');
+      }
+
+      const { data: actionItem, error } = await supabase
+        .from('discussion_action_items')
+        .insert({
+          ...actionItemData,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating action item:', error);
+        return createErrorResponse('Failed to create action item', 'CREATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Action item created successfully', actionItem });
+    }
+
+    // PUT /workspace-service/projects/:id/action-items/:actionItemId
+    if (method === 'PUT' && path.includes('/action-items/') && !path.endsWith('/action-items')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const actionItemIdIndex = pathParts.findIndex(part => part === 'action-items') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const actionItemId = pathParts[actionItemIdIndex];
+      const actionItemData = await req.json();
+
+      if (!projectId || !actionItemId) return createErrorResponse('Project ID and Action Item ID are required', 'MISSING_IDS');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: actionItem, error } = await supabase
+        .from('discussion_action_items')
+        .update(actionItemData)
+        .eq('id', actionItemId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating action item:', error);
+        return createErrorResponse('Failed to update action item', 'UPDATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Action item updated successfully', actionItem });
+    }
+
+    // DELETE /workspace-service/projects/:id/action-items/:actionItemId
+    if (method === 'DELETE' && path.includes('/action-items/') && !path.endsWith('/action-items')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const actionItemIdIndex = pathParts.findIndex(part => part === 'action-items') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const actionItemId = pathParts[actionItemIdIndex];
+
+      if (!projectId || !actionItemId) return createErrorResponse('Project ID and Action Item ID are required', 'MISSING_IDS');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { error } = await supabase
+        .from('discussion_action_items')
+        .delete()
+        .eq('id', actionItemId);
+
+      if (error) {
+        console.error('Error deleting action item:', error);
+        return createErrorResponse('Failed to delete action item', 'DELETE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Action item deleted successfully' });
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
   } catch (error) {
     console.error('Workspace service error:', error);

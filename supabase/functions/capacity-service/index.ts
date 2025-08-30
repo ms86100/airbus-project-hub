@@ -411,6 +411,40 @@ Deno.serve(async (req) => {
       return createErrorResponse('Invalid delete type', 'INVALID_TYPE');
     }
 
+    // GET /capacity-service/projects/:id/settings - Get capacity settings (ApiClient compatible)
+    if (method === 'GET' && path.includes('/projects/') && path.endsWith('/settings')) {
+      const params = extractPathParams(url, '/capacity-service/projects/:id/settings');
+      const projectId = params.id;
+
+      if (!projectId) {
+        return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+      }
+
+      // Check if user has access to this project
+      const { data: project } = await supabase
+        .from('projects')
+        .select('id, created_by')
+        .eq('id', projectId)
+        .single();
+
+      if (!project) {
+        return createErrorResponse('Project not found', 'PROJECT_NOT_FOUND', 404);
+      }
+
+      // Return default capacity settings (can be enhanced to store custom settings in DB)
+      const defaultSettings = {
+        workModeWeights: {
+          office: 1.0,
+          wfh: 0.9,
+          hybrid: 0.95,
+        },
+        defaultWorkingDays: 10,
+        defaultAvailability: 100,
+      };
+
+      return createSuccessResponse(defaultSettings);
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
 
   } catch (error) {

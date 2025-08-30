@@ -159,6 +159,84 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Milestone created successfully', milestone });
     }
 
+    // PUT /roadmap-service/projects/:id/roadmap/:milestoneId
+    if (method === 'PUT' && path.includes('/roadmap/') && !path.endsWith('/roadmap')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const milestoneIdIndex = pathParts.findIndex(part => part === 'roadmap') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const milestoneId = pathParts[milestoneIdIndex];
+      const milestoneData = await parseRequestBody(req);
+
+      if (!projectId || !milestoneId) return createErrorResponse('Project ID and Milestone ID are required', 'MISSING_IDS');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(
+          access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions',
+          access.reason,
+          status
+        );
+      }
+
+      const { data: milestone, error } = await supabase
+        .from('milestones')
+        .update({
+          name: milestoneData.name,
+          description: milestoneData.description,
+          status: milestoneData.status,
+          due_date: milestoneData.dueDate,
+        })
+        .eq('id', milestoneId)
+        .eq('project_id', projectId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating milestone:', error);
+        return createErrorResponse('Failed to update milestone', 'UPDATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Milestone updated successfully', milestone });
+    }
+
+    // DELETE /roadmap-service/projects/:id/roadmap/:milestoneId
+    if (method === 'DELETE' && path.includes('/roadmap/') && !path.endsWith('/roadmap')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const milestoneIdIndex = pathParts.findIndex(part => part === 'roadmap') + 1;
+      
+      const projectId = pathParts[projectIdIndex];
+      const milestoneId = pathParts[milestoneIdIndex];
+
+      if (!projectId || !milestoneId) return createErrorResponse('Project ID and Milestone ID are required', 'MISSING_IDS');
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(
+          access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions',
+          access.reason,
+          status
+        );
+      }
+
+      const { error } = await supabase
+        .from('milestones')
+        .delete()
+        .eq('id', milestoneId)
+        .eq('project_id', projectId);
+
+      if (error) {
+        console.error('Error deleting milestone:', error);
+        return createErrorResponse('Failed to delete milestone', 'DELETE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Milestone deleted successfully' });
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
   } catch (error) {
     console.error('Roadmap service error:', error);

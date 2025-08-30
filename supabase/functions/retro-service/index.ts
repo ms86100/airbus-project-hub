@@ -232,6 +232,42 @@ Deno.serve(async (req) => {
       });
     }
 
+    // GET /retro-service/stats - Get global retrospective statistics
+    if (method === 'GET' && path.endsWith('/stats')) {
+      // Check if user is admin (only admins can see global stats)
+      const { data: adminRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (!adminRole) {
+        return createErrorResponse('Only admins can view global statistics', 'FORBIDDEN', 403);
+      }
+
+      const [retrosRes, actionsRes] = await Promise.all([
+        supabase.from('retrospectives').select('*', { count: 'exact', head: true }),
+        supabase.from('retrospective_action_items').select('*', { count: 'exact', head: true }),
+      ]);
+
+      const [convertedRes] = await Promise.all([
+        supabase.from('retrospective_action_items').select('*', { count: 'exact', head: true }).eq('converted_to_task', true)
+      ]);
+
+      const totalRetrospectives = retrosRes.count || 0;
+      const totalActionItems = actionsRes.count || 0;
+      const convertedTasks = convertedRes.count || 0;
+      const conversionRate = totalActionItems > 0 ? Math.round((convertedTasks / totalActionItems) * 100) : 0;
+
+      return createSuccessResponse({
+        totalRetrospectives,
+        totalActionItems,
+        convertedTasks,
+        conversionRate,
+      });
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
   } catch (error) {
     console.error('Retro service error:', error);
