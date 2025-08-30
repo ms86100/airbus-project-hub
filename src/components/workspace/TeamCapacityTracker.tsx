@@ -425,6 +425,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       setShowMemberDialog(false);
       resetMemberForm();
       fetchMembers(selectedIteration.id);
+      fetchAllIterationMembers(); // This ensures the UI state is updated
     } catch (error) {
       console.error('Error saving member:', error);
       toast({
