@@ -72,7 +72,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     iteration_name: '',
     start_date: '',
     end_date: '',
-    working_days: 10,
+    working_days: 0,
     committed_story_points: 0
   });
 
@@ -130,7 +130,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       iteration_name: '',
       start_date: '',
       end_date: '',
-      working_days: 10,
+      working_days: 0,
       committed_story_points: 0
     });
     setEditingIteration(null);
@@ -247,7 +247,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                       id="working_days"
                       type="number"
                       value={iterationForm.working_days.toString()}
-                      onChange={(e) => setIterationForm(prev => ({ ...prev, working_days: parseInt(e.target.value) || 10 }))}
+                      onChange={(e) => setIterationForm(prev => ({ ...prev, working_days: parseInt(e.target.value) || 0 }))}
                       min="1"
                       max="30"
                       required
