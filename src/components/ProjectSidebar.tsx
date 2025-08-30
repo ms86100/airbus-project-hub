@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, LayoutGrid, Users, Settings, ArrowLeft, AlertTriangle, MessageCircle, BarChart3, RotateCcw } from 'lucide-react';
+import { Calendar, LayoutGrid, Users, Settings, ArrowLeft, AlertTriangle, MessageCircle, BarChart3, RotateCcw, Shield, Activity } from 'lucide-react';
+import { AccessControlDialog } from '@/components/access-control/AccessControlDialog';
+import { AuditLogView } from '@/components/audit/AuditLogView';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
   Sidebar,
   SidebarContent,
@@ -77,6 +81,8 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
   const collapsed = state === 'collapsed';
   const location = useLocation();
   const currentPath = location.pathname;
+  const [showAuditLog, setShowAuditLog] = useState(false);
+  const { isProjectOwner, canRead } = useModulePermissions(projectId);
 
   const isActive = (path: string) => currentPath.includes(`/project/${projectId}/${path}`);
   const hasActiveRoute = sidebarItems.some((item) => isActive(item.path));
@@ -116,6 +122,23 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
             <SidebarMenu className="space-y-1">
               {sidebarItems.map((item) => {
                 const itemIsActive = isActive(item.path);
+                
+                // Check if user has permission to view this module
+                const moduleMap: Record<string, any> = {
+                  'roadmap': 'roadmap',
+                  'kanban': 'kanban',
+                  'stakeholders': 'stakeholders',
+                  'status': 'tasks_milestones',
+                  'risks': 'risk_register',
+                  'capacity': 'team_capacity',
+                  'retrospective': 'retrospectives'
+                };
+                
+                const moduleName = moduleMap[item.id];
+                if (moduleName && !canRead(moduleName)) {
+                  return null; // Hide modules user doesn't have access to
+                }
+
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton asChild className="w-full">
@@ -156,6 +179,47 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                     </div>
                   </button>
                 </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              {isProjectOwner && (
+                <SidebarMenuItem>
+                  <AccessControlDialog 
+                    projectId={projectId}
+                    trigger={
+                      <SidebarMenuButton className="w-full">
+                        <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground w-full text-left">
+                          <Shield className="h-4 w-4 flex-shrink-0" />
+                          <div className="flex flex-col items-start min-w-0 flex-1">
+                            <span className="font-medium text-sm truncate w-full">Access Control</span>
+                            <span className="text-xs opacity-60 truncate w-full">Manage collaborator permissions</span>
+                          </div>
+                        </button>
+                      </SidebarMenuButton>
+                    }
+                  />
+                </SidebarMenuItem>
+              )}
+              
+              <SidebarMenuItem>
+                <Dialog open={showAuditLog} onOpenChange={setShowAuditLog}>
+                  <DialogTrigger asChild>
+                    <SidebarMenuButton className="w-full">
+                      <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground w-full text-left">
+                        <Activity className="h-4 w-4 flex-shrink-0" />
+                        <div className="flex flex-col items-start min-w-0 flex-1">
+                          <span className="font-medium text-sm truncate w-full">Activity History</span>
+                          <span className="text-xs opacity-60 truncate w-full">View project changes</span>
+                        </div>
+                      </button>
+                    </SidebarMenuButton>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh]">
+                    <DialogHeader>
+                      <DialogTitle>Project Activity History</DialogTitle>
+                    </DialogHeader>
+                    <AuditLogView projectId={projectId} />
+                  </DialogContent>
+                </Dialog>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

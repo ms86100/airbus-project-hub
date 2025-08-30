@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          module: Database["public"]["Enums"]["module_name"]
+          new_values: Json | null
+          old_values: Json | null
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          module: Database["public"]["Enums"]["module_name"]
+          new_values?: Json | null
+          old_values?: Json | null
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          module?: Database["public"]["Enums"]["module_name"]
+          new_values?: Json | null
+          old_values?: Json | null
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -162,6 +212,47 @@ export type Database = {
           },
           {
             foreignKeyName: "milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_permissions: {
+        Row: {
+          access_level: Database["public"]["Enums"]["access_level"]
+          created_at: string
+          granted_by: string
+          id: string
+          module: Database["public"]["Enums"]["module_name"]
+          project_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_level?: Database["public"]["Enums"]["access_level"]
+          created_at?: string
+          granted_by: string
+          id?: string
+          module: Database["public"]["Enums"]["module_name"]
+          project_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_level?: Database["public"]["Enums"]["access_level"]
+          created_at?: string
+          granted_by?: string
+          id?: string
+          module?: Database["public"]["Enums"]["module_name"]
+          project_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_permissions_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -1065,6 +1156,15 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      has_module_permission: {
+        Args: {
+          _module: Database["public"]["Enums"]["module_name"]
+          _project_id: string
+          _required_access: Database["public"]["Enums"]["access_level"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1074,7 +1174,19 @@ export type Database = {
       }
     }
     Enums: {
+      access_level: "read" | "write"
       app_role: "admin" | "project_coordinator"
+      module_name:
+        | "overview"
+        | "tasks_milestones"
+        | "roadmap"
+        | "kanban"
+        | "stakeholders"
+        | "risk_register"
+        | "discussions"
+        | "task_backlog"
+        | "team_capacity"
+        | "retrospectives"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1202,7 +1314,20 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_level: ["read", "write"],
       app_role: ["admin", "project_coordinator"],
+      module_name: [
+        "overview",
+        "tasks_milestones",
+        "roadmap",
+        "kanban",
+        "stakeholders",
+        "risk_register",
+        "discussions",
+        "task_backlog",
+        "team_capacity",
+        "retrospectives",
+      ],
     },
   },
 } as const
