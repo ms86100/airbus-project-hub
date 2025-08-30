@@ -288,8 +288,20 @@ Deno.serve(async (req) => {
         return createErrorResponse('Project not found', 'PROJECT_NOT_FOUND', 404);
       }
 
+      // Create authenticated client for updates to ensure audit logs have user context
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader) {
+        return createErrorResponse('Authorization header required', 'MISSING_AUTH_HEADER', 401);
+      }
+
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      });
+
       if (body.type === 'iteration') {
-        const { data: iteration, error } = await supabase
+        const { data: iteration, error } = await supabaseAuth
           .from('team_capacity_iterations')
           .update({
             iteration_name: body.iterationName,
@@ -336,7 +348,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        const { data: member, error } = await supabase
+        const { data: member, error } = await supabaseAuth
           .from('team_capacity_members')
           .update({
             member_name: body.memberName,
