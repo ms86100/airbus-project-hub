@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, LayoutGrid, Users, Settings, ArrowLeft } from 'lucide-react';
+import { Calendar, LayoutGrid, Users, Settings, ArrowLeft, AlertTriangle } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -47,6 +47,13 @@ const sidebarItems = [
     icon: Settings, 
     path: 'status',
     description: 'Configure task statuses'
+  },
+  { 
+    id: 'risks', 
+    title: 'Risk Register', 
+    icon: AlertTriangle, 
+    path: 'risks',
+    description: 'Identify and manage project risks'
   },
 ];
 

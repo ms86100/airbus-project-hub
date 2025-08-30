@@ -3,6 +3,7 @@ import { RoadmapView } from '@/components/workspace/RoadmapView';
 import { KanbanView } from '@/components/workspace/KanbanView';
 import { StakeholdersView } from '@/components/workspace/StakeholdersView';
 import { StatusManagementView } from '@/components/workspace/StatusManagementView';
+import { RiskRegisterView } from '@/components/workspace/RiskRegisterView';
 
 interface ProjectWorkspaceContentProps {
   projectId: string;
@@ -20,6 +21,8 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
         return <StakeholdersView projectId={projectId} />;
       case 'status':
         return <StatusManagementView projectId={projectId} />;
+      case 'risks':
+        return <RiskRegisterView projectId={projectId} />;
       default:
         return <RoadmapView />;
     }

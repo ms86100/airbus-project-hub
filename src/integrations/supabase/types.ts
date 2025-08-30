@@ -216,6 +216,96 @@ export type Database = {
           },
         ]
       }
+      risk_register: {
+        Row: {
+          category: string | null
+          cause: string | null
+          consequence: string | null
+          contingency_plan: string | null
+          created_at: string
+          created_by: string
+          department_id: string | null
+          description: string | null
+          id: string
+          identified_date: string | null
+          impact: number | null
+          last_updated: string | null
+          likelihood: number | null
+          mitigation_plan: string[] | null
+          next_review_date: string | null
+          notes: string | null
+          owner: string | null
+          project_id: string
+          residual_impact: number | null
+          residual_likelihood: number | null
+          residual_risk_score: number | null
+          response_strategy: string | null
+          risk_code: string
+          risk_score: number | null
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          cause?: string | null
+          consequence?: string | null
+          contingency_plan?: string | null
+          created_at?: string
+          created_by: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          identified_date?: string | null
+          impact?: number | null
+          last_updated?: string | null
+          likelihood?: number | null
+          mitigation_plan?: string[] | null
+          next_review_date?: string | null
+          notes?: string | null
+          owner?: string | null
+          project_id: string
+          residual_impact?: number | null
+          residual_likelihood?: number | null
+          residual_risk_score?: number | null
+          response_strategy?: string | null
+          risk_code: string
+          risk_score?: number | null
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          cause?: string | null
+          consequence?: string | null
+          contingency_plan?: string | null
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          identified_date?: string | null
+          impact?: number | null
+          last_updated?: string | null
+          likelihood?: number | null
+          mitigation_plan?: string[] | null
+          next_review_date?: string | null
+          notes?: string | null
+          owner?: string | null
+          project_id?: string
+          residual_impact?: number | null
+          residual_likelihood?: number | null
+          residual_risk_score?: number | null
+          response_strategy?: string | null
+          risk_code?: string
+          risk_score?: number | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stakeholders: {
         Row: {
           created_at: string
