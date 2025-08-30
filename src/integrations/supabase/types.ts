@@ -633,6 +633,132 @@ export type Database = {
           },
         ]
       }
+      team_capacity_iterations: {
+        Row: {
+          committed_story_points: number
+          created_at: string
+          created_by: string
+          department_id: string | null
+          end_date: string
+          id: string
+          iteration_name: string
+          project_id: string
+          start_date: string
+          updated_at: string
+          working_days: number
+        }
+        Insert: {
+          committed_story_points?: number
+          created_at?: string
+          created_by: string
+          department_id?: string | null
+          end_date: string
+          id?: string
+          iteration_name: string
+          project_id: string
+          start_date: string
+          updated_at?: string
+          working_days: number
+        }
+        Update: {
+          committed_story_points?: number
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          end_date?: string
+          id?: string
+          iteration_name?: string
+          project_id?: string
+          start_date?: string
+          updated_at?: string
+          working_days?: number
+        }
+        Relationships: []
+      }
+      team_capacity_members: {
+        Row: {
+          availability_percent: number
+          created_at: string
+          created_by: string
+          department_id: string | null
+          effective_capacity_days: number
+          id: string
+          iteration_id: string
+          leaves: number
+          member_name: string
+          role: string
+          updated_at: string
+          work_mode: string
+        }
+        Insert: {
+          availability_percent?: number
+          created_at?: string
+          created_by: string
+          department_id?: string | null
+          effective_capacity_days?: number
+          id?: string
+          iteration_id: string
+          leaves?: number
+          member_name: string
+          role: string
+          updated_at?: string
+          work_mode: string
+        }
+        Update: {
+          availability_percent?: number
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          effective_capacity_days?: number
+          id?: string
+          iteration_id?: string
+          leaves?: number
+          member_name?: string
+          role?: string
+          updated_at?: string
+          work_mode?: string
+        }
+        Relationships: []
+      }
+      team_capacity_settings: {
+        Row: {
+          created_at: string
+          created_by: string
+          hybrid_weight: number
+          id: string
+          iteration_basis: string
+          office_weight: number
+          project_id: string
+          updated_at: string
+          wfh_weight: number
+          work_week: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          hybrid_weight?: number
+          id?: string
+          iteration_basis?: string
+          office_weight?: number
+          project_id: string
+          updated_at?: string
+          wfh_weight?: number
+          work_week?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          hybrid_weight?: number
+          id?: string
+          iteration_basis?: string
+          office_weight?: number
+          project_id?: string
+          updated_at?: string
+          wfh_weight?: number
+          work_week?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -659,6 +785,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_effective_capacity: {
+        Args: {
+          availability_percent: number
+          hybrid_weight?: number
+          leaves: number
+          office_weight?: number
+          wfh_weight?: number
+          work_mode: string
+          working_days: number
+        }
+        Returns: number
+      }
       get_user_department: {
         Args: { _user_id: string }
         Returns: string

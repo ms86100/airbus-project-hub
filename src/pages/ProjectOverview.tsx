@@ -23,6 +23,7 @@ import { AddTaskDialog } from '@/components/workspace/AddTaskDialog';
 import { AddTaskFromBacklogDialog } from '@/components/workspace/AddTaskFromBacklogDialog';
 import { DiscussionLog } from '@/components/workspace/DiscussionLog';
 import { TaskBacklog } from '@/components/workspace/TaskBacklog';
+import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
 
 interface Project {
   id: string;
@@ -286,6 +287,7 @@ const ProjectOverview = () => {
                   <TabsTrigger value="risks" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Risk Register</TabsTrigger>
                   <TabsTrigger value="discussions" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Discussions</TabsTrigger>
                   <TabsTrigger value="backlog" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Task Backlog</TabsTrigger>
+                  <TabsTrigger value="capacity" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Team Capacity</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -528,6 +530,12 @@ const ProjectOverview = () => {
               <TabsContent value="backlog" className="p-0">
                 <div className="h-[700px] w-full overflow-y-auto">
                   <TaskBacklog projectId={id!} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="capacity" className="p-0">
+                <div className="h-[700px] w-full overflow-y-auto">
+                  <TeamCapacityTracker projectId={id!} />
                 </div>
               </TabsContent>
             </Tabs>
