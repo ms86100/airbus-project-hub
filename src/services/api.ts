@@ -1,5 +1,4 @@
 // Central API client for all microservices
-import { supabase } from '@/integrations/supabase/client';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -17,23 +16,23 @@ class ApiClient {
 
   private async getAuthToken(): Promise<string | null> {
     try {
-      // Get the current session from Supabase
-      const { data: { session }, error } = await supabase.auth.getSession();
+      // Get the stored session from localStorage (microservice auth)
+      const storedSession = localStorage.getItem('auth_session');
       
-      console.log('🔑 Retrieved session from Supabase:', session ? 'Session exists' : 'No session');
-      console.log('🔑 Session error:', error);
-      
-      if (error) {
-        console.error('Error getting session:', error);
-        return null;
+      if (storedSession) {
+        const session = JSON.parse(storedSession);
+        console.log('🔑 Retrieved session from localStorage:', session ? 'Session exists' : 'No session');
+        
+        // Extract token from the stored session
+        const token = session?.access_token || session?.token || session?.accessToken;
+        
+        if (token) {
+          console.log('🎫 Extracted token:', `${token.substring(0, 20)}...`);
+          return token;
+        }
       }
       
-      if (session?.access_token) {
-        console.log('🎫 Extracted token:', `${session.access_token.substring(0, 20)}...`);
-        return session.access_token;
-      }
-      
-      console.log('❌ No access token found in session');
+      console.log('❌ No access token found in stored session');
       return null;
     } catch (error) {
       console.error('Error getting auth token:', error);
