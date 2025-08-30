@@ -940,15 +940,9 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           <h1 className="text-3xl font-bold">Retrospectives</h1>
           <p className="text-muted-foreground">Reflect and improve with structured retrospectives</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setShowRetrospectivesList(true)}>
-            View All
-          </Button>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Retrospective
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => setShowRetrospectivesList(true)}>
+          View All
+        </Button>
       </div>
 
       {retrospectives.length === 0 ? (
