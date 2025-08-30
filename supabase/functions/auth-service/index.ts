@@ -25,7 +25,10 @@ interface RegisterRequest {
 }
 
 Deno.serve(async (req) => {
+  console.log('🚀 Auth service starting request handling');
+  
   if (req.method === 'OPTIONS') {
+    console.log('✅ Handling CORS preflight');
     return handleCorsOptions();
   }
 
@@ -33,27 +36,32 @@ Deno.serve(async (req) => {
   const path = url.pathname;
   const method = req.method;
 
+  console.log(`📍 Request: ${method} ${path}`);
   logRequest(method, path);
 
   try {
     // POST /auth/login
     if (method === 'POST' && path.endsWith('/login')) {
+      console.log('🔐 Processing login request');
       const { email, password }: LoginRequest = await parseRequestBody(req);
 
       if (!email || !password) {
+        console.log('❌ Missing credentials');
         return createErrorResponse('Email and password are required', 'MISSING_CREDENTIALS');
       }
 
+      console.log(`🔍 Attempting login for email: ${email}`);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.error('Login error:', error);
+        console.error('❌ Login error:', error);
         return createErrorResponse(error.message, 'LOGIN_FAILED', 401);
       }
 
+      console.log('✅ Login successful');
       return createSuccessResponse({
         user: data.user,
         session: data.session,
