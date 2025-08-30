@@ -1211,35 +1211,18 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           </Dialog>
 
           <Dialog open={showMemberDialog} onOpenChange={setShowMemberDialog}>
-            <DialogContent 
-              className="z-[50] max-w-md" 
-              onInteractOutside={(e) => {
-                // Only prevent closing if clicking on select dropdown
-                const target = e.target as Element;
-                if (target.closest('[data-radix-select-content]')) {
-                  e.preventDefault();
-                }
-              }}
-            >
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>{editingMember ? 'Edit' : 'Add'} Team Member</DialogTitle>
-                <DialogDescription>
-                  {editingMember ? 'Update team member details.' : 'Add a new team member to this iteration.'}
-                </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleMemberSubmit} className="space-y-4" onClick={(e) => e.stopPropagation()}>
+              <form onSubmit={handleMemberSubmit} className="space-y-4">
                 <div>
                   <Label htmlFor="stakeholder">Team Member</Label>
                   <Select value={memberForm.stakeholder_id} onValueChange={(value) => setMemberForm({ ...memberForm, stakeholder_id: value })}>
-                    <SelectTrigger className="bg-background border">
+                    <SelectTrigger>
                       <SelectValue placeholder="Select a team member" />
                     </SelectTrigger>
-                    <SelectContent 
-                      className="bg-popover border z-[60] max-h-[200px] overflow-y-auto" 
-                      position="popper"
-                      side="bottom"
-                      align="start"
-                    >
+                    <SelectContent>
                       {stakeholders.map((stakeholder) => (
                         <SelectItem key={stakeholder.id} value={stakeholder.id} className="hover:bg-accent cursor-pointer">
                           {stakeholder.name} {stakeholder.department && `(${stakeholder.department})`}
