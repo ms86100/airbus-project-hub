@@ -12,6 +12,8 @@ import ProjectOverview from "./pages/ProjectOverview";
 import EditProject from "./pages/EditProject";
 import Projects from "./pages/Projects";
 import ProjectWorkspace from "./components/ProjectWorkspace";
+import Retrospectives from "./pages/Retrospectives";
+import TeamCapacity from "./pages/TeamCapacity";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +31,8 @@ const App = () => (
             <Route path="/projects" element={<Projects />} />
             <Route path="/project/:id" element={<ProjectOverview />} />
             <Route path="/project/:id/edit" element={<EditProject />} />
+            <Route path="/retrospectives" element={<Retrospectives />} />
+            <Route path="/team-capacity" element={<TeamCapacity />} />
             <Route path="/project/:id/:module" element={<ProjectWorkspace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, LayoutGrid, Users, Settings, ArrowLeft, AlertTriangle, MessageCircle, BarChart3, RotateCcw } from 'lucide-react';
+import { Calendar, LayoutGrid, Users, Settings, ArrowLeft, AlertTriangle, MessageCircle, BarChart3 } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -61,13 +61,6 @@ const sidebarItems = [
     icon: BarChart3, 
     path: 'capacity',
     description: 'Manage team capacity planning'
-  },
-  { 
-    id: 'retrospective', 
-    title: 'Retrospective', 
-    icon: RotateCcw, 
-    path: 'retrospective',
-    description: 'Reflect and improve processes'
   },
 ];
 

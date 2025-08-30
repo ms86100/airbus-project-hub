@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -154,6 +155,8 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showCardDialog, setShowCardDialog] = useState(false);
   const [showActionDialog, setShowActionDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [retrospectiveToDelete, setRetrospectiveToDelete] = useState<string | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState('');
   const [selectedCardForAction, setSelectedCardForAction] = useState<RetrospectiveCard | null>(null);
 
@@ -667,6 +670,41 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     return cardVotes.filter(v => v.card_id === cardId);
   };
 
+  const handleDeleteRetrospective = async () => {
+    if (!retrospectiveToDelete) return;
+
+    try {
+      // Delete retrospective (cascading deletes will handle related data)
+      const { error } = await supabase
+        .from('retrospectives')
+        .delete()
+        .eq('id', retrospectiveToDelete);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Retrospective deleted successfully'
+      });
+
+      setShowDeleteDialog(false);
+      setRetrospectiveToDelete(null);
+      
+      // Refresh retrospectives and clear selection if deleted retrospective was selected
+      fetchRetrospectives();
+      if (selectedRetrospective?.id === retrospectiveToDelete) {
+        setSelectedRetrospective(null);
+      }
+    } catch (error) {
+      console.error('Error deleting retrospective:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete retrospective',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const getUserDisplayName = (userId: string) => {
     const profile = profiles.find(p => p.id === userId);
     return profile?.full_name || profile?.email || 'Unknown User';
@@ -759,6 +797,17 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                           </div>
                         </div>
                         
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setRetrospectiveToDelete(retro.id);
+                            setShowDeleteDialog(true);
+                          }}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          Delete
+                        </Button>
                         <Button
                           onClick={() => {
                             setSelectedRetrospective(retro);
@@ -1292,6 +1341,29 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Retrospective</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this retrospective? This will permanently delete all cards, action items, and associated data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRetrospectiveToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteRetrospective}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Retrospective
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
