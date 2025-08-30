@@ -241,7 +241,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
 
         setShowCreateDialog(false);
         setCreateForm({ iteration_id: '', framework: 'Classic' });
-        fetchRetrospectives();
+        await fetchRetrospectives();
       } else {
         throw new Error(response.error || 'Failed to create retrospective');
       }
