@@ -158,12 +158,14 @@ export function RoadmapView() {
     tasks.forEach(task => {
       console.log('Processing task:', task.title, 'created:', task.created_at, 'due:', task.due_date);
       
-      // Add task start date (created_at)
-      const startDate = parseISO(task.created_at);
-      allDates.push(startDate);
-      console.log('Parsed start date:', startDate);
+      // Add task start date (created_at) - only if not null
+      if (task.created_at) {
+        const startDate = parseISO(task.created_at);
+        allDates.push(startDate);
+        console.log('Parsed start date:', startDate);
+      }
       
-      // Add task end date (due_date)
+      // Add task end date (due_date) - only if not null
       if (task.due_date) {
         const endDate = parseISO(task.due_date);
         allDates.push(endDate);
@@ -433,7 +435,7 @@ export function RoadmapView() {
                         <div className="col-span-3 text-sm truncate">
                           <div className="font-medium text-foreground">{task.title}</div>
                           <div className="text-text-muted text-xs flex items-center gap-2">
-                            <span>Due: {format(parseISO(task.due_date), 'MMM dd')}</span>
+                            {task.due_date && <span>Due: {format(parseISO(task.due_date), 'MMM dd')}</span>}
                             {task.owner_id && (
                               <>
                                 <span>•</span>
@@ -458,7 +460,7 @@ export function RoadmapView() {
                            <div
                              className={`absolute top-0.5 h-5 ${taskColorClass} rounded-sm cursor-pointer group-hover:shadow-md transition-all flex items-center justify-center border border-white/20`}
                              style={position}
-                             title={`${task.title} - ${task.status} - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}`}
+                             title={`${task.title} - ${task.status}${task.due_date ? ` - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}` : ''}`}
                            >
                             {/* Task progress indicator */}
                             <div className="w-full h-full rounded-sm relative overflow-hidden">
