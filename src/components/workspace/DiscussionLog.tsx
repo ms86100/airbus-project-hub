@@ -689,84 +689,6 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Action Items for: {selectedDiscussion.meeting_title}</CardTitle>
-                    <Dialog open={showActionItemDialog} onOpenChange={setShowActionItemDialog}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" onClick={resetActionItemForm}>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Action Item
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>
-                            {editingActionItem ? 'Edit Action Item' : 'Add Action Item'}
-                          </DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleActionItemSubmit} className="space-y-4">
-                          <div>
-                            <Label htmlFor="task_description">Task Description</Label>
-                            <Textarea
-                              id="task_description"
-                              value={actionItemForm.task_description}
-                              onChange={(e) => setActionItemForm(prev => ({ ...prev, task_description: e.target.value }))}
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="owner_id">Owner</Label>
-                            <Select
-                              value={actionItemForm.owner_id}
-                              onValueChange={(value) => setActionItemForm(prev => ({ ...prev, owner_id: value }))}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select owner" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getAttendeeOptions().map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label htmlFor="target_date">Target Date</Label>
-                            <Input
-                              id="target_date"
-                              type="date"
-                              value={actionItemForm.target_date}
-                              onChange={(e) => setActionItemForm(prev => ({ ...prev, target_date: e.target.value }))}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="status">Status</Label>
-                            <Select
-                              value={actionItemForm.status}
-                              onValueChange={(value) => setActionItemForm(prev => ({ ...prev, status: value }))}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="open">Open</SelectItem>
-                                <SelectItem value="in-progress">In Progress</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                                <SelectItem value="cancelled">Cancelled</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex justify-end space-x-2">
-                            <Button type="button" variant="outline" onClick={() => setShowActionItemDialog(false)}>
-                              Cancel
-                            </Button>
-                            <Button type="submit">
-                              {editingActionItem ? 'Update' : 'Add'}
-                            </Button>
-                          </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -793,22 +715,22 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
                               )}
                             </div>
                           </div>
-                           <div className="flex items-center gap-2">
-                             <Button
-                               variant="ghost"
-                               size="sm"
-                               onClick={() => convertToBacklog(actionItem)}
-                               title="Convert to Backlog Item"
-                             >
-                               <ArrowRight className="h-4 w-4" />
-                             </Button>
-                             <Button
-                               variant="outline"
-                               size="sm"
-                               onClick={() => openEditActionItem(actionItem)}
-                             >
-                               <Edit2 className="h-4 w-4" />
-                             </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => convertToBacklog(actionItem)}
+                              title="Convert to Backlog Item"
+                            >
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditActionItem(actionItem)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm">

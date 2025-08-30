@@ -20,6 +20,8 @@ import { TaskCard } from '@/components/workspace/TaskManagement';
 import { TasksTableView } from '@/components/workspace/TasksTableView';
 import { AddTaskDialog } from '@/components/workspace/AddTaskDialog';
 import { AddTaskFromBacklogDialog } from '@/components/workspace/AddTaskFromBacklogDialog';
+import { DiscussionLog } from '@/components/workspace/DiscussionLog';
+import { TaskBacklog } from '@/components/workspace/TaskBacklog';
 
 interface Project {
   id: string;
@@ -282,6 +284,8 @@ const ProjectOverview = () => {
                   <TabsTrigger value="kanban" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Kanban</TabsTrigger>
                   <TabsTrigger value="stakeholders" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Stakeholders</TabsTrigger>
                   <TabsTrigger value="risks" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Risk Register</TabsTrigger>
+                  <TabsTrigger value="discussions" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Discussions</TabsTrigger>
+                  <TabsTrigger value="backlog" className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white">Task Backlog</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -464,6 +468,18 @@ const ProjectOverview = () => {
               <TabsContent value="risks" className="p-0">
                 <div className="h-[700px] w-full overflow-y-auto">
                   <RiskRegisterView projectId={id!} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="discussions" className="p-0">
+                <div className="h-[700px] w-full overflow-y-auto">
+                  <DiscussionLog projectId={id!} projectName={project.name} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="backlog" className="p-0">
+                <div className="h-[700px] w-full overflow-y-auto">
+                  <TaskBacklog projectId={id!} />
                 </div>
               </TabsContent>
             </Tabs>
