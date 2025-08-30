@@ -64,13 +64,23 @@ Deno.serve(async (req) => {
   const path = url.pathname;
   const method = req.method;
 
-  logRequest(method, path);
-
   try {
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return createErrorResponse('No authorization header', 'UNAUTHORIZED', 401);
+    }
+
+    // Create an authenticated client so RLS/auth.uid() are respected in DB triggers
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
     const { user, error: authError } = await validateAuthToken(req, supabase);
     if (authError || !user) {
       return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
     }
+
+    logRequest(method, path, user);
 
     // GET /stakeholder-service/projects/:id/stakeholders
     if (method === 'GET' && path.includes('/projects/') && path.endsWith('/stakeholders')) {
@@ -84,7 +94,7 @@ Deno.serve(async (req) => {
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
 
-      const { data: stakeholders, error } = await supabase
+      const { data: stakeholders, error } = await supabaseAuth
         .from('stakeholders')
         .select('id, project_id, name, email, department, raci, influence_level, notes, created_at, updated_at')
         .eq('project_id', projectId)
@@ -113,7 +123,7 @@ Deno.serve(async (req) => {
       const body = await parseRequestBody(req);
       if (!body?.name) return createErrorResponse('name is required', 'MISSING_FIELDS');
 
-      const { data: stakeholder, error } = await supabase
+      const { data: stakeholder, error } = await supabaseAuth
         .from('stakeholders')
         .insert({
           project_id: projectId,
