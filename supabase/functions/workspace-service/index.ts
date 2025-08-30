@@ -56,15 +56,32 @@ Deno.serve(async (req) => {
     return handleCorsOptions();
   }
 
-  const url = new URL(req.url);
-  const path = url.pathname;
-  const method = req.method;
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) {
+    return createErrorResponse('No authorization header', 'UNAUTHORIZED', 401);
+  }
 
-  logRequest(method, path);
+  // Create authenticated client for user context
+  const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: {
+      headers: {
+        Authorization: authHeader
+      }
+    }
+  });
 
   try {
     const { user, error: authError } = await validateAuthToken(req, supabase);
-    if (authError || !user) return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return createErrorResponse(authError || 'Authentication failed', 'UNAUTHORIZED', 401);
+    }
+    
+    const url = new URL(req.url);
+    const method = req.method;
+    const path = url.pathname;
+
+    logRequest(method, path, user);
 
     // GET /workspace-service/projects/:id/workspace
     if (method === 'GET' && path.includes('/projects/') && path.endsWith('/workspace')) {
@@ -406,7 +423,7 @@ Deno.serve(async (req) => {
       const access = await hasProjectAccess(user.id, task.project_id);
       if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
 
-      const { data: updatedTask, error } = await supabase
+      const { data: updatedTask, error } = await supabaseAuth
         .from('tasks')
         .update(taskData)
         .eq('id', taskId)

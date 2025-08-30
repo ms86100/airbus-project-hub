@@ -61,20 +61,32 @@ Deno.serve(async (req) => {
     return handleCorsOptions();
   }
 
-  const url = new URL(req.url);
-  const path = url.pathname;
-  const method = req.method;
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) {
+    return createErrorResponse('No authorization header', 'UNAUTHORIZED', 401);
+  }
 
-  logRequest(method, path);
+  // Create authenticated client for user context
+  const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: {
+      headers: {
+        Authorization: authHeader
+      }
+    }
+  });
 
   try {
-    // Require auth for all endpoints
     const { user, error: authError } = await validateAuthToken(req, supabase);
     if (authError || !user) {
-      return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
+      console.error('Auth error:', authError);
+      return createErrorResponse(authError || 'Authentication failed', 'UNAUTHORIZED', 401);
     }
+    
+    const url = new URL(req.url);
+    const method = req.method;
+    const path = url.pathname;
 
-    // GET /backlog-service/projects/:id/backlog
+    logRequest(method, path, user);
     if (method === 'GET' && path.includes('/projects/') && path.endsWith('/backlog')) {
       const params = extractPathParams(url, '/backlog-service/projects/:id/backlog');
       const projectId = params.id;
@@ -133,7 +145,7 @@ Deno.serve(async (req) => {
         return createErrorResponse('title is required', 'MISSING_FIELDS');
       }
 
-      const { data: item, error } = await supabase
+      const { data: item, error } = await supabaseAuth
         .from('task_backlog')
         .insert({
           project_id: projectId,
@@ -179,7 +191,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const { data: item, error } = await supabase
+      const { data: item, error } = await supabaseAuth
         .from('task_backlog')
         .update({
           title: updateData.title,
@@ -223,7 +235,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseAuth
         .from('task_backlog')
         .delete()
         .eq('id', itemId)
@@ -274,7 +286,7 @@ Deno.serve(async (req) => {
       }
 
       // Create a task from the backlog item
-      const { data: task, error: createError } = await supabase
+      const { data: task, error: createError } = await supabaseAuth
         .from('tasks')
         .insert({
           project_id: projectId,
@@ -296,7 +308,7 @@ Deno.serve(async (req) => {
       }
 
       // Update backlog item status to indicate it's been moved
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAuth
         .from('task_backlog')
         .update({ status: 'done' })
         .eq('id', itemId);
