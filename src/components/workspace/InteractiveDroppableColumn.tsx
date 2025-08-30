@@ -41,53 +41,65 @@ export function InteractiveDroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col h-full min-h-[400px] rounded-lg border transition-all duration-200 ${
+      className={`flex flex-col h-full min-h-[400px] rounded-lg border-2 transition-all duration-300 ${
         isOver 
-          ? 'bg-primary/5 border-primary border-2 border-dashed shadow-md' 
-          : 'bg-gradient-to-br from-background to-muted/20 border-border'
+          ? 'bg-gradient-to-br from-primary/10 to-accent/10 border-primary/50 border-dashed shadow-xl scale-[1.02] transform' 
+          : 'bg-gradient-to-br from-background via-muted/10 to-background border-border hover:shadow-lg hover:border-primary/20'
       }`}
     >
-      {/* Column Header */}
-      <div className="p-4 border-b border-border">
+      {/* Enhanced Column Header */}
+      <div className="p-4 border-b border-border/50 bg-gradient-to-r from-primary/5 to-accent/5">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-sm">{column.title}</h3>
+          <h3 className="font-bold text-lg bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+            {column.title}
+          </h3>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => onAddCard(column.id)}
-            className="h-6 w-6 p-0 hover:bg-primary/10"
+            className="h-8 w-8 p-0 hover:bg-white/60 border border-primary/20 rounded-full"
           >
-            <Plus className="h-3 w-3" />
+            <Plus className="h-4 w-4 text-primary" />
           </Button>
         </div>
         {column.subtitle && (
-          <p className="text-xs text-muted-foreground">{column.subtitle}</p>
+          <p className="text-sm text-muted-foreground font-medium mb-2">{column.subtitle}</p>
         )}
-        <div className="mt-2 flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{cards.length} cards</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 px-2 py-1 bg-white/60 rounded-full">
+            <span className="text-xs font-medium text-primary">{cards.length}</span>
+            <span className="text-xs text-muted-foreground">cards</span>
+          </div>
           {cards.length > 0 && (
-            <span className="text-xs text-muted-foreground">
-              • {cards.reduce((sum, card) => sum + (card.votes || 0), 0)} votes
-            </span>
+            <div className="flex items-center gap-1 px-2 py-1 bg-white/60 rounded-full">
+              <span className="text-xs font-medium text-blue-600">
+                {cards.reduce((sum, card) => sum + (card.votes || 0), 0)}
+              </span>
+              <span className="text-xs text-muted-foreground">votes</span>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Cards Container */}
-      <div className="flex-1 p-3 space-y-3 overflow-y-auto">
+      {/* Enhanced Cards Container */}
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
         <SortableContext items={cards.map(c => c.id)} strategy={verticalListSortingStrategy}>
           {cards.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
-                <Plus className="h-6 w-6 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-dashed border-primary/20 flex items-center justify-center mb-4">
+                <Plus className="h-8 w-8 text-primary/60" />
               </div>
-              <p className="text-sm text-muted-foreground mb-2">No cards yet</p>
+              <p className="text-sm font-medium text-muted-foreground mb-3">No cards in this column yet</p>
+              <p className="text-xs text-muted-foreground mb-4 max-w-[200px]">
+                Start adding retrospective items to capture team feedback
+              </p>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => onAddCard(column.id)}
-                className="text-xs"
+                className="text-xs border-primary/30 hover:bg-primary/5 hover:border-primary/50"
               >
+                <Plus className="h-3 w-3 mr-1" />
                 Add first card
               </Button>
             </div>
@@ -110,11 +122,13 @@ export function InteractiveDroppableColumn({
         </SortableContext>
       </div>
 
-      {/* Drop Zone Indicator */}
+      {/* Enhanced Drop Zone Indicator */}
       {isOver && (
-        <div className="p-4 border-t border-primary border-dashed bg-primary/5">
-          <div className="text-center text-sm text-primary font-medium">
+        <div className="p-4 border-t-2 border-primary border-dashed bg-gradient-to-r from-primary/10 to-accent/10 animate-pulse">
+          <div className="text-center text-sm text-primary font-semibold flex items-center justify-center gap-2">
+            <Plus className="h-4 w-4" />
             Drop card here
+            <Plus className="h-4 w-4" />
           </div>
         </div>
       )}

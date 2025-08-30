@@ -258,16 +258,42 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
     if (!selectedCard || !actionItemForm.what_task.trim()) return;
 
     try {
-      const response = await apiClient.createRetrospectiveActionItem(retrospective.id, {
+      // First create the action item
+      const actionResponse = await apiClient.createRetrospectiveActionItem(retrospective.id, {
         ...actionItemForm,
         from_card_id: selectedCard.id
       });
 
-      if (response.success) {
-        toast({
-          title: 'Success',
-          description: 'Action item created successfully'
-        });
+      if (actionResponse.success) {
+        // Automatically create task in backlog
+        const backlogData = {
+          title: actionItemForm.what_task,
+          description: `${actionItemForm.how_approach ? actionItemForm.how_approach + '\n\n' : ''}Created from retrospective action item.\n\nOriginal card: "${selectedCard.text}"\nWhen: ${actionItemForm.when_sprint}\nWho: ${actionItemForm.who_responsible}`,
+          priority: 'medium',
+          source_type: 'retrospective',
+          source_id: actionResponse.data?.actionItem?.id,
+          owner_id: stakeholders.find(s => s.name === actionItemForm.who_responsible)?.id
+        };
+
+        const backlogResponse = await apiClient.createBacklogItem(retrospective.project_id, backlogData);
+        
+        if (backlogResponse.success) {
+          // Update action item to link to the created backlog task
+          await apiClient.updateRetrospectiveActionItem(actionResponse.data?.actionItem?.id, {
+            backlog_task_id: backlogResponse.data?.item?.id
+          });
+          
+          toast({
+            title: 'Success',
+            description: 'Action item created and automatically added to task backlog'
+          });
+        } else {
+          toast({
+            title: 'Partial Success',
+            description: 'Action item created but failed to add to backlog'
+          });
+        }
+        
         setShowActionItemDialog(false);
         setSelectedCard(null);
         setActionItemForm({
@@ -365,18 +391,27 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={onBack}>
+          <Button variant="ghost" onClick={onBack} className="hover:bg-white/80">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Retrospective Board</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Retrospective Board
+            </h1>
             <p className="text-muted-foreground">Framework: {retrospective.framework}</p>
           </div>
         </div>
-        <Badge variant="outline" className="capitalize">{retrospective.status}</Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="capitalize bg-white/50 backdrop-blur-sm">
+            {retrospective.status}
+          </Badge>
+          <div className="text-sm text-muted-foreground">
+            {columns.reduce((acc, col) => acc + (col.cards?.length || 0), 0)} cards
+          </div>
+        </div>
       </div>
 
       {/* Kanban Board */}
@@ -385,7 +420,7 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
         onDragEnd={handleDragEnd}
         collisionDetection={closestCorners}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 h-[calc(100vh-200px)]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 min-h-[calc(100vh-280px)]">
           {columns.map((column) => (
             <div key={column.id} className="flex flex-col">
               <InteractiveDroppableColumn
@@ -448,11 +483,17 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
         </DialogContent>
       </Dialog>
 
-      {/* Action Item Dialog */}
+      {/* Enhanced Action Item Dialog */}
       <Dialog open={showActionItemDialog} onOpenChange={setShowActionItemDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create Action Item</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              Create Action Item & Task
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              This will create an action item and automatically add it to the task backlog
+            </p>
           </DialogHeader>
           <div className="space-y-4">
             <div>

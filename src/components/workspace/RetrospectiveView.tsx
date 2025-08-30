@@ -11,11 +11,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Target, Calendar, BarChart3, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Target, Calendar, BarChart3, Trash2, MoreHorizontal, TrendingUp } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { InteractiveRetrospectiveBoard } from './InteractiveRetrospectiveBoard';
 import { RetrospectiveAnalytics } from './RetrospectiveAnalytics';
+import { EnhancedRetrospectiveAnalytics } from './EnhancedRetrospectiveAnalytics';
 
 interface RetrospectiveViewProps {
   projectId: string;
@@ -170,7 +171,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [iterations, setIterations] = useState<TeamCapacityIteration[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<'list' | 'board' | 'analytics'>('list');
+  const [view, setView] = useState<'list' | 'board' | 'analytics' | 'enhanced-analytics'>('list');
 
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -341,6 +342,15 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     );
   }
 
+  if (view === 'enhanced-analytics') {
+    return (
+      <EnhancedRetrospectiveAnalytics
+        projectId={projectId}
+        onBack={() => setView('list')}
+      />
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -352,6 +362,10 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
           <Button variant="outline" onClick={() => setView('analytics')}>
             <BarChart3 className="h-4 w-4 mr-2" />
             Analytics
+          </Button>
+          <Button variant="outline" onClick={() => setView('enhanced-analytics')} className="bg-gradient-to-r from-primary/5 to-accent/5">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Enhanced Analytics
           </Button>
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <Button onClick={() => setShowCreateDialog(true)}>
