@@ -12,6 +12,7 @@ import {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -154,8 +155,22 @@ Deno.serve(async (req) => {
           return createErrorResponse('Missing required iteration fields', 'MISSING_FIELDS');
         }
 
-        // Create new capacity iteration
-        const { data: iteration, error } = await supabase
+        // Create authenticated client for database operations that trigger audit logs
+        const authHeader = req.headers.get('authorization');
+        if (!authHeader) {
+          return createErrorResponse('Authorization header required', 'MISSING_AUTH_HEADER', 401);
+        }
+
+        const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+          global: {
+            headers: {
+              Authorization: authHeader,
+            },
+          },
+        });
+
+        // Create new capacity iteration with authenticated client for audit logs
+        const { data: iteration, error } = await supabaseAuth
           .from('team_capacity_iterations')
           .insert({
             project_id: projectId,
