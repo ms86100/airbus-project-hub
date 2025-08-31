@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
         .select('id, name, project_id')
         .eq('id', milestoneId)
         .eq('project_id', projectId)
-        .single();
+        .maybeSingle();
 
       if (milestoneError || !milestone) {
         console.error('Milestone validation failed:', { milestoneId, projectId, error: milestoneError });
@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
         .select('*')
         .eq('id', itemId)
         .eq('project_id', projectId)
-        .single();
+        .maybeSingle();
 
       if (fetchError || !backlogItem) {
         return createErrorResponse('Backlog item not found', 'ITEM_NOT_FOUND', 404);

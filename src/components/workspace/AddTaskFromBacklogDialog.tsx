@@ -25,7 +25,7 @@ interface BacklogItem {
 }
 
 export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }: AddTaskFromBacklogDialogProps) {
-  const { user } = useApiAuth();
+  const { user, session } = useApiAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
@@ -45,6 +45,36 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
       }
     } catch (error) {
       console.error('Error fetching backlog items:', error);
+    }
+  };
+
+  // Prefer calling the cloud Edge Function directly to avoid local backend mismatches
+  const moveBacklogItemViaCloud = async (
+    projectId: string,
+    itemId: string,
+    milestoneId: string
+  ) => {
+    try {
+      const url = `https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/backlog-service/projects/${projectId}/backlog/${itemId}/move`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+      };
+      if (session?.access_token) headers['authorization'] = `Bearer ${session.access_token}`;
+      console.log('🌐 [Cloud] Moving backlog item → task', { url, milestoneId, hasAuth: !!session?.access_token });
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ milestoneId }),
+      });
+      const json = await res.json().catch(() => null);
+      console.log('📡 [Cloud] Move response:', json);
+      if (!json?.success) return { success: false, error: json?.error || 'MOVE_FAILED', code: json?.code };
+      return json as { success: boolean; data?: any; error?: string; code?: string };
+    } catch (err) {
+      console.error('❌ [Cloud] Move failed:', err);
+      return { success: false, error: 'NETWORK_ERROR', code: 'NETWORK_ERROR' } as any;
     }
   };
 
@@ -68,7 +98,11 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
           projectId: projectId,
           isValidMilestoneId: milestoneId && milestoneId.length > 0
         });
-        const response = await apiClient.moveBacklogToMilestone(projectId, itemId, milestoneId);
+        let response = await moveBacklogItemViaCloud(projectId, itemId, milestoneId);
+        if (!response.success) {
+          console.warn('⚠️ Cloud move failed, falling back to API client...', response);
+          response = await apiClient.moveBacklogToMilestone(projectId, itemId, milestoneId);
+        }
         console.log(`📡 Move response for ${itemId}:`, response);
         
         if (!response.success) {
