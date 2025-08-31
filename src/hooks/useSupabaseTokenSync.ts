@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
-// Mirrors the Supabase session into the app's localStorage keys that api.ts expects
+// DISABLED: No longer syncing Supabase tokens for local backend
 function mirrorSessionToLocalStorage(session: any | null) {
   if (!session) {
     localStorage.removeItem('auth_session');
@@ -25,18 +24,7 @@ function mirrorSessionToLocalStorage(session: any | null) {
 
 export function useSupabaseTokenSync() {
   useEffect(() => {
-    // Initial sync
-    supabase.auth.getSession().then(({ data }) => {
-      mirrorSessionToLocalStorage(data.session ?? null);
-    });
-
-    // Keep in sync on any auth change
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      mirrorSessionToLocalStorage(session ?? null);
-    });
-
-    return () => {
-      listener.subscription?.unsubscribe?.();
-    };
+    // DISABLED: Not syncing with Supabase when using local backend
+    console.log('Supabase token sync disabled - using local backend');
   }, []);
 }
