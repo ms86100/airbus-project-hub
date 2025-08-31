@@ -17,13 +17,17 @@ class ApiClient {
     const apiUrl = import.meta.env.VITE_API_URL;
     
     if (apiUrl) {
-      // Local backend
+      // Local backend - use direct routes without service prefixes
       this.baseUrl = apiUrl;
+      this.isLocalBackend = true;
     } else {
-      // Supabase edge functions (default)
+      // Supabase edge functions (default) - use service prefixes
       this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
+      this.isLocalBackend = false;
     }
   }
+
+  private isLocalBackend: boolean;
 
   private async getAuthToken(): Promise<string | null> {
     try {
@@ -49,6 +53,81 @@ class ApiClient {
     }
   }
 
+  private getLocalEndpoint(endpoint: string): string {
+    if (!this.isLocalBackend) return endpoint;
+    
+    // Map Supabase edge function endpoints to local Express routes
+    const mappings: Record<string, string> = {
+      // Auth service
+      '/auth-service/login': '/auth/login',
+      '/auth-service/register': '/auth/register',
+      '/auth-service/logout': '/auth/logout',
+      '/auth-service/user': '/auth/user',
+      '/auth-service/refresh': '/auth/refresh',
+      '/auth-service/session': '/auth/session',
+      
+      // Projects service  
+      '/projects-service/projects': '/projects',
+      '/projects-service/stats': '/projects/stats',
+      
+      // Wizard service
+      '/wizard-service/projects/create': '/wizard/projects/create',
+      '/wizard-service/projects/wizard/start': '/wizard/start',
+      '/wizard-service/projects/wizard/complete': '/wizard/complete',
+      
+      // Workspace service (tasks, discussions, risks, action items)
+      '/workspace-service/projects': '/workspace/projects',
+      '/workspace-service/tasks': '/workspace/tasks',
+      
+      // Stakeholder service
+      '/stakeholder-service/projects': '/stakeholders/projects',
+      
+      // Backlog service
+      '/backlog-service/projects': '/backlog/projects',
+      
+      // Capacity service
+      '/capacity-service/projects': '/capacity/projects',
+      '/capacity-service/stats': '/capacity/stats',
+      
+      // Retrospective service
+      '/retro-service/projects': '/retro/projects',
+      '/retro-service/retrospectives': '/retro/retrospectives',
+      '/retro-service/columns': '/retro/columns',
+      '/retro-service/cards': '/retro/cards',
+      '/retro-service/action-items': '/retro/action-items',
+      '/retro-service/stats': '/retro/stats',
+      
+      // Roadmap service
+      '/roadmap-service/projects': '/roadmap/projects',
+      
+      // Department service
+      '/department-service/departments': '/departments',
+      
+      // Access service
+      '/access-service/projects': '/access/projects',
+      '/access-service/permissions': '/access/permissions',
+      '/access-service/log-access': '/access/log-access',
+      
+      // Audit service
+      '/audit-service/projects': '/audit/projects',
+      '/audit-service/audit/log': '/audit/log',
+    };
+    
+    // Try exact match first
+    if (mappings[endpoint]) {
+      return mappings[endpoint];
+    }
+    
+    // Try prefix match for dynamic routes
+    for (const [supabasePrefix, localPrefix] of Object.entries(mappings)) {
+      if (endpoint.startsWith(supabasePrefix)) {
+        return endpoint.replace(supabasePrefix, localPrefix);
+      }
+    }
+    
+    return endpoint;
+  }
+
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -63,7 +142,8 @@ class ApiClient {
         ...options.headers,
       } as Record<string, string>;
 
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const actualEndpoint = this.getLocalEndpoint(endpoint);
+      const response = await fetch(`${this.baseUrl}${actualEndpoint}`, {
         ...options,
         headers,
       });
@@ -76,7 +156,8 @@ class ApiClient {
     };
 
     try {
-      console.log(`🌐 Making request to: ${endpoint}`);
+      const actualEndpoint = this.getLocalEndpoint(endpoint);
+      console.log(`🌐 Making request to: ${actualEndpoint} (from ${endpoint})`);
       console.log(`🔐 Using token: ${token ? `${token.substring(0, 20)}...` : 'None'}`);
 
       let { response, result } = await doFetch(token || undefined);
