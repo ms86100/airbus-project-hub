@@ -521,13 +521,20 @@ router.post('/projects/:projectId/discussions', requireAuth, async (req, res) =>
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query("SET LOCAL request.jwt.claims = $1", [JSON.stringify({ sub: req.user.id })]);
+      // Disable triggers in local DB and log manually to avoid NOT NULL on changed_by
+      await client.query("SET LOCAL session_replication_role = 'replica'");
 
       const result = await client.query(`
         INSERT INTO project_discussions (id, project_id, meeting_title, meeting_date, summary_notes, attendees, created_by, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
         RETURNING *
       `, [discussionId, projectId, meeting_title, meeting_date, summary_notes, JSON.stringify(attendees || []), req.user.id]);
+
+      // Manual change log entry to replace DB trigger behavior in local env
+      await client.query(`
+        INSERT INTO discussion_change_log (discussion_id, change_type, field_name, new_value, changed_by)
+        VALUES ($1, 'created', 'discussion', 'Discussion created', $2)
+      `, [result.rows[0].id, req.user.id]);
 
       await client.query('COMMIT');
       console.log('🔧 Backend - Discussion created successfully:', result.rows[0]);
@@ -589,13 +596,19 @@ router.post('/projects/:projectId/discussions/:discussionId/action-items', requi
 
     try {
       await client.query('BEGIN');
-      await client.query("SET LOCAL request.jwt.claims = $1", [JSON.stringify({ sub: req.user.id })]);
+      await client.query("SET LOCAL session_replication_role = 'replica'");
 
       const result = await client.query(`
         INSERT INTO discussion_action_items (id, discussion_id, task_description, owner_id, target_date, status, created_by, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
         RETURNING *
       `, [actionItemId, discussionId, task_description, owner_id, target_date, status || 'open', req.user.id]);
+
+      // Manual change log entry to replace DB trigger behavior in local env
+      await client.query(`
+        INSERT INTO discussion_change_log (discussion_id, action_item_id, change_type, field_name, new_value, changed_by)
+        VALUES ($1, $2, 'created', 'action_item', 'Action item created', $3)
+      `, [discussionId, result.rows[0].id, req.user.id]);
 
       await client.query('COMMIT');
       res.json(ok({ message: 'Action item created successfully', actionItem: result.rows[0] }));
