@@ -680,6 +680,7 @@ router.put('/projects/:projectId/action-items/:actionItemId', requireAuth, async
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query("SET LOCAL session_replication_role = 'replica'");
       const { rows: oldRows } = await client.query(`SELECT * FROM discussion_action_items WHERE id = $1`, [actionItemId]);
       if (oldRows.length === 0) {
         await client.query('ROLLBACK');
@@ -736,6 +737,7 @@ router.delete('/projects/:projectId/action-items/:actionItemId', requireAuth, as
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query("SET LOCAL session_replication_role = 'replica'");
       const { rows } = await client.query(`SELECT * FROM discussion_action_items WHERE id = $1`, [actionItemId]);
       if (rows.length === 0) {
         await client.query('ROLLBACK');
