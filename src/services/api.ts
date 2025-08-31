@@ -16,14 +16,19 @@ class ApiClient {
     // Leave empty or set to Supabase URL for cloud backend
     const apiUrl = import.meta.env.VITE_API_URL;
     
-    if (apiUrl) {
+    console.log('🔧 VITE_API_URL:', apiUrl);
+    console.log('🔧 All env vars:', import.meta.env);
+    
+    if (apiUrl && apiUrl.includes('localhost')) {
       // Local backend - use direct routes without service prefixes
       this.baseUrl = apiUrl;
       this.isLocalBackend = true;
+      console.log('✅ Using LOCAL backend:', this.baseUrl);
     } else {
       // Supabase edge functions (default) - use service prefixes
       this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
       this.isLocalBackend = false;
+      console.log('☁️ Using SUPABASE backend:', this.baseUrl);
     }
   }
 
@@ -68,6 +73,11 @@ class ApiClient {
     const token = await this.getAuthToken();
 
     const doFetch = async (authToken?: string) => {
+      const actualEndpoint = this.getLocalEndpoint(endpoint);
+      console.log(`🌐 API BASE URL: ${this.baseUrl}`);
+      console.log(`🌐 IS LOCAL: ${this.isLocalBackend}`);
+      console.log(`🌐 ENDPOINT: ${endpoint} -> ${actualEndpoint}`);
+      
       const headers = {
         'Content-Type': 'application/json',
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
@@ -75,7 +85,6 @@ class ApiClient {
         ...options.headers,
       } as Record<string, string>;
 
-      const actualEndpoint = this.getLocalEndpoint(endpoint);
       const response = await fetch(`${this.baseUrl}${actualEndpoint}`, {
         ...options,
         headers,
