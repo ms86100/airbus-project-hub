@@ -276,6 +276,21 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Validate that the milestone exists and belongs to the project
+      const { data: milestone, error: milestoneError } = await supabase
+        .from('milestones')
+        .select('id, name, project_id')
+        .eq('id', milestoneId)
+        .eq('project_id', projectId)
+        .single();
+
+      if (milestoneError || !milestone) {
+        console.error('Milestone validation failed:', { milestoneId, projectId, error: milestoneError });
+        return createErrorResponse('Milestone not found or does not belong to project', 'INVALID_MILESTONE', 400);
+      }
+
+      console.log('✅ Milestone validated:', { milestone_id: milestone.id, name: milestone.name, project_id: milestone.project_id });
+
       // Get the backlog item
       const { data: backlogItem, error: fetchError } = await supabase
         .from('task_backlog')
@@ -291,6 +306,7 @@ Deno.serve(async (req) => {
       console.log('Creating task from backlog item:', {
         project_id: projectId,
         milestone_id: milestoneId,
+        milestone_name: milestone.name,
         title: backlogItem.title,
         backlogItemId: itemId
       });
@@ -317,6 +333,13 @@ Deno.serve(async (req) => {
         return createErrorResponse('Failed to create task from backlog item', 'CREATE_TASK_ERROR');
       }
 
+      console.log('✅ Task created successfully:', {
+        task_id: task.id,
+        milestone_id: task.milestone_id,
+        title: task.title,
+        project_id: task.project_id
+      });
+
       // Update backlog item status to indicate it's been moved
       const { error: updateError } = await supabaseAuth
         .from('task_backlog')
@@ -326,6 +349,8 @@ Deno.serve(async (req) => {
       if (updateError) {
         console.error('Error updating backlog status:', updateError);
         // Continue even if this fails - the task was created successfully
+      } else {
+        console.log('✅ Backlog item status updated to "done"');
       }
 
       return createSuccessResponse({ message: 'Backlog item moved to milestone successfully', task });

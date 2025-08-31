@@ -71,6 +71,9 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
         }
       }
       
+      // Immediately remove moved items from local state
+      setBacklogItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
+      
       toast({
         title: 'Success',
         description: `${selectedItems.length} task(s) added to milestone from backlog`
@@ -78,10 +81,10 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
       
       setSelectedItems([]);
       setIsOpen(false);
-      // Small delay to ensure DB changes are committed before refreshing
+      // Longer delay to ensure DB changes are committed before refreshing
       setTimeout(() => {
         onTaskAdded();
-      }, 100);
+      }, 500);
     } catch (error: any) {
       toast({
         title: 'Error',
