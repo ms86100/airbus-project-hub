@@ -11,7 +11,7 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = 'http://localhost:8080';
+    this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
   }
 
   private async getAuthToken(): Promise<string | null> {
@@ -47,6 +47,7 @@ class ApiClient {
     const doFetch = async (authToken?: string) => {
       const headers = {
         'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
         ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
         ...options.headers,
       } as Record<string, string>;
@@ -64,8 +65,8 @@ class ApiClient {
     };
 
     try {
-      console.log(`🌐 [BACKEND] Making request to: ${endpoint}`);
-      console.log(`🔐 [BACKEND] Using token: ${token ? `${token.substring(0, 20)}...` : 'None'}`);
+      console.log(`🌐 Making request to: ${endpoint}`);
+      console.log(`🔐 Using token: ${token ? `${token.substring(0, 20)}...` : 'None'}`);
 
       let { response, result } = await doFetch(token || undefined);
 
@@ -79,7 +80,7 @@ class ApiClient {
         }
       }
 
-      console.log(`📡 [BACKEND] Response from ${endpoint}:`, result);
+      console.log(`📡 Response from ${endpoint}:`, result);
       return result ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' };
     } catch (error) {
       console.error('API request failed:', error);
@@ -99,6 +100,7 @@ class ApiClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
         },
         body: JSON.stringify({ refresh_token: refreshToken }),
       });
