@@ -46,8 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initializeAuth = async () => {
     try {
       // Check for stored session first
-      const storedSession = localStorage.getItem('auth_session');
-      const storedUser = localStorage.getItem('auth_user');
+      const storedSession = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
+      const storedUser = localStorage.getItem('auth_user') || localStorage.getItem('app_user');
       
       console.log('📱 Checking stored auth...', { 
         hasSession: !!storedSession, 
@@ -101,10 +101,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(sessionData);
         setUser(userData);
         
-        // Store session in localStorage for persistence
+        // Store session in localStorage for persistence (both legacy and current keys)
         console.log('💾 Storing session and user data');
         localStorage.setItem('auth_session', JSON.stringify(sessionData));
         localStorage.setItem('auth_user', JSON.stringify(userData));
+        localStorage.setItem('app_session', JSON.stringify(sessionData));
+        localStorage.setItem('app_user', JSON.stringify(userData));
         
         console.log('🏠 Redirecting to dashboard');
         window.location.href = '/';
@@ -133,6 +135,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Store session in localStorage
         localStorage.setItem('auth_session', JSON.stringify((response.data as any).session));
         localStorage.setItem('auth_user', JSON.stringify((response.data as any).user));
+        localStorage.setItem('app_session', JSON.stringify((response.data as any).session));
+        localStorage.setItem('app_user', JSON.stringify((response.data as any).user));
       }
 
       return { message: (response.data as any)?.message as string };

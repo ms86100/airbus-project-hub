@@ -64,61 +64,32 @@ class ApiClient {
       } as Record<string, string>;
 
       const url = `${base}${endpoint}`;
-      console.log(`➡️ Fetching: ${url}`);
-      try {
-        const response = await fetch(url, { ...options, headers });
-        let result: any = null;
-        try { result = await response.json(); } catch {}
-        return { response, result, networkError: false } as const;
-      } catch (e) {
-        console.warn(`⚠️ Network error for ${url}`);
-        return { response: undefined as any, result: null, networkError: true } as const;
-      }
+      console.log(`➡️ Fetching: ${url} | Auth header: ${authToken ? 'present' : 'missing'}`);
+      const response = await fetch(url, { ...options, headers });
+      let result: any = null;
+      try { result = await response.json(); } catch {}
+      return { response, result } as const;
     };
 
     try {
       console.log(`🌐 Making request to: ${endpoint}`);
       console.log(`🔐 Using token: ${token ? `${token.substring(0, 20)}...` : 'None'}`);
 
-      // Primary: prefer local gateway when available
-      let { response, result, networkError } = await doFetch(this.baseUrl, token || undefined);
+      // Local/API only: always hit configured baseUrl, no cloud fallback
+      let { response, result } = await doFetch(this.baseUrl, token || undefined);
 
       if (
         response && (response.status === 401 || (result && (result.message === 'Invalid JWT' || result.code === 'INVALID_TOKEN' || result.code === 'UNAUTHORIZED')))
       ) {
         const refreshed = await this.refreshToken();
         if (refreshed) {
-          ({ response, result, networkError } = await doFetch(this.baseUrl, refreshed));
+          ({ response, result } = await doFetch(this.baseUrl, refreshed));
         }
-      }
-
-      const shouldFallback = (
-        (networkError || (response && (response.status === 404 || response.status === 405))) &&
-        this.baseUrl !== this.cloudUrl
-      );
-
-      if (shouldFallback) {
-        console.log(`🔁 Falling back to cloud for ${endpoint}`);
-        let fb = await doFetch(this.cloudUrl, token || undefined);
-        if (
-          fb.response && (fb.response.status === 401 || (fb.result && (fb.result.message === 'Invalid JWT' || fb.result.code === 'INVALID_TOKEN' || fb.result.code === 'UNAUTHORIZED')))
-        ) {
-          const refreshed = await this.refreshToken();
-          if (refreshed) {
-            fb = await doFetch(this.cloudUrl, refreshed);
-          }
-        }
-        response = fb.response;
-        result = fb.result;
-        networkError = fb.networkError;
       }
 
       console.log(`📡 Response from ${endpoint}:`, result);
       if (response && !response.ok && (!result || typeof (result as any).success === 'undefined')) {
         return { success: false, error: `HTTP ${response.status} for ${endpoint}`, code: `HTTP_${response.status}` } as any;
-      }
-      if (!result && networkError) {
-        return { success: false, error: 'Network error (primary and fallback)', code: 'NETWORK_ERROR' } as any;
       }
       return (result as ApiResponse<T>) ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' } as any;
     } catch (error) {
