@@ -122,8 +122,8 @@ class ApiClient {
   getUserProfile(userId: string) { return this.makeRequest(`/auth-service/users/${userId}/profile`, { method: 'GET' }); }
   getUserRole(userId: string) { return this.makeRequest(`/auth-service/users/${userId}/role`, { method: 'GET' }); }
 
-  // Wizard methods
-  createProjectWizard(projectData: any) { return this.makeRequest(`/wizard-service/projects/wizard/complete`, { method: 'POST', body: JSON.stringify(projectData) }); }
+  // Wizard methods - use the create endpoint from the edge function
+  createProjectWizard(projectData: any) { return this.makeRequest(`/wizard-service/projects/create`, { method: 'POST', body: JSON.stringify(projectData) }); }
 
   // Module permissions (consolidated)
   getModulePermissions(projectId: string) { return this.makeRequest(`/access-service/projects/${projectId}/access`, { method: 'GET' }); }
