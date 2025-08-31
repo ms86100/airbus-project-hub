@@ -56,75 +56,8 @@ class ApiClient {
   private getLocalEndpoint(endpoint: string): string {
     if (!this.isLocalBackend) return endpoint;
     
-    // Map Supabase edge function endpoints to local Express routes
-    const mappings: Record<string, string> = {
-      // Auth service
-      '/auth-service/login': '/auth/login',
-      '/auth-service/register': '/auth/register',
-      '/auth-service/logout': '/auth/logout',
-      '/auth-service/user': '/auth/user',
-      '/auth-service/refresh': '/auth/refresh',
-      '/auth-service/session': '/auth/session',
-      
-      // Projects service  
-      '/projects-service/projects': '/projects',
-      '/projects-service/stats': '/projects/stats',
-      
-      // Wizard service
-      '/wizard-service/projects/create': '/wizard/projects/create',
-      '/wizard-service/projects/wizard/start': '/wizard/start',
-      '/wizard-service/projects/wizard/complete': '/wizard/complete',
-      
-      // Workspace service (tasks, discussions, risks, action items)
-      '/workspace-service/projects': '/workspace/projects',
-      '/workspace-service/tasks': '/workspace/tasks',
-      
-      // Stakeholder service
-      '/stakeholder-service/projects': '/stakeholders/projects',
-      
-      // Backlog service
-      '/backlog-service/projects': '/backlog/projects',
-      
-      // Capacity service
-      '/capacity-service/projects': '/capacity/projects',
-      '/capacity-service/stats': '/capacity/stats',
-      
-      // Retrospective service
-      '/retro-service/projects': '/retro/projects',
-      '/retro-service/retrospectives': '/retro/retrospectives',
-      '/retro-service/columns': '/retro/columns',
-      '/retro-service/cards': '/retro/cards',
-      '/retro-service/action-items': '/retro/action-items',
-      '/retro-service/stats': '/retro/stats',
-      
-      // Roadmap service
-      '/roadmap-service/projects': '/roadmap/projects',
-      
-      // Department service
-      '/department-service/departments': '/departments',
-      
-      // Access service
-      '/access-service/projects': '/access/projects',
-      '/access-service/permissions': '/access/permissions',
-      '/access-service/log-access': '/access/log-access',
-      
-      // Audit service
-      '/audit-service/projects': '/audit/projects',
-      '/audit-service/audit/log': '/audit/log',
-    };
-    
-    // Try exact match first
-    if (mappings[endpoint]) {
-      return mappings[endpoint];
-    }
-    
-    // Try prefix match for dynamic routes
-    for (const [supabasePrefix, localPrefix] of Object.entries(mappings)) {
-      if (endpoint.startsWith(supabasePrefix)) {
-        return endpoint.replace(supabasePrefix, localPrefix);
-      }
-    }
-    
+    // For local backend, the Express server already uses the same service prefixes
+    // as Supabase Edge Functions, so no mapping is needed!
     return endpoint;
   }
 
