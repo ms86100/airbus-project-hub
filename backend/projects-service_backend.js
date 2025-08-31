@@ -118,21 +118,108 @@ router.delete('/projects/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if user is admin or project owner
-    const accessResult = await pool.query(`
-      SELECT 1 FROM projects WHERE id = $1 AND (
-        created_by = $2 
-        OR EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = $2 AND ur.role = 'admin')
-      )
-    `, [id, req.user.id]);
-
-    if (accessResult.rows.length === 0) {
+    // Check access (owner or admin)
+    const projRes = await pool.query(`SELECT created_by FROM projects WHERE id = $1`, [id]);
+    if (projRes.rows.length === 0) {
+      return res.json(fail('Project not found', 'NOT_FOUND'));
+    }
+    const isOwner = projRes.rows[0].created_by === req.user.id;
+    const adminRes = await pool.query(`SELECT 1 FROM user_roles ur WHERE ur.user_id = $1 AND ur.role = 'admin'`, [req.user.id]);
+    const isAdmin = adminRes.rows.length > 0;
+    if (!isOwner && !isAdmin) {
       return res.json(fail('Project not found or access denied', 'ACCESS_DENIED'));
     }
 
-    await pool.query('DELETE FROM projects WHERE id = $1', [id]);
-    
-    res.json(ok({ message: 'Project deleted successfully' }));
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      // Avoid trigger/auth issues in local env and speed up cascading deletes
+      await client.query("SET LOCAL session_replication_role = 'replica'");
+
+      // Discussions and their logs/items
+      await client.query(`
+        DELETE FROM discussion_change_log
+        WHERE discussion_id IN (SELECT id FROM project_discussions WHERE project_id = $1)
+      `, [id]);
+      await client.query(`
+        DELETE FROM discussion_action_items
+        WHERE discussion_id IN (SELECT id FROM project_discussions WHERE project_id = $1)
+      `, [id]);
+      await client.query(`DELETE FROM project_discussions WHERE project_id = $1`, [id]);
+
+      // Retrospectives and related
+      await client.query(`
+        DELETE FROM retrospective_card_votes
+        WHERE card_id IN (
+          SELECT rc.id FROM retrospective_cards rc
+          JOIN retrospective_columns rcol ON rcol.id = rc.column_id
+          JOIN retrospectives r ON r.id = rcol.retrospective_id
+          WHERE r.project_id = $1
+        )
+      `, [id]);
+      await client.query(`
+        DELETE FROM retrospective_cards
+        USING retrospective_columns rcol, retrospectives r
+        WHERE retrospective_cards.column_id = rcol.id
+          AND rcol.retrospective_id = r.id
+          AND r.project_id = $1
+      `, [id]);
+      await client.query(`
+        DELETE FROM retrospective_columns
+        WHERE retrospective_id IN (SELECT id FROM retrospectives WHERE project_id = $1)
+      `, [id]);
+      await client.query(`
+        DELETE FROM retrospective_action_items
+        WHERE retrospective_id IN (SELECT id FROM retrospectives WHERE project_id = $1)
+      `, [id]);
+      await client.query(`DELETE FROM retrospectives WHERE project_id = $1`, [id]);
+
+      // Team capacity
+      await client.query(`
+        DELETE FROM team_capacity_members
+        WHERE iteration_id IN (SELECT id FROM team_capacity_iterations WHERE project_id = $1)
+      `, [id]);
+      await client.query(`DELETE FROM team_capacity_iterations WHERE project_id = $1`, [id]);
+
+      // Tasks and related
+      await client.query(`
+        DELETE FROM task_status_history
+        WHERE task_id IN (SELECT id FROM tasks WHERE project_id = $1)
+      `, [id]);
+      await client.query(`DELETE FROM tasks WHERE project_id = $1`, [id]);
+
+      // Backlog
+      await client.query(`DELETE FROM task_backlog WHERE project_id = $1`, [id]);
+
+      // Milestones
+      await client.query(`DELETE FROM milestones WHERE project_id = $1`, [id]);
+
+      // Stakeholders
+      await client.query(`DELETE FROM stakeholders WHERE project_id = $1`, [id]);
+
+      // Access and memberships
+      await client.query(`DELETE FROM module_permissions WHERE project_id = $1`, [id]);
+      await client.query(`DELETE FROM project_members WHERE project_id = $1`, [id]);
+
+      // Audits
+      await client.query(`DELETE FROM audit_log WHERE project_id = $1`, [id]);
+      await client.query(`DELETE FROM module_access_audit WHERE project_id = $1`, [id]);
+
+      // Risks
+      await client.query(`DELETE FROM risk_register WHERE project_id = $1`, [id]);
+
+      // Finally the project
+      await client.query(`DELETE FROM projects WHERE id = $1`, [id]);
+
+      await client.query('COMMIT');
+      return res.json(ok({ message: 'Project deleted successfully' }));
+    } catch (txErr) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+      console.error('Delete project tx error:', txErr);
+      return res.json(fail('Failed to delete project', 'DELETE_ERROR'));
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error('Delete project error:', error);
     res.json(fail('Failed to delete project', 'DELETE_ERROR'));
