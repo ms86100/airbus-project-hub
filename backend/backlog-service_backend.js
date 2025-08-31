@@ -41,13 +41,21 @@ router.post('/projects/:projectId/backlog/:id/move', async (req, res) => {
     const { projectId, id: itemId } = req.params;
     const { milestoneId } = req.body || {};
     
-    console.log('Moving backlog item:', { projectId, itemId, milestoneId });
+    console.log('🔧 Backlog - Move item called:', {
+      projectId,
+      itemId,
+      milestoneId,
+      authHeader: req.headers.authorization ? 'present' : 'missing'
+    });
     
     // Find the backlog item
     const item = backlog.find(i => i.id === itemId && i.project_id === projectId);
     if (!item) {
+      console.log('🔧 Backlog - Item not found:', itemId);
       return res.json(fail('Backlog item not found', 'NOT_FOUND'));
     }
+    
+    console.log('🔧 Backlog - Found item:', item);
     
     // Create task data from backlog item
     const taskData = {
@@ -60,9 +68,12 @@ router.post('/projects/:projectId/backlog/:id/move', async (req, res) => {
       milestoneId: milestoneId
     };
     
+    console.log('🔧 Backlog - Prepared task data:', taskData);
+    
     // Make a request to the workspace service to create the task
     const axios = require('axios');
     try {
+      console.log('🔧 Backlog - Making request to workspace service...');
       const taskResponse = await axios.post(`http://localhost:8080/workspace-service/projects/${projectId}/tasks`, taskData, {
         headers: {
           'Content-Type': 'application/json',
@@ -70,11 +81,15 @@ router.post('/projects/:projectId/backlog/:id/move', async (req, res) => {
         }
       });
       
+      console.log('🔧 Backlog - Workspace response status:', taskResponse.status);
+      console.log('🔧 Backlog - Workspace response data:', taskResponse.data);
+      
       if (taskResponse.data && taskResponse.data.success) {
         // Mark backlog item as moved/done
         const itemIndex = backlog.findIndex(i => i.id === itemId);
         if (itemIndex !== -1) {
           backlog[itemIndex].status = 'done';
+          console.log('🔧 Backlog - Marked item as done');
         }
         
         return res.json(ok({ 
@@ -82,15 +97,23 @@ router.post('/projects/:projectId/backlog/:id/move', async (req, res) => {
           task: taskResponse.data.data.task 
         }));
       } else {
+        console.log('🔧 Backlog - Workspace service returned error:', taskResponse.data);
         throw new Error(taskResponse.data?.error || 'Failed to create task');
       }
     } catch (axiosError) {
-      console.error('Error creating task:', axiosError.message);
-      return res.json(fail('Failed to create task from backlog item', 'CREATE_TASK_ERROR'));
+      console.error('🔧 Backlog - Axios error details:', {
+        message: axiosError.message,
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+        data: axiosError.response?.data,
+        stack: axiosError.stack
+      });
+      return res.json(fail('Failed to create task from backlog item: ' + axiosError.message, 'CREATE_TASK_ERROR'));
     }
   } catch (error) {
-    console.error('Move backlog item error:', error);
-    return res.json(fail('Failed to move backlog item', 'MOVE_ERROR'));
+    console.error('🔧 Backlog - Move backlog item error:', error);
+    console.error('🔧 Backlog - Error stack:', error.stack);
+    return res.json(fail('Failed to move backlog item: ' + error.message, 'MOVE_ERROR'));
   }
 });
 

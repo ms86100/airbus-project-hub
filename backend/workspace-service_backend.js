@@ -76,17 +76,30 @@ router.get('/projects/:projectId/tasks', requireAuth, async (req, res) => {
 router.post('/projects/:projectId/tasks', requireAuth, async (req, res) => {
   try {
     const { projectId } = req.params;
+    console.log('🔧 Backend - POST /tasks called:', {
+      projectId,
+      userId: req.user?.id,
+      body: req.body,
+      headers: {
+        authorization: req.headers.authorization ? 'present' : 'missing',
+        contentType: req.headers['content-type']
+      }
+    });
+
     const { title, description, status, priority, dueDate, ownerId, milestoneId } = req.body;
 
     if (!await checkProjectAccess(req.user.id, projectId)) {
+      console.log('🔧 Backend - Access denied for user:', req.user.id, 'project:', projectId);
       return res.json(fail('Access denied', 'ACCESS_DENIED'));
     }
 
     if (!title) {
+      console.log('🔧 Backend - Missing title field');
       return res.json(fail('Title is required', 'MISSING_FIELDS'));
     }
 
     const taskId = uuidv4();
+    console.log('🔧 Backend - Creating task with ID:', taskId);
 
     const result = await pool.query(`
       INSERT INTO tasks (id, project_id, title, description, status, priority, due_date, owner_id, milestone_id, created_by, created_at, updated_at)
@@ -94,10 +107,12 @@ router.post('/projects/:projectId/tasks', requireAuth, async (req, res) => {
       RETURNING *
     `, [taskId, projectId, title, description, status || 'todo', priority || 'medium', dueDate, ownerId, milestoneId, req.user.id]);
 
+    console.log('🔧 Backend - Task created successfully:', result.rows[0]);
     res.json(ok({ message: 'Task created successfully', task: result.rows[0] }));
   } catch (error) {
-    console.error('Create task error:', error);
-    res.json(fail('Failed to create task', 'CREATE_ERROR'));
+    console.error('🔧 Backend - Create task error:', error);
+    console.error('🔧 Backend - Error stack:', error.stack);
+    res.json(fail('Failed to create task: ' + error.message, 'CREATE_ERROR'));
   }
 });
 

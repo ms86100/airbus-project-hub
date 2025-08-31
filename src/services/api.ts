@@ -622,6 +622,12 @@ class ApiClient {
 
   // Task creation for milestones (workspace service)
   async createTaskForMilestone(projectId: string, taskData: any): Promise<ApiResponse<{ message: string; task: any }>> {
+    console.log('🔧 API Client - createTaskForMilestone called:', {
+      projectId,
+      originalTaskData: taskData,
+      baseUrl: this.baseUrl
+    });
+
     // Ensure we pass the right field names for backend compatibility
     const backendTaskData = {
       title: taskData.title,
@@ -633,10 +639,15 @@ class ApiClient {
       milestoneId: taskData.milestone_id, // Convert to camelCase for backend
     };
     
-    return this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, {
+    console.log('🔧 API Client - transformed data for backend:', backendTaskData);
+    
+    const response = await this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, {
       method: 'POST',
       body: JSON.stringify(backendTaskData),
     });
+
+    console.log('🔧 API Client - workspace service response:', response);
+    return response as ApiResponse<{ message: string; task: any }>;
   }
 
   // Capacity Data method  
