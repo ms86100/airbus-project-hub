@@ -311,20 +311,26 @@ Deno.serve(async (req) => {
         backlogItemId: itemId
       });
 
-      // Create a task from the backlog item
+      // Create a task from the backlog item with explicit milestone assignment
+      console.log('🔧 About to create task with milestone_id:', milestoneId, typeof milestoneId);
+      
+      const taskData = {
+        project_id: projectId,
+        milestone_id: milestoneId, // Ensure this is a string UUID
+        title: backlogItem.title,
+        description: backlogItem.description,
+        priority: backlogItem.priority,
+        status: 'todo',
+        due_date: backlogItem.target_date,
+        owner_id: backlogItem.owner_id,
+        created_by: user.id,
+      };
+      
+      console.log('📋 Task data being inserted:', taskData);
+      
       const { data: task, error: createError } = await supabaseAuth
         .from('tasks')
-        .insert({
-          project_id: projectId,
-          milestone_id: milestoneId,
-          title: backlogItem.title,
-          description: backlogItem.description,
-          priority: backlogItem.priority,
-          status: 'todo',
-          due_date: backlogItem.target_date,
-          owner_id: backlogItem.owner_id,
-          created_by: user.id,
-        })
+        .insert(taskData)
         .select()
         .single();
 
@@ -336,9 +342,28 @@ Deno.serve(async (req) => {
       console.log('✅ Task created successfully:', {
         task_id: task.id,
         milestone_id: task.milestone_id,
+        milestone_id_type: typeof task.milestone_id,
         title: task.title,
-        project_id: task.project_id
+        project_id: task.project_id,
+        full_task: task
       });
+
+      // Verify the task was created with the correct milestone_id
+      if (!task.milestone_id) {
+        console.error('🚨 CRITICAL: Task was created without milestone_id!', {
+          expected_milestone_id: milestoneId,
+          actual_milestone_id: task.milestone_id,
+          task_id: task.id
+        });
+      } else if (task.milestone_id !== milestoneId) {
+        console.error('🚨 CRITICAL: Task milestone_id mismatch!', {
+          expected_milestone_id: milestoneId,
+          actual_milestone_id: task.milestone_id,
+          task_id: task.id
+        });
+      } else {
+        console.log('✅ Milestone assignment verified successfully');
+      }
 
       // Update backlog item status to indicate it's been moved
       const { error: updateError } = await supabaseAuth

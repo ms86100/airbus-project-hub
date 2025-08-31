@@ -61,7 +61,13 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
 
       // Use the API to move backlog items to tasks in milestone
       for (const itemId of selectedItems) {
-        console.log(`📦 Moving item ${itemId} to milestone ${milestoneId}`);
+        console.log(`📦 Moving item ${itemId} to milestone ${milestoneId}`, {
+          itemId: itemId,
+          milestoneId: milestoneId,
+          milestoneIdType: typeof milestoneId,
+          projectId: projectId,
+          isValidMilestoneId: milestoneId && milestoneId.length > 0
+        });
         const response = await apiClient.moveBacklogToMilestone(projectId, itemId, milestoneId);
         console.log(`📡 Move response for ${itemId}:`, response);
         
@@ -81,10 +87,16 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
       
       setSelectedItems([]);
       setIsOpen(false);
-      // Longer delay to ensure DB changes are committed before refreshing
+      
+      // Force immediate UI refresh and delayed refresh for DB consistency
+      console.log('🔄 Triggering immediate UI refresh...');
+      onTaskAdded();
+      
+      // Additional delayed refresh to ensure DB changes are committed
       setTimeout(() => {
+        console.log('🔄 Triggering delayed UI refresh for DB consistency...');
         onTaskAdded();
-      }, 500);
+      }, 1000); // Increased to 1 second to ensure DB consistency
     } catch (error: any) {
       toast({
         title: 'Error',
