@@ -355,29 +355,26 @@ router.post('/projects/:projectId/risks', requireAuth, async (req, res) => {
     }
 
     const riskId = uuidv4();
-    const riskScore = (riskData.likelihood || 1) * (riskData.impact || 1);
-    const residualRiskScore = (riskData.residual_likelihood || 1) * (riskData.residual_impact || 1);
 
     console.log('🔧 Backend - Creating risk with ID:', riskId);
-    console.log('🔧 Backend - Risk scores calculated:', { riskScore, residualRiskScore });
 
     const result = await pool.query(`
       INSERT INTO risk_register (
         id, project_id, risk_code, title, description, category, cause, consequence,
-        likelihood, impact, risk_score, owner, response_strategy, mitigation_plan,
-        contingency_plan, residual_likelihood, residual_impact, residual_risk_score,
+        likelihood, impact, owner, response_strategy, mitigation_plan,
+        contingency_plan, residual_likelihood, residual_impact,
         status, identified_date, last_updated, next_review_date, notes, created_by,
         created_at, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-        $19, $20, $21, $22, $23, $24, NOW(), NOW()
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+        $17, $18, $19, $20, $21, $22, NOW(), NOW()
       ) RETURNING *
     `, [
       riskId, projectId, riskData.risk_code, riskData.title, riskData.description,
       riskData.category, riskData.cause, riskData.consequence, riskData.likelihood,
-      riskData.impact, riskScore, riskData.owner, riskData.response_strategy,
+      riskData.impact, riskData.owner, riskData.response_strategy,
       riskData.mitigation_plan, riskData.contingency_plan, riskData.residual_likelihood,
-      riskData.residual_impact, residualRiskScore, riskData.status || 'open',
+      riskData.residual_impact, riskData.status || 'open',
       riskData.identified_date, riskData.last_updated, riskData.next_review_date,
       riskData.notes, req.user.id
     ]);
@@ -400,11 +397,6 @@ router.put('/projects/:projectId/risks/:riskId', requireAuth, async (req, res) =
       return res.json(fail('Access denied', 'ACCESS_DENIED'));
     }
 
-    const riskScore = riskData.likelihood && riskData.impact ? 
-      riskData.likelihood * riskData.impact : undefined;
-    const residualRiskScore = riskData.residual_likelihood && riskData.residual_impact ? 
-      riskData.residual_likelihood * riskData.residual_impact : undefined;
-
     const result = await pool.query(`
       UPDATE risk_register
       SET risk_code = COALESCE($3, risk_code),
@@ -415,28 +407,26 @@ router.put('/projects/:projectId/risks/:riskId', requireAuth, async (req, res) =
           consequence = COALESCE($8, consequence),
           likelihood = COALESCE($9, likelihood),
           impact = COALESCE($10, impact),
-          risk_score = COALESCE($11, risk_score),
-          owner = COALESCE($12, owner),
-          response_strategy = COALESCE($13, response_strategy),
-          mitigation_plan = COALESCE($14, mitigation_plan),
-          contingency_plan = COALESCE($15, contingency_plan),
-          residual_likelihood = COALESCE($16, residual_likelihood),
-          residual_impact = COALESCE($17, residual_impact),
-          residual_risk_score = COALESCE($18, residual_risk_score),
-          status = COALESCE($19, status),
-          identified_date = COALESCE($20, identified_date),
-          last_updated = COALESCE($21, last_updated),
-          next_review_date = COALESCE($22, next_review_date),
-          notes = COALESCE($23, notes),
+          owner = COALESCE($11, owner),
+          response_strategy = COALESCE($12, response_strategy),
+          mitigation_plan = COALESCE($13, mitigation_plan),
+          contingency_plan = COALESCE($14, contingency_plan),
+          residual_likelihood = COALESCE($15, residual_likelihood),
+          residual_impact = COALESCE($16, residual_impact),
+          status = COALESCE($17, status),
+          identified_date = COALESCE($18, identified_date),
+          last_updated = COALESCE($19, last_updated),
+          next_review_date = COALESCE($20, next_review_date),
+          notes = COALESCE($21, notes),
           updated_at = NOW()
       WHERE id = $1 AND project_id = $2
       RETURNING *
     `, [
       riskId, projectId, riskData.risk_code, riskData.title, riskData.description,
       riskData.category, riskData.cause, riskData.consequence, riskData.likelihood,
-      riskData.impact, riskScore, riskData.owner, riskData.response_strategy,
+      riskData.impact, riskData.owner, riskData.response_strategy,
       riskData.mitigation_plan, riskData.contingency_plan, riskData.residual_likelihood,
-      riskData.residual_impact, residualRiskScore, riskData.status,
+      riskData.residual_impact, riskData.status,
       riskData.identified_date, riskData.last_updated, riskData.next_review_date,
       riskData.notes
     ]);
