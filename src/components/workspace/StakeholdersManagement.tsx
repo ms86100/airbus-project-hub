@@ -13,7 +13,7 @@ import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 
 interface StakeholdersManagementProps {
   projectId: string;

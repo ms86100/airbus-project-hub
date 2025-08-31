@@ -14,7 +14,7 @@ import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { AddTaskDialog } from '@/components/workspace/AddTaskDialog';
 import { AddTaskFromBacklogDialog } from '@/components/workspace/AddTaskFromBacklogDialog';
 import { useToast } from '@/hooks/use-toast';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 import { format } from 'date-fns';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';

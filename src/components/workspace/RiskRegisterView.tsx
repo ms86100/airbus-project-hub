@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, AlertTriangle, Clock, User, Trash2, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 
 interface Risk {
   id: string;

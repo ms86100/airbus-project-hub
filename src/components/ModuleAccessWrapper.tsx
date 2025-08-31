@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useModulePermissions, ModuleName, AccessLevel } from '@/hooks/useModulePermissions';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Lock } from 'lucide-react';

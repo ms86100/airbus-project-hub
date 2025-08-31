@@ -3,7 +3,7 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
 import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 
 interface Task {
   id: string;

@@ -8,7 +8,7 @@ import { Plus, Users, FolderOpen, Calendar, BarChart3, Clock, AlertCircle } from
 import { useToast } from '@/hooks/use-toast';
 import DepartmentManagement from '@/components/DepartmentManagement';
 import DepartmentSelectionDialog from '@/components/DepartmentSelectionDialog';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 
 interface Project {
   id: string;
