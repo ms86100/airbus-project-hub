@@ -336,11 +336,11 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
       setShowActionItemDialog(false);
       resetActionItemForm();
       fetchActionItems();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving action item:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save action item',
+        description: `Failed to save action item: ${error?.message || 'Unknown error'}`,
         variant: 'destructive'
       });
     }

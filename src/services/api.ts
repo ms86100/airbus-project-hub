@@ -548,10 +548,23 @@ class ApiClient {
   // Action Items Methods (moved to workspace section)
 
   async createActionItem(projectId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/action-items`, {
-      method: 'POST',
-      body: JSON.stringify(actionItemData),
-    });
+    try {
+      const discussionId = actionItemData?.discussion_id;
+      if (!discussionId) {
+        console.error('🔧 API Client - createActionItem missing discussion_id in payload');
+        return { success: false, error: 'discussion_id is required', code: 'VALIDATION_ERROR' } as any;
+      }
+      console.log('🔧 API Client - createActionItem:', { projectId, discussionId, actionItemData });
+      const resp = await this.makeRequest<{ message: string; actionItem: any }>(`/workspace-service/projects/${projectId}/discussions/${discussionId}/action-items`, {
+        method: 'POST',
+        body: JSON.stringify(actionItemData),
+      });
+      console.log('🔧 API Client - createActionItem response:', resp);
+      return resp;
+    } catch (err) {
+      console.error('🔧 API Client - createActionItem error:', err);
+      throw err;
+    }
   }
 
   // Task Methods (moved to workspace section)
