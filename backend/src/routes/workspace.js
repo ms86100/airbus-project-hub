@@ -772,3 +772,6 @@ router.delete('/projects/:id/risks/:riskId', verifyToken, verifyProjectAccess, a
     console.error('Delete risk error:', error);
     sendResponse(res, createErrorResponse('Failed to delete risk', 'DELETE_ERROR', 500));
   }
+});
+
+module.exports = router;
