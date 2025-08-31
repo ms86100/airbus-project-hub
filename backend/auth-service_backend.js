@@ -153,4 +153,33 @@ router.get('/session', requireAuth, async (req, res) => {
   }
 });
 
+// Assign department to user
+router.post('/assign-department', requireAuth, async (req, res) => {
+  try {
+    const { userId, departmentId } = req.body;
+    
+    if (!userId || !departmentId) {
+      return res.json(fail('User ID and Department ID are required', 'MISSING_FIELDS'));
+    }
+
+    // Update user's department in profiles table
+    const result = await pool.query(
+      'UPDATE profiles SET department_id = $1, updated_at = NOW() WHERE id = $2 RETURNING id, department_id',
+      [departmentId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json(fail('User not found', 'USER_NOT_FOUND'));
+    }
+
+    res.json(ok({ 
+      message: 'Department assigned successfully',
+      profile: result.rows[0]
+    }));
+  } catch (error) {
+    console.error('Assign department error:', error);
+    res.json(fail('Failed to assign department', 'ASSIGN_ERROR'));
+  }
+});
+
 module.exports = router;

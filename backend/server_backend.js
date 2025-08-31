@@ -31,7 +31,7 @@ app.use('/stakeholder-service', require('./stakeholder-service_backend'));
 app.use('/audit-service', require('./audit-service_backend'));
 app.use('/workspace-service', require('./workspace-service_backend'));
 app.use('/wizard-service', require('./wizard-service_backend'));
-app.use('/department-service', require('./department-service_backend'));
+app.use('/department-service', require('./department-service_backend_fixed'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
