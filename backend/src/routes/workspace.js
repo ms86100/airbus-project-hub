@@ -87,4 +87,43 @@ router.get('/projects/:id/workspace', verifyToken, verifyProjectAccess, async (r
   }
 });
 
+// GET /workspace-service/projects/:id/tasks
+router.get('/projects/:id/tasks', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const tasksQuery = `
+      SELECT t.*, m.name AS milestone_name
+      FROM tasks t
+      LEFT JOIN milestones m ON t.milestone_id = m.id
+      WHERE t.project_id = $1
+      ORDER BY t.created_at DESC
+    `;
+    const result = await query(tasksQuery, [projectId]);
+    sendResponse(res, createSuccessResponse(result.rows));
+  } catch (error) {
+    console.error('Get project tasks error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch tasks', 'FETCH_ERROR', 500));
+  }
+});
+
+// GET /workspace-service/projects/:id/milestones
+router.get('/projects/:id/milestones', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const milestonesQuery = `
+      SELECT m.*, COALESCE(COUNT(t.id), 0) AS task_count
+      FROM milestones m
+      LEFT JOIN tasks t ON t.milestone_id = m.id
+      WHERE m.project_id = $1
+      GROUP BY m.id
+      ORDER BY m.due_date NULLS LAST, m.created_at DESC
+    `;
+    const result = await query(milestonesQuery, [projectId]);
+    sendResponse(res, createSuccessResponse(result.rows));
+  } catch (error) {
+    console.error('Get project milestones error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch milestones', 'FETCH_ERROR', 500));
+  }
+});
+
 module.exports = router;
