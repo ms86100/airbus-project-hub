@@ -49,6 +49,11 @@ router.post('/projects/:projectId/backlog/:id/move', async (req, res) => {
       milestoneId,
       authHeader: req.headers.authorization ? 'present' : 'missing'
     });
+
+    if (!milestoneId) {
+      console.warn('🔧 Backlog - Missing milestoneId in request body');
+      return res.json(fail('Milestone ID is required', 'MISSING_MILESTONE_ID'));
+    }
     
     // Find the backlog item
     const item = backlog.find(i => i.id === itemId && i.project_id === projectId);
@@ -65,12 +70,12 @@ router.post('/projects/:projectId/backlog/:id/move', async (req, res) => {
       description: item.description,
       status: 'todo',
       priority: item.priority,
-      dueDate: item.target_date,
-      ownerId: item.owner_id,
-      milestoneId: milestoneId
+      due_date: item.target_date,
+      owner_id: item.owner_id,
+      milestone_id: milestoneId
     };
     
-    console.log('🔧 Backlog - Prepared task data:', taskData);
+    console.log('🔧 Backlog - Prepared task data (snake_case for workspace):', taskData);
     
     // Make a request to the workspace service to create the task
     const axios = require('axios');
