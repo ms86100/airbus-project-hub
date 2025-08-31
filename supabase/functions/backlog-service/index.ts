@@ -112,6 +112,9 @@ Deno.serve(async (req) => {
 
       if (statusFilter) {
         query = query.eq('status', statusFilter);
+      } else {
+        // By default, exclude items with status 'done' (moved to milestones)
+        query = query.neq('status', 'done');
       }
 
       const { data: items, error } = await query;
@@ -284,6 +287,13 @@ Deno.serve(async (req) => {
       if (fetchError || !backlogItem) {
         return createErrorResponse('Backlog item not found', 'ITEM_NOT_FOUND', 404);
       }
+
+      console.log('Creating task from backlog item:', {
+        project_id: projectId,
+        milestone_id: milestoneId,
+        title: backlogItem.title,
+        backlogItemId: itemId
+      });
 
       // Create a task from the backlog item
       const { data: task, error: createError } = await supabaseAuth
