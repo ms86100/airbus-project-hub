@@ -78,7 +78,10 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
       
       setSelectedItems([]);
       setIsOpen(false);
-      onTaskAdded();
+      // Small delay to ensure DB changes are committed before refreshing
+      setTimeout(() => {
+        onTaskAdded();
+      }, 100);
     } catch (error: any) {
       toast({
         title: 'Error',

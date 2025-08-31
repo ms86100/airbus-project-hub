@@ -122,7 +122,10 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
       });
       
       resetForm();
-      onTaskAdded();
+      // Small delay to ensure DB changes are committed before refreshing
+      setTimeout(() => {
+        onTaskAdded();
+      }, 100);
     } catch (error: any) {
       toast({
         title: "Error creating task",
