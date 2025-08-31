@@ -11,7 +11,18 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
+    // Environment-agnostic API configuration
+    // Set VITE_API_URL=http://localhost:3001 for local backend
+    // Leave empty or set to Supabase URL for cloud backend
+    const apiUrl = import.meta.env.VITE_API_URL;
+    
+    if (apiUrl) {
+      // Local backend
+      this.baseUrl = apiUrl;
+    } else {
+      // Supabase edge functions (default)
+      this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
+    }
   }
 
   private async getAuthToken(): Promise<string | null> {
