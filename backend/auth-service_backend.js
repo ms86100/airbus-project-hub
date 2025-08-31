@@ -153,6 +153,51 @@ router.get('/session', requireAuth, async (req, res) => {
   }
 });
 
+// Get user profile by ID
+router.get('/users/:id/profile', requireAuth, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const result = await pool.query(
+      `SELECT p.id, p.email, p.full_name, p.department_id, d.name AS department_name
+       FROM profiles p
+       LEFT JOIN departments d ON d.id = p.department_id
+       WHERE p.id = $1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json(fail('User not found', 'USER_NOT_FOUND'));
+    }
+
+    const row = result.rows[0];
+    const profile = {
+      id: row.id,
+      email: row.email,
+      full_name: row.full_name,
+      department_id: row.department_id,
+      ...(row.department_name ? { departments: { name: row.department_name } } : {})
+    };
+
+    res.json(ok(profile));
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.json(fail('Failed to fetch user profile', 'PROFILE_ERROR'));
+  }
+});
+
+// Get user role by ID
+router.get('/users/:id/role', requireAuth, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const result = await pool.query('SELECT role FROM user_roles WHERE user_id = $1 LIMIT 1', [userId]);
+    const role = result.rows[0]?.role || null;
+    res.json(ok({ role }));
+  } catch (error) {
+    console.error('Get role error:', error);
+    res.json(fail('Failed to fetch user role', 'ROLE_ERROR'));
+  }
+});
+
 // Assign department to user
 router.post('/assign-department', requireAuth, async (req, res) => {
   try {

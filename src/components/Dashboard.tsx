@@ -8,7 +8,7 @@ import { Plus, Users, FolderOpen, Calendar, BarChart3, Clock, AlertCircle } from
 import { useToast } from '@/hooks/use-toast';
 import DepartmentManagement from '@/components/DepartmentManagement';
 import DepartmentSelectionDialog from '@/components/DepartmentSelectionDialog_fixed';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 
 interface Project {
   id: string;
@@ -89,7 +89,7 @@ const Dashboard = () => {
       const response = await apiClient.getUserRole(user.id);
       
       if (response.success) {
-        setUserRole(response.data?.role || null);
+        setUserRole((response.data as any)?.role || null);
       } else {
         console.error("Error fetching user role:", response.error);
       }
@@ -104,7 +104,7 @@ const Dashboard = () => {
       
       if (response.success) {
         // Get first 6 projects for dashboard display
-        setProjects((response.data || []).slice(0, 6));
+        setProjects(((response.data as any[]) || []).slice(0, 6));
       } else {
         console.error('Error fetching projects:', response.error);
         toast({
@@ -127,12 +127,12 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await apiClient.getProjectStats();
-      
-      if (response.success) {
-        setStats(response.data);
-      } else {
-        console.error('Error fetching stats:', response.error);
+      const anyClient = apiClient as any;
+      if (typeof anyClient.getProjectStats === 'function') {
+        const response = await anyClient.getProjectStats();
+        if (response.success) {
+          setStats(response.data as any);
+        }
       }
     } catch (error) {
       console.error('Error fetching stats:', error);

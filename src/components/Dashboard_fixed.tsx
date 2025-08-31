@@ -8,7 +8,7 @@ import { Plus, Users, FolderOpen, Calendar, BarChart3, Clock, AlertCircle } from
 import { useToast } from '@/hooks/use-toast';
 import DepartmentManagement from '@/components/DepartmentManagement';
 import DepartmentSelectionDialog from '@/components/DepartmentSelectionDialog_fixed';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 
 interface Project {
   id: string;
@@ -107,7 +107,7 @@ const DashboardFixed = () => {
     try {
       const response = await apiClient.getProjects();
       if (response.success) {
-        setProjects((response.data || []).slice(0, 6));
+        setProjects(((response.data as any[]) || []).slice(0, 6));
       } else {
         console.error('Error fetching projects:', response.error);
         toast({ title: 'Error', description: 'Failed to load projects', variant: 'destructive' });
