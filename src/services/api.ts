@@ -255,32 +255,60 @@ class ApiClient {
 
   async createCapacityIteration(projectId: string, data: {
     type: 'iteration';
-    iterationName: string;
-    startDate: string;
-    endDate: string;
-    workingDays: number;
+    iterationName?: string;
+    startDate?: string;
+    endDate?: string;
+    workingDays?: number;
     committedStoryPoints?: number;
+    // also support snake_case
+    iteration_name?: string;
+    start_date?: string;
+    end_date?: string;
+    working_days?: number;
+    committed_story_points?: number;
   }): Promise<ApiResponse<{ message: string; iteration: any }>> {
+    const payload = {
+      type: 'iteration',
+      iteration_name: (data as any).iteration_name ?? (data as any).iterationName,
+      start_date: (data as any).start_date ?? (data as any).startDate,
+      end_date: (data as any).end_date ?? (data as any).endDate,
+      working_days: (data as any).working_days ?? (data as any).workingDays,
+      committed_story_points: (data as any).committed_story_points ?? (data as any).committedStoryPoints ?? 0,
+    };
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   }
 
   async addCapacityMember(projectId: string, data: {
     type: 'member';
-    iterationId: string;
-    memberName: string;
+    iterationId?: string;
+    memberName?: string;
     role: string;
     workMode: string;
-    availabilityPercent: number;
-    leaves: number;
+    availabilityPercent?: number;
+    leaves?: number;
     stakeholderId?: string;
     teamId?: string;
+    // snake_case support
+    iteration_id?: string;
+    member_name?: string;
+    work_mode?: string;
+    availability_percent?: number;
   }): Promise<ApiResponse<{ message: string; member: any }>> {
+    const payload = {
+      type: 'member',
+      iteration_id: (data as any).iteration_id ?? (data as any).iterationId,
+      member_name: (data as any).member_name ?? (data as any).memberName,
+      role: (data as any).role,
+      work_mode: (data as any).work_mode ?? (data as any).workMode,
+      leaves: (data as any).leaves ?? 0,
+      availability_percent: (data as any).availability_percent ?? (data as any).availabilityPercent ?? 100,
+    };
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -598,15 +626,28 @@ class ApiClient {
 
   async updateCapacityIteration(projectId: string, iterationId: string, data: {
     type: 'iteration';
-    iterationName: string;
-    startDate: string;
-    endDate: string;
-    workingDays: number;
+    iterationName?: string;
+    startDate?: string;
+    endDate?: string;
+    workingDays?: number;
     committedStoryPoints?: number;
+    iteration_name?: string;
+    start_date?: string;
+    end_date?: string;
+    working_days?: number;
+    committed_story_points?: number;
   }): Promise<ApiResponse<{ message: string; iteration: any }>> {
+    const payload = {
+      type: 'iteration',
+      iteration_name: (data as any).iteration_name ?? (data as any).iterationName,
+      start_date: (data as any).start_date ?? (data as any).startDate,
+      end_date: (data as any).end_date ?? (data as any).endDate,
+      working_days: (data as any).working_days ?? (data as any).workingDays,
+      committed_story_points: (data as any).committed_story_points ?? (data as any).committedStoryPoints ?? 0,
+    };
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity/${iterationId}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
       headers: {
         'Content-Type': 'application/json',
       },
