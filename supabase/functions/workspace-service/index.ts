@@ -374,7 +374,16 @@ Deno.serve(async (req) => {
     if (method === 'POST' && path.includes('/projects/') && path.endsWith('/tasks')) {
       const params = extractPathParams(url, '/workspace-service/projects/:id/tasks');
       const projectId = params.id;
-      const taskData = await req.json();
+      const rawTask = await req.json();
+      const taskData: Record<string, any> = { ...rawTask };
+      // Normalize camelCase -> snake_case fields commonly sent by the UI
+      if (taskData.milestoneId && !taskData.milestone_id) taskData.milestone_id = taskData.milestoneId;
+      if (taskData.dueDate && !taskData.due_date) taskData.due_date = taskData.dueDate;
+      if (taskData.ownerId && !taskData.owner_id) taskData.owner_id = taskData.ownerId;
+      // Convert empty strings to null for nullable fields
+      ['description', 'due_date', 'owner_id', 'milestone_id'].forEach((k) => {
+        if (typeof taskData[k] === 'string' && taskData[k].trim() === '') taskData[k] = null;
+      });
 
       if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
 

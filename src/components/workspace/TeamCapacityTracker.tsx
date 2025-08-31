@@ -196,8 +196,25 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           title: 'Success',
           description: editingIteration ? 'Iteration updated successfully' : 'Iteration created successfully'
         });
+
+        // Optimistic UI update so the new/updated iteration appears immediately
+        if (editingIteration) {
+          const updated = (response as any).data?.iteration;
+          if (updated) {
+            setIterations(prev => prev.map(it => it.id === updated.id ? updated : it));
+            setSelectedIteration(updated);
+          }
+        } else {
+          const created = (response as any).data?.iteration;
+          if (created) {
+            setIterations(prev => [created, ...prev]);
+            setSelectedIteration(created);
+          }
+        }
+
         setShowIterationDialog(false);
         resetIterationForm();
+        // Also refetch to ensure full consistency
         fetchIterations();
       } else {
         throw new Error(response.error || `Failed to ${editingIteration ? 'update' : 'create'} iteration`);

@@ -241,7 +241,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
     try {
       const discussionData = {
         ...discussionForm,
-        attendees: JSON.stringify(discussionForm.attendees)
+        attendees: discussionForm.attendees
       };
 
       if (editingDiscussion) {
