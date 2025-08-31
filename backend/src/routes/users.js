@@ -1,4 +1,3 @@
--- Additional missing API method for getUserRole
 const express = require('express');
 const { query } = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
@@ -6,8 +5,8 @@ const { createSuccessResponse, createErrorResponse, sendResponse } = require('..
 
 const router = express.Router();
 
-// GET /users/:id/role (getUserRole method)
-router.get('/users/:id/role', verifyToken, async (req, res) => {
+// GET /:id/role (getUserRole method)
+router.get('/:id/role', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     

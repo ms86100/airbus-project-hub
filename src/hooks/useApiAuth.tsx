@@ -24,77 +24,128 @@ interface Session {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  userRole: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error?: string; message?: string }>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to clean up auth state
+export const cleanupAuthState = () => {
+  // Remove microservice auth tokens
+  localStorage.removeItem('auth_session');
+  localStorage.removeItem('auth_user');
+  localStorage.removeItem('auth_role');
+  localStorage.removeItem('app_session');
+  
+  // Also clean up any Supabase auth keys for safety
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    console.log('🎯 AUTH HOOK V3 - Initializing microservice auth...');
-    initializeAuth();
-  }, []);
-
-  const initializeAuth = async () => {
+  // Fetch user role from API service
+  const fetchUserRole = async (userId: string) => {
     try {
-      // Check for stored session first
-      const storedSession = localStorage.getItem('auth_session');
-      const storedUser = localStorage.getItem('auth_user');
-      
-      console.log('📱 Checking stored auth...', { 
-        hasSession: !!storedSession, 
-        hasUser: !!storedUser 
-      });
-      
-      if (storedSession && storedUser) {
-        try {
-          const sessionData = JSON.parse(storedSession);
-          const userData = JSON.parse(storedUser);
-          
-          console.log('✅ Found stored auth for:', userData.email);
-          
-          setSession(sessionData);
-          setUser(userData);
-        } catch (error) {
-          console.error('❌ Error parsing stored auth:', error);
-          localStorage.removeItem('auth_session');
-          localStorage.removeItem('auth_user');
-        }
+      const response = await apiClient.getUserRole(userId);
+      if (response.success && response.data) {
+        const role = response.data.role || null;
+        setUserRole(role);
+        localStorage.setItem('auth_role', role || '');
       } else {
-        console.log('❌ No stored authentication found');
+        setUserRole(null);
+        localStorage.removeItem('auth_role');
       }
     } catch (error) {
-      console.error('❌ Auth initialization error:', error);
-    } finally {
-      setLoading(false);
-      console.log('✅ Auth initialization complete');
+      console.error('Error fetching user role:', error);
+      setUserRole(null);
+      localStorage.removeItem('auth_role');
     }
   };
 
+  // Refresh user data from API service
+  const refreshUser = async () => {
+    if (!session?.access_token || !user?.id) return;
+    
+    try {
+      const response = await apiClient.getCurrentSession();
+      if (response.success && response.data) {
+        setUserRole(response.data.role || null);
+        localStorage.setItem('auth_role', response.data.role || '');
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
+  };
+
+  // Initialize auth state from localStorage
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const storedSession = localStorage.getItem('auth_session');
+        const storedUser = localStorage.getItem('auth_user');
+        const storedRole = localStorage.getItem('auth_role');
+        
+        if (storedSession && storedUser) {
+          try {
+            const sessionData = JSON.parse(storedSession);
+            const userData = JSON.parse(storedUser);
+            
+            setSession(sessionData);
+            setUser(userData);
+            setUserRole(storedRole);
+            
+            // Fetch fresh role if available
+            if (userData.id) {
+              fetchUserRole(userData.id);
+            }
+          } catch (error) {
+            console.error('Error parsing stored auth:', error);
+            cleanupAuthState();
+          }
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
   const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
-      console.log('🔐 Starting microservice login for:', email);
+      // Clean up any existing auth state first
+      cleanupAuthState();
       
+      // Use API service for login
       const response = await apiClient.login(email, password);
-      console.log('📡 Login response:', response);
       
       if (!response.success) {
-        console.log('❌ Login failed:', response.error);
         return { error: response.error || 'Login failed' };
       }
 
       // Set auth state from API response
       if (response.data?.session && response.data?.user) {
-        console.log('✅ Setting auth state for user:', response.data.user.email);
-        
         const sessionData = response.data.session;
         const userData = response.data.user;
         
@@ -102,11 +153,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(userData);
         
         // Store session in localStorage for persistence
-        console.log('💾 Storing session and user data');
         localStorage.setItem('auth_session', JSON.stringify(sessionData));
         localStorage.setItem('auth_user', JSON.stringify(userData));
         
-        console.log('🏠 Redirecting to dashboard');
+        // Fetch user role
+        if (userData.id) {
+          fetchUserRole(userData.id);
+        }
+        
+        // Force page refresh for clean state
         window.location.href = '/';
       }
 
@@ -119,6 +174,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName?: string): Promise<{ error?: string; message?: string }> => {
     try {
+      // Clean up any existing auth state first
+      cleanupAuthState();
+      
+      // Use API service for registration
       const response = await apiClient.register(email, password, fullName);
       
       if (!response.success) {
@@ -133,9 +192,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Store session in localStorage
         localStorage.setItem('auth_session', JSON.stringify(response.data.session));
         localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+        
+        // Fetch user role
+        if (response.data.user?.id) {
+          fetchUserRole(response.data.user.id);
+        }
       }
 
-      return { message: response.data?.message };
+      return { message: response.data?.message || 'Registration successful' };
     } catch (error) {
       console.error('Sign up error:', error);
       return { error: 'An unexpected error occurred' };
@@ -144,31 +208,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async (): Promise<void> => {
     try {
-      console.log('🚪 Starting microservice logout...');
-      
-      // Clear local state first
-      setSession(null);
-      setUser(null);
-      
-      // Remove from localStorage
-      localStorage.removeItem('auth_session');
-      localStorage.removeItem('auth_user');
-      
-      // Attempt API logout
+      // Use API service for logout
       try {
         await apiClient.logout();
-        console.log('✅ API logout successful');
       } catch (err) {
-        console.log('⚠️ API logout failed, continuing with cleanup');
+        console.log('API logout failed, continuing with cleanup');
       }
-
-      // Force redirect to auth page
+      
+      // Clean up local state
+      setSession(null);
+      setUser(null);
+      setUserRole(null);
+      
+      // Clean up auth state
+      cleanupAuthState();
+      
+      // Force page refresh for clean state
       window.location.href = '/auth';
     } catch (error) {
       console.error('Sign out error:', error);
       // Force cleanup even if there's an error
-      localStorage.removeItem('auth_session');
-      localStorage.removeItem('auth_user');
+      cleanupAuthState();
       window.location.href = '/auth';
     }
   };
@@ -176,10 +236,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     session,
+    userRole,
     loading,
     signIn,
     signUp,
     signOut,
+    refreshUser,
   };
 
   return (
