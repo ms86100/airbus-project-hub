@@ -20,6 +20,8 @@ router.post('/projects/:projectId/backlog', (req, res) => {
     status: body.status || 'backlog',
     owner_id: body.ownerId || null,
     target_date: body.targetDate || null,
+    source_type: body.sourceType || 'manual',
+    source_id: body.sourceId || null,
   };
   backlog.push(item);
   return res.json(ok({ message: 'Created (stub)', item }));
