@@ -32,6 +32,7 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
     
     try {
       await client.query('BEGIN');
+      await client.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: userId })]);
 
       // 1. Create the project
       const projectResult = await client.query(`
