@@ -110,19 +110,42 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
     e.preventDefault();
     if (!user) return;
 
+    console.log('🔧 TaskCard - Updating task:', {
+      taskId: task.id,
+      projectId,
+      originalData: {
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        due_date: task.due_date,
+        owner_id: task.owner_id
+      },
+      newData: formData
+    });
+
     try {
-      const response = await apiClient.updateTask(projectId, task.id, {
+      const updateData = {
         title: formData.title,
         description: formData.description || undefined,
         status: formData.status,
         priority: formData.priority,
         due_date: formData.due_date || undefined,
         owner_id: formData.owner_id || undefined
-      });
+      };
+
+      console.log('🔧 TaskCard - Sending update request with data:', updateData);
+
+      const response = await apiClient.updateTask(projectId, task.id, updateData);
+
+      console.log('🔧 TaskCard - Update response:', response);
 
       if (!response.success) {
+        console.error('🔧 TaskCard - Update failed:', response.error, response.code);
         throw new Error(response.error || 'Failed to update task');
       }
+      
+      console.log('🔧 TaskCard - Task updated successfully');
       
       toast({
         title: "Task updated",
@@ -132,9 +155,10 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
       setIsEditing(false);
       onTaskUpdate();
     } catch (error: any) {
+      console.error('🔧 TaskCard - Update error:', error);
       toast({
         title: "Error updating task",
-        description: error.message,
+        description: `${error.message} (Code: ${error.code || 'UNKNOWN'})`,
         variant: "destructive",
       });
     }

@@ -119,11 +119,27 @@ router.post('/projects/:projectId/tasks', requireAuth, async (req, res) => {
 router.put('/projects/:projectId/tasks/:taskId', requireAuth, async (req, res) => {
   try {
     const { projectId, taskId } = req.params;
+    console.log('🔧 Backend - PUT /tasks/:taskId called:', {
+      projectId,
+      taskId,
+      userId: req.user?.id,
+      body: req.body,
+      headers: {
+        authorization: req.headers.authorization ? 'present' : 'missing',
+        contentType: req.headers['content-type']
+      }
+    });
+
     const { title, description, status, priority, dueDate, ownerId, milestoneId } = req.body;
 
     if (!await checkProjectAccess(req.user.id, projectId)) {
+      console.log('🔧 Backend - Access denied for user:', req.user.id, 'project:', projectId);
       return res.json(fail('Access denied', 'ACCESS_DENIED'));
     }
+
+    console.log('🔧 Backend - Updating task with fields:', {
+      title, description, status, priority, dueDate, ownerId, milestoneId
+    });
 
     const result = await pool.query(`
       UPDATE tasks
@@ -140,13 +156,16 @@ router.put('/projects/:projectId/tasks/:taskId', requireAuth, async (req, res) =
     `, [taskId, projectId, title, description, status, priority, dueDate, ownerId, milestoneId]);
 
     if (result.rows.length === 0) {
+      console.log('🔧 Backend - Task not found:', taskId);
       return res.json(fail('Task not found', 'NOT_FOUND'));
     }
 
+    console.log('🔧 Backend - Task updated successfully:', result.rows[0]);
     res.json(ok({ message: 'Task updated successfully', task: result.rows[0] }));
   } catch (error) {
-    console.error('Update task error:', error);
-    res.json(fail('Failed to update task', 'UPDATE_ERROR'));
+    console.error('🔧 Backend - Update task error:', error);
+    console.error('🔧 Backend - Error stack:', error.stack);
+    res.json(fail('Failed to update task: ' + error.message, 'UPDATE_ERROR'));
   }
 });
 
@@ -285,18 +304,33 @@ router.post('/projects/:projectId/risks', requireAuth, async (req, res) => {
   try {
     const { projectId } = req.params;
     const riskData = req.body;
+    
+    console.log('🔧 Backend - POST /risks called:', {
+      projectId,
+      userId: req.user?.id,
+      body: riskData,
+      headers: {
+        authorization: req.headers.authorization ? 'present' : 'missing',
+        contentType: req.headers['content-type']
+      }
+    });
 
     if (!await checkProjectAccess(req.user.id, projectId)) {
+      console.log('🔧 Backend - Access denied for user:', req.user.id, 'project:', projectId);
       return res.json(fail('Access denied', 'ACCESS_DENIED'));
     }
 
     if (!riskData.title || !riskData.risk_code) {
+      console.log('🔧 Backend - Missing required fields:', { title: riskData.title, risk_code: riskData.risk_code });
       return res.json(fail('Title and risk code are required', 'MISSING_FIELDS'));
     }
 
     const riskId = uuidv4();
     const riskScore = (riskData.likelihood || 1) * (riskData.impact || 1);
     const residualRiskScore = (riskData.residual_likelihood || 1) * (riskData.residual_impact || 1);
+
+    console.log('🔧 Backend - Creating risk with ID:', riskId);
+    console.log('🔧 Backend - Risk scores calculated:', { riskScore, residualRiskScore });
 
     const result = await pool.query(`
       INSERT INTO risk_register (
@@ -319,10 +353,12 @@ router.post('/projects/:projectId/risks', requireAuth, async (req, res) => {
       riskData.notes, req.user.id
     ]);
 
+    console.log('🔧 Backend - Risk created successfully:', result.rows[0]);
     res.json(ok({ message: 'Risk created successfully', risk: result.rows[0] }));
   } catch (error) {
-    console.error('Create risk error:', error);
-    res.json(fail('Failed to create risk', 'CREATE_ERROR'));
+    console.error('🔧 Backend - Create risk error:', error);
+    console.error('🔧 Backend - Error stack:', error.stack);
+    res.json(fail('Failed to create risk: ' + error.message, 'CREATE_ERROR'));
   }
 });
 

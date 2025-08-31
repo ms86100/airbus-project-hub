@@ -127,6 +127,8 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
       return;
     }
 
+    console.log('🔧 RiskRegister - Creating risk with data:', newRisk);
+
     try {
       const riskData = {
         risk_code: newRisk.risk_code,
@@ -150,11 +152,18 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
         notes: newRisk.notes || null
       };
 
+      console.log('🔧 RiskRegister - Processed risk data:', riskData);
+
       const response = await apiClient.createRisk(projectId, riskData);
 
+      console.log('🔧 RiskRegister - Create risk response:', response);
+
       if (!response.success) {
+        console.error('🔧 RiskRegister - Create risk failed:', response.error, response.code);
         throw new Error(response.error || 'Failed to create risk');
       }
+
+      console.log('🔧 RiskRegister - Risk created successfully');
 
       toast({
         title: "Success",
@@ -185,9 +194,10 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
       
       fetchRisks();
     } catch (error: any) {
+      console.error('🔧 RiskRegister - Create risk error:', error);
       toast({
         title: "Error adding risk",
-        description: error.message,
+        description: `${error.message} (Code: ${error.code || 'UNKNOWN'})`,
         variant: "destructive",
       });
     }

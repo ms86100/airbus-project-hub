@@ -780,10 +780,15 @@ class ApiClient {
   }
 
   async updateTask(projectId: string, taskId: string, data: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/tasks/${taskId}`, {
+    console.log('🔧 API Client - updateTask called:', { projectId, taskId, data });
+    
+    const response = await this.makeRequest(`/workspace-service/projects/${projectId}/tasks/${taskId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+    
+    console.log('🔧 API Client - updateTask response:', response);
+    return response;
   }
 
   async getRisks(projectId: string): Promise<ApiResponse<any>> {
@@ -791,10 +796,15 @@ class ApiClient {
   }
 
   async createRisk(projectId: string, data: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/risks`, {
+    console.log('🔧 API Client - createRisk called:', { projectId, data });
+    
+    const response = await this.makeRequest(`/workspace-service/projects/${projectId}/risks`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    
+    console.log('🔧 API Client - createRisk response:', response);
+    return response;
   }
 
   async updateRisk(projectId: string, riskId: string, data: any): Promise<ApiResponse<any>> {
