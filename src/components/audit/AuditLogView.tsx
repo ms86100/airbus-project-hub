@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Clock, User, FileText, Filter, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { apiClient } from '@/services/api_backend';
+import { apiClient } from '@/services/api';
 
 interface AuditEntry {
   id: string;

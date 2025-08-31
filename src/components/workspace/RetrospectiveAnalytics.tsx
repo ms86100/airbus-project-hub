@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Target, CheckCircle, TrendingUp, BarChart3 } from 'lucide-react';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { apiClient } from '@/services/api_backend';
+import { apiClient } from '@/services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface RetrospectiveAnalyticsProps {

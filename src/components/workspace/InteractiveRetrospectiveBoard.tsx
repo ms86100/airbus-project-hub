@@ -4,7 +4,7 @@ import { SortableContext, arrayMove } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
-import { apiClient } from '@/services/api_backend';
+import { apiClient } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { apiClient } from '@/services/api_backend';
+import { apiClient } from '@/services/api';
 import { format, addDays, differenceInDays, startOfDay, endOfDay } from 'date-fns';
 
 interface Task {

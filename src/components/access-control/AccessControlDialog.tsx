@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserPlus, Trash2, Shield, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { apiClient } from '@/services/api_backend';
+import { apiClient } from '@/services/api';
 
 interface ModulePermission {
   id: string;
