@@ -215,6 +215,35 @@ router.put('/tasks/:taskId', requireAuth, async (req, res) => {
   }
 });
 
+router.delete('/projects/:projectId/tasks/:taskId', requireAuth, async (req, res) => {
+  try {
+    const { projectId, taskId } = req.params;
+    console.log('🔧 Backend - DELETE /projects/:projectId/tasks/:taskId called:', {
+      projectId, taskId, userId: req.user?.id
+    });
+
+    if (!await checkProjectAccess(req.user.id, projectId)) {
+      console.log('🔧 Backend - Access denied for user:', req.user.id, 'project:', projectId);
+      return res.json(fail('Access denied', 'ACCESS_DENIED'));
+    }
+
+    const result = await pool.query('DELETE FROM tasks WHERE id = $1 AND project_id = $2 RETURNING id', [taskId, projectId]);
+
+    if (result.rowCount === 0) {
+      console.log('🔧 Backend - Task not found:', taskId);
+      return res.json(fail('Task not found', 'NOT_FOUND'));
+    }
+
+    console.log('🔧 Backend - Task deleted successfully:', taskId);
+    res.json(ok({ message: 'Task deleted successfully' }));
+  } catch (error) {
+    console.error('🔧 Backend - Delete task error:', error);
+    console.error('🔧 Backend - Error stack:', error.stack);
+    res.json(fail('Failed to delete task: ' + error.message, 'DELETE_ERROR'));
+  }
+});
+
+// Keep the old endpoint for backwards compatibility
 router.delete('/tasks/:taskId', requireAuth, async (req, res) => {
   try {
     const { taskId } = req.params;
@@ -475,16 +504,29 @@ router.post('/projects/:projectId/discussions', requireAuth, async (req, res) =>
   try {
     const { projectId } = req.params;
     const { meeting_title, meeting_date, summary_notes, attendees } = req.body;
+    
+    console.log('🔧 Backend - POST /discussions called:', {
+      projectId,
+      userId: req.user?.id,
+      body: { meeting_title, meeting_date, summary_notes, attendees },
+      headers: {
+        authorization: req.headers.authorization ? 'present' : 'missing',
+        contentType: req.headers['content-type']
+      }
+    });
 
     if (!await checkProjectAccess(req.user.id, projectId)) {
+      console.log('🔧 Backend - Access denied for user:', req.user.id, 'project:', projectId);
       return res.json(fail('Access denied', 'ACCESS_DENIED'));
     }
 
     if (!meeting_title || !meeting_date) {
+      console.log('🔧 Backend - Missing required fields:', { meeting_title, meeting_date });
       return res.json(fail('Meeting title and date are required', 'MISSING_FIELDS'));
     }
 
     const discussionId = uuidv4();
+    console.log('🔧 Backend - Creating discussion with ID:', discussionId);
 
     const result = await pool.query(`
       INSERT INTO project_discussions (id, project_id, meeting_title, meeting_date, summary_notes, attendees, created_by, created_at, updated_at)
@@ -492,10 +534,12 @@ router.post('/projects/:projectId/discussions', requireAuth, async (req, res) =>
       RETURNING *
     `, [discussionId, projectId, meeting_title, meeting_date, summary_notes, JSON.stringify(attendees || []), req.user.id]);
 
+    console.log('🔧 Backend - Discussion created successfully:', result.rows[0]);
     res.json(ok({ message: 'Discussion created successfully', discussion: result.rows[0] }));
   } catch (error) {
-    console.error('Create discussion error:', error);
-    res.json(fail('Failed to create discussion', 'CREATE_ERROR'));
+    console.error('🔧 Backend - Create discussion error:', error);
+    console.error('🔧 Backend - Error stack:', error.stack);
+    res.json(fail('Failed to create discussion: ' + error.message, 'CREATE_ERROR'));
   }
 });
 

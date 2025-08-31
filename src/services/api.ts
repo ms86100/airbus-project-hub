@@ -874,9 +874,14 @@ class ApiClient {
   }
 
   async deleteTask(projectId: string, taskId: string): Promise<ApiResponse<{ message: string }>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/tasks/${taskId}`, {
+    console.log('🔧 API Client - deleteTask called:', { projectId, taskId });
+    
+    const response = await this.makeRequest(`/workspace-service/projects/${projectId}/tasks/${taskId}`, {
       method: 'DELETE',
     });
+    
+    console.log('🔧 API Client - deleteTask response:', response);
+    return response as ApiResponse<{ message: string }>;
   }
 
   async getUserProfiles(userIds: string[]): Promise<ApiResponse<{ profiles: any[] }>> {
