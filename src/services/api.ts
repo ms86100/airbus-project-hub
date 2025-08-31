@@ -9,6 +9,7 @@ export interface ApiResponse<T = any> {
 
 class ApiClient {
   private baseUrl: string;
+  private cloudUrl: string;
 
   constructor() {
     const isBrowser = typeof window !== 'undefined';
@@ -17,8 +18,10 @@ class ApiClient {
       window.location.origin.includes('127.0.0.1:8081') ||
       localStorage.getItem('use_local_backend') === 'true'
     );
+    // Cloud Edge Functions base (always available)
+    this.cloudUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
     // Prefer local backend when running the app locally
-    this.baseUrl = isLocalApp ? 'http://localhost:8080' : 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
+    this.baseUrl = isLocalApp ? 'http://localhost:8080' : this.cloudUrl;
     (this as any)._useCloud = !isLocalApp;
   }
 
@@ -60,7 +63,9 @@ class ApiClient {
         ...options.headers,
       } as Record<string, string>;
 
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const base = endpoint.startsWith('/wizard-service') ? this.cloudUrl : this.baseUrl;
+      const url = `${base}${endpoint}`;
+      const response = await fetch(url, {
         ...options,
         headers,
       });
@@ -89,6 +94,9 @@ class ApiClient {
       }
 
       console.log(`📡 Response from ${endpoint}:`, result);
+      if (!response.ok && (!result || typeof result.success === 'undefined')) {
+        return { success: false, error: `HTTP ${response.status} for ${endpoint}`, code: `HTTP_${response.status}` } as any;
+      }
       return result ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' };
     } catch (error) {
       console.error('API request failed:', error);
