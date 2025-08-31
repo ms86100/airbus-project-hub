@@ -132,7 +132,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       }));
 
       setTasks([...regularTasks, ...retrospectiveTasks]);
-      setMilestones(milestonesResponse.data || []);
+      setMilestones(milestonesResponse.data.milestones || []);
     } catch (error: any) {
       toast({
         title: "Error loading data",

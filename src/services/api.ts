@@ -342,6 +342,7 @@ class ApiClient {
     return this.makeRequest(`/roadmap-service/projects/${projectId}/roadmap`, { method: 'GET' });
   }
 
+
   async createMilestone(projectId: string, data: { name: string; description?: string; dueDate: string; status?: 'planning' | 'in_progress' | 'completed' | 'blocked'; }): Promise<ApiResponse<{ message: string; milestone: any }>> {
     return this.makeRequest(`/roadmap-service/projects/${projectId}/roadmap`, {
       method: 'POST',
@@ -524,6 +525,17 @@ class ApiClient {
     return this.makeRequest(`/workspace-service/projects/${projectId}/discussions`, { method: 'GET' });
   }
 
+  async getDiscussionActionItems(projectId: string, discussionId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/discussions/${discussionId}/action-items`, { method: 'GET' });
+  }
+
+  async createDiscussionActionItem(projectId: string, discussionId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/discussions/${discussionId}/action-items`, {
+      method: 'POST',
+      body: JSON.stringify(actionItemData),
+    });
+  }
+
   async createDiscussion(projectId: string, discussionData: any): Promise<ApiResponse<{ message: string; discussion: any }>> {
     return this.makeRequest(`/workspace-service/projects/${projectId}/discussions`, {
       method: 'POST',
@@ -561,10 +573,10 @@ class ApiClient {
     return this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, { method: 'GET' });
   }
 
-  async updateTask(taskId: string, data: any): Promise<ApiResponse<any>> {
+  async updateTask(taskId: string, taskData: any): Promise<ApiResponse<{ message: string; task: any }>> {
     return this.makeRequest(`/workspace-service/tasks/${taskId}`, {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(taskData)
     });
   }
 
@@ -573,8 +585,8 @@ class ApiClient {
   }
 
   // Milestones
-  async getMilestones(projectId: string): Promise<ApiResponse<any[]>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/milestones`);
+  async getMilestones(projectId: string): Promise<ApiResponse<{ projectId: string; milestones: any[] }>> {
+    return this.getRoadmap(projectId);
   }
 
   // Profile management
