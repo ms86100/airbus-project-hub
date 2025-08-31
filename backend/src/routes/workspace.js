@@ -1,4 +1,5 @@
 const express = require('express');
+const { v4: uuidv4 } = require('uuid');
 const { query } = require('../config/database');
 const { verifyToken, verifyProjectAccess } = require('../middleware/auth');
 const { createSuccessResponse, createErrorResponse, sendResponse } = require('../utils/responses');
@@ -126,4 +127,648 @@ router.get('/projects/:id/milestones', verifyToken, verifyProjectAccess, async (
   }
 });
 
-module.exports = router;
+// POST /workspace-service/projects/:id/tasks
+router.post('/projects/:id/tasks', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const userId = req.user.id;
+    const { title, description, priority, status, milestoneId, dueDate, ownerId } = req.body;
+    
+    if (!title) {
+      return sendResponse(res, createErrorResponse('Task title required', 'MISSING_FIELDS', 400));
+    }
+
+    const taskId = uuidv4();
+    const now = new Date();
+    
+    const insertQuery = `
+      INSERT INTO tasks (id, project_id, milestone_id, title, description, priority, status, due_date, owner_id, created_by, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING *
+    `;
+    
+    const result = await query(insertQuery, [
+      taskId,
+      projectId,
+      milestoneId || null,
+      title,
+      description || null,
+      priority || 'medium',
+      status || 'todo',
+      dueDate || null,
+      ownerId || null,
+      userId,
+      now,
+      now
+    ]);
+    
+    sendResponse(res, createSuccessResponse({
+      message: 'Task created successfully',
+      task: result.rows[0]
+    }));
+  } catch (error) {
+    console.error('Create task error:', error);
+    sendResponse(res, createErrorResponse('Failed to create task', 'CREATE_ERROR', 500));
+  }
+});
+
+// PUT /workspace-service/tasks/:id
+router.put('/tasks/:id', verifyToken, async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const userId = req.user.id;
+    const { title, description, priority, status, milestoneId, dueDate, ownerId } = req.body;
+    
+    // Verify user has access to task's project
+    const accessQuery = `
+      SELECT EXISTS (
+        SELECT 1 FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        WHERE t.id = $1 AND (
+          p.created_by = $2 OR
+          EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = $2 AND ur.role = 'admin') OR
+          EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $2) OR
+          EXISTS (SELECT 1 FROM module_permissions mp WHERE mp.project_id = p.id AND mp.user_id = $2)
+        )
+      ) as has_access
+    `;
+    
+    const accessResult = await query(accessQuery, [taskId, userId]);
+    
+    if (!accessResult.rows[0].has_access) {
+      return sendResponse(res, createErrorResponse('Task access denied', 'FORBIDDEN', 403));
+    }
+    
+    const updateQuery = `
+      UPDATE tasks 
+      SET title = COALESCE($2, title),
+          description = COALESCE($3, description),
+          priority = COALESCE($4, priority),
+          status = COALESCE($5, status),
+          milestone_id = COALESCE($6, milestone_id),
+          due_date = COALESCE($7, due_date),
+          owner_id = COALESCE($8, owner_id),
+          updated_at = $9
+      WHERE id = $1
+      RETURNING *
+    `;
+    
+    const result = await query(updateQuery, [
+      taskId,
+      title,
+      description,
+      priority,
+      status,
+      milestoneId,
+      dueDate,
+      ownerId,
+      new Date()
+    ]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Task not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse(result.rows[0]));
+  } catch (error) {
+    console.error('Update task error:', error);
+    sendResponse(res, createErrorResponse('Failed to update task', 'UPDATE_ERROR', 500));
+  }
+});
+
+// DELETE /workspace-service/tasks/:id
+router.delete('/tasks/:id', verifyToken, async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const userId = req.user.id;
+    
+    // Verify user has access to task's project
+    const accessQuery = `
+      SELECT EXISTS (
+        SELECT 1 FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        WHERE t.id = $1 AND (
+          p.created_by = $2 OR
+          EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = $2 AND ur.role = 'admin') OR
+          EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $2) OR
+          EXISTS (SELECT 1 FROM module_permissions mp WHERE mp.project_id = p.id AND mp.user_id = $2)
+        )
+      ) as has_access
+    `;
+    
+    const accessResult = await query(accessQuery, [taskId, userId]);
+    
+    if (!accessResult.rows[0].has_access) {
+      return sendResponse(res, createErrorResponse('Task access denied', 'FORBIDDEN', 403));
+    }
+    
+    const deleteQuery = 'DELETE FROM tasks WHERE id = $1 RETURNING id';
+    const result = await query(deleteQuery, [taskId]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Task not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse({ message: 'Task deleted successfully' }));
+  } catch (error) {
+    console.error('Delete task error:', error);
+    sendResponse(res, createErrorResponse('Failed to delete task', 'DELETE_ERROR', 500));
+  }
+});
+
+// GET /workspace-service/tasks/:id/status-history
+router.get('/tasks/:id/status-history', verifyToken, async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const userId = req.user.id;
+    
+    // Verify user has access to task's project
+    const accessQuery = `
+      SELECT EXISTS (
+        SELECT 1 FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        WHERE t.id = $1 AND (
+          p.created_by = $2 OR
+          EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = $2 AND ur.role = 'admin') OR
+          EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $2) OR
+          EXISTS (SELECT 1 FROM module_permissions mp WHERE mp.project_id = p.id AND mp.user_id = $2)
+        )
+      ) as has_access
+    `;
+    
+    const accessResult = await query(accessQuery, [taskId, userId]);
+    
+    if (!accessResult.rows[0].has_access) {
+      return sendResponse(res, createErrorResponse('Task access denied', 'FORBIDDEN', 403));
+    }
+    
+    const historyQuery = `
+      SELECT tsh.*, p.full_name as changed_by_name
+      FROM task_status_history tsh
+      LEFT JOIN profiles p ON tsh.changed_by = p.id
+      WHERE tsh.task_id = $1
+      ORDER BY tsh.changed_at DESC
+    `;
+    
+    const result = await query(historyQuery, [taskId]);
+    
+    sendResponse(res, createSuccessResponse({ history: result.rows }));
+  } catch (error) {
+    console.error('Get task status history error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch task status history', 'FETCH_ERROR', 500));
+  }
+});
+
+// PUT /workspace-service/tasks/:id/move
+router.put('/tasks/:id/move', verifyToken, async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const userId = req.user.id;
+    const { milestone_id } = req.body;
+    
+    // Verify user has access to task's project
+    const accessQuery = `
+      SELECT EXISTS (
+        SELECT 1 FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        WHERE t.id = $1 AND (
+          p.created_by = $2 OR
+          EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = $2 AND ur.role = 'admin') OR
+          EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $2) OR
+          EXISTS (SELECT 1 FROM module_permissions mp WHERE mp.project_id = p.id AND mp.user_id = $2)
+        )
+      ) as has_access
+    `;
+    
+    const accessResult = await query(accessQuery, [taskId, userId]);
+    
+    if (!accessResult.rows[0].has_access) {
+      return sendResponse(res, createErrorResponse('Task access denied', 'FORBIDDEN', 403));
+    }
+    
+    const updateQuery = `
+      UPDATE tasks 
+      SET milestone_id = $2, updated_at = $3
+      WHERE id = $1
+      RETURNING *
+    `;
+    
+    const result = await query(updateQuery, [taskId, milestone_id, new Date()]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Task not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse({ message: 'Task moved successfully' }));
+  } catch (error) {
+    console.error('Move task error:', error);
+    sendResponse(res, createErrorResponse('Failed to move task', 'MOVE_ERROR', 500));
+  }
+});
+
+// POST /workspace-service/projects/:id/discussions
+router.post('/projects/:id/discussions', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const userId = req.user.id;
+    const { meeting_title, meeting_date, attendees, summary_notes } = req.body;
+    
+    if (!meeting_title || !meeting_date) {
+      return sendResponse(res, createErrorResponse('Meeting title and date required', 'MISSING_FIELDS', 400));
+    }
+
+    const discussionId = uuidv4();
+    const now = new Date();
+    
+    const insertQuery = `
+      INSERT INTO project_discussions (id, project_id, meeting_title, meeting_date, attendees, summary_notes, created_by, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `;
+    
+    const result = await query(insertQuery, [
+      discussionId,
+      projectId,
+      meeting_title,
+      meeting_date,
+      attendees ? JSON.stringify(attendees) : null,
+      summary_notes || null,
+      userId,
+      now,
+      now
+    ]);
+    
+    sendResponse(res, createSuccessResponse({
+      message: 'Discussion created successfully',
+      discussion: result.rows[0]
+    }));
+  } catch (error) {
+    console.error('Create discussion error:', error);
+    sendResponse(res, createErrorResponse('Failed to create discussion', 'CREATE_ERROR', 500));
+  }
+});
+
+// GET /workspace-service/projects/:id/discussions
+router.get('/projects/:id/discussions', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    
+    const discussionsQuery = `
+      SELECT pd.*, pr.full_name as created_by_name
+      FROM project_discussions pd
+      LEFT JOIN profiles pr ON pd.created_by = pr.id
+      WHERE pd.project_id = $1
+      ORDER BY pd.meeting_date DESC, pd.created_at DESC
+    `;
+    
+    const result = await query(discussionsQuery, [projectId]);
+    
+    sendResponse(res, createSuccessResponse(result.rows));
+  } catch (error) {
+    console.error('Get discussions error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch discussions', 'FETCH_ERROR', 500));
+  }
+});
+
+// PUT /workspace-service/projects/:id/discussions/:discussionId
+router.put('/projects/:id/discussions/:discussionId', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const discussionId = req.params.discussionId;
+    const { meeting_title, meeting_date, attendees, summary_notes } = req.body;
+    
+    const updateQuery = `
+      UPDATE project_discussions 
+      SET meeting_title = COALESCE($3, meeting_title),
+          meeting_date = COALESCE($4, meeting_date),
+          attendees = COALESCE($5, attendees),
+          summary_notes = COALESCE($6, summary_notes),
+          updated_at = $7
+      WHERE id = $1 AND project_id = $2
+      RETURNING *
+    `;
+    
+    const result = await query(updateQuery, [
+      discussionId,
+      projectId,
+      meeting_title,
+      meeting_date,
+      attendees ? JSON.stringify(attendees) : null,
+      summary_notes,
+      new Date()
+    ]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Discussion not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse({
+      message: 'Discussion updated successfully',
+      discussion: result.rows[0]
+    }));
+  } catch (error) {
+    console.error('Update discussion error:', error);
+    sendResponse(res, createErrorResponse('Failed to update discussion', 'UPDATE_ERROR', 500));
+  }
+});
+
+// DELETE /workspace-service/projects/:id/discussions/:discussionId
+router.delete('/projects/:id/discussions/:discussionId', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const discussionId = req.params.discussionId;
+    
+    const deleteQuery = 'DELETE FROM project_discussions WHERE id = $1 AND project_id = $2 RETURNING id';
+    const result = await query(deleteQuery, [discussionId, projectId]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Discussion not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse({ message: 'Discussion deleted successfully' }));
+  } catch (error) {
+    console.error('Delete discussion error:', error);
+    sendResponse(res, createErrorResponse('Failed to delete discussion', 'DELETE_ERROR', 500));
+  }
+});
+
+// POST /workspace-service/projects/:id/action-items
+router.post('/projects/:id/action-items', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const userId = req.user.id;
+    const { discussion_id, task_description, owner_id, target_date } = req.body;
+    
+    if (!discussion_id || !task_description) {
+      return sendResponse(res, createErrorResponse('Discussion ID and task description required', 'MISSING_FIELDS', 400));
+    }
+
+    const actionItemId = uuidv4();
+    const now = new Date();
+    
+    const insertQuery = `
+      INSERT INTO discussion_action_items (id, discussion_id, task_description, owner_id, target_date, created_by, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `;
+    
+    const result = await query(insertQuery, [
+      actionItemId,
+      discussion_id,
+      task_description,
+      owner_id || null,
+      target_date || null,
+      userId,
+      now,
+      now
+    ]);
+    
+    sendResponse(res, createSuccessResponse({
+      message: 'Action item created successfully',
+      actionItem: result.rows[0]
+    }));
+  } catch (error) {
+    console.error('Create action item error:', error);
+    sendResponse(res, createErrorResponse('Failed to create action item', 'CREATE_ERROR', 500));
+  }
+});
+
+// GET /workspace-service/projects/:id/action-items
+router.get('/projects/:id/action-items', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    
+    const actionItemsQuery = `
+      SELECT dai.*, pd.meeting_title, pr.full_name as created_by_name
+      FROM discussion_action_items dai
+      JOIN project_discussions pd ON dai.discussion_id = pd.id
+      LEFT JOIN profiles pr ON dai.created_by = pr.id
+      WHERE pd.project_id = $1
+      ORDER BY dai.created_at DESC
+    `;
+    
+    const result = await query(actionItemsQuery, [projectId]);
+    
+    sendResponse(res, createSuccessResponse(result.rows));
+  } catch (error) {
+    console.error('Get action items error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch action items', 'FETCH_ERROR', 500));
+  }
+});
+
+// PUT /workspace-service/projects/:id/action-items/:actionItemId
+router.put('/projects/:id/action-items/:actionItemId', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const actionItemId = req.params.actionItemId;
+    const { task_description, owner_id, target_date, status } = req.body;
+    
+    const updateQuery = `
+      UPDATE discussion_action_items 
+      SET task_description = COALESCE($2, task_description),
+          owner_id = COALESCE($3, owner_id),
+          target_date = COALESCE($4, target_date),
+          status = COALESCE($5, status),
+          updated_at = $6
+      WHERE id = $1 AND discussion_id IN (
+        SELECT id FROM project_discussions WHERE project_id = $7
+      )
+      RETURNING *
+    `;
+    
+    const result = await query(updateQuery, [
+      actionItemId,
+      task_description,
+      owner_id,
+      target_date,
+      status,
+      new Date(),
+      projectId
+    ]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Action item not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse({
+      message: 'Action item updated successfully',
+      actionItem: result.rows[0]
+    }));
+  } catch (error) {
+    console.error('Update action item error:', error);
+    sendResponse(res, createErrorResponse('Failed to update action item', 'UPDATE_ERROR', 500));
+  }
+});
+
+// DELETE /workspace-service/projects/:id/action-items/:actionItemId
+router.delete('/projects/:id/action-items/:actionItemId', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const actionItemId = req.params.actionItemId;
+    
+    const deleteQuery = `
+      DELETE FROM discussion_action_items 
+      WHERE id = $1 AND discussion_id IN (
+        SELECT id FROM project_discussions WHERE project_id = $2
+      )
+      RETURNING id
+    `;
+    
+    const result = await query(deleteQuery, [actionItemId, projectId]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Action item not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse({ message: 'Action item deleted successfully' }));
+  } catch (error) {
+    console.error('Delete action item error:', error);
+    sendResponse(res, createErrorResponse('Failed to delete action item', 'DELETE_ERROR', 500));
+  }
+});
+
+// GET /workspace-service/projects/:id/risks
+router.get('/projects/:id/risks', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    
+    const risksQuery = `
+      SELECT rr.*, pr.full_name as created_by_name
+      FROM risk_register rr
+      LEFT JOIN profiles pr ON rr.created_by = pr.id
+      WHERE rr.project_id = $1
+      ORDER BY rr.risk_score DESC NULLS LAST, rr.created_at DESC
+    `;
+    
+    const result = await query(risksQuery, [projectId]);
+    
+    sendResponse(res, createSuccessResponse(result.rows));
+  } catch (error) {
+    console.error('Get risks error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch risks', 'FETCH_ERROR', 500));
+  }
+});
+
+// POST /workspace-service/projects/:id/risks
+router.post('/projects/:id/risks', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const userId = req.user.id;
+    const { 
+      risk_code, title, description, category, cause, consequence, 
+      likelihood, impact, owner, response_strategy, mitigation_plan, 
+      contingency_plan, status, notes 
+    } = req.body;
+    
+    if (!risk_code || !title) {
+      return sendResponse(res, createErrorResponse('Risk code and title required', 'MISSING_FIELDS', 400));
+    }
+
+    const riskId = uuidv4();
+    const now = new Date();
+    const risk_score = likelihood && impact ? likelihood * impact : null;
+    
+    const insertQuery = `
+      INSERT INTO risk_register (
+        id, project_id, risk_code, title, description, category, cause, consequence,
+        likelihood, impact, risk_score, owner, response_strategy, mitigation_plan,
+        contingency_plan, status, notes, identified_date, created_by, created_at, updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+      RETURNING *
+    `;
+    
+    const result = await query(insertQuery, [
+      riskId, projectId, risk_code, title, description, category, cause, consequence,
+      likelihood, impact, risk_score, owner, response_strategy, mitigation_plan,
+      contingency_plan, status || 'open', notes, now.toISOString().split('T')[0], userId, now, now
+    ]);
+    
+    sendResponse(res, createSuccessResponse({
+      message: 'Risk created successfully',
+      risk: result.rows[0]
+    }));
+  } catch (error) {
+    console.error('Create risk error:', error);
+    sendResponse(res, createErrorResponse('Failed to create risk', 'CREATE_ERROR', 500));
+  }
+});
+
+// PUT /workspace-service/projects/:id/risks/:riskId
+router.put('/projects/:id/risks/:riskId', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const riskId = req.params.riskId;
+    const { 
+      risk_code, title, description, category, cause, consequence, 
+      likelihood, impact, owner, response_strategy, mitigation_plan, 
+      contingency_plan, status, notes 
+    } = req.body;
+    
+    // Calculate risk score if likelihood and impact are provided
+    let risk_score = null;
+    if (likelihood !== undefined && impact !== undefined) {
+      risk_score = likelihood * impact;
+    }
+    
+    const updateQuery = `
+      UPDATE risk_register 
+      SET risk_code = COALESCE($3, risk_code),
+          title = COALESCE($4, title),
+          description = COALESCE($5, description),
+          category = COALESCE($6, category),
+          cause = COALESCE($7, cause),
+          consequence = COALESCE($8, consequence),
+          likelihood = COALESCE($9, likelihood),
+          impact = COALESCE($10, impact),
+          risk_score = COALESCE($11, risk_score),
+          owner = COALESCE($12, owner),
+          response_strategy = COALESCE($13, response_strategy),
+          mitigation_plan = COALESCE($14, mitigation_plan),
+          contingency_plan = COALESCE($15, contingency_plan),
+          status = COALESCE($16, status),
+          notes = COALESCE($17, notes),
+          last_updated = $18,
+          updated_at = $19
+      WHERE id = $1 AND project_id = $2
+      RETURNING *
+    `;
+    
+    const result = await query(updateQuery, [
+      riskId, projectId, risk_code, title, description, category, cause, consequence,
+      likelihood, impact, risk_score, owner, response_strategy, mitigation_plan,
+      contingency_plan, status, notes, new Date().toISOString().split('T')[0], new Date()
+    ]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Risk not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse({
+      message: 'Risk updated successfully',
+      risk: result.rows[0]
+    }));
+  } catch (error) {
+    console.error('Update risk error:', error);
+    sendResponse(res, createErrorResponse('Failed to update risk', 'UPDATE_ERROR', 500));
+  }
+});
+
+// DELETE /workspace-service/projects/:id/risks/:riskId
+router.delete('/projects/:id/risks/:riskId', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const riskId = req.params.riskId;
+    
+    const deleteQuery = 'DELETE FROM risk_register WHERE id = $1 AND project_id = $2 RETURNING id';
+    const result = await query(deleteQuery, [riskId, projectId]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Risk not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse({ message: 'Risk deleted successfully' }));
+  } catch (error) {
+    console.error('Delete risk error:', error);
+    sendResponse(res, createErrorResponse('Failed to delete risk', 'DELETE_ERROR', 500));
+  }

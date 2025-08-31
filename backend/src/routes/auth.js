@@ -302,4 +302,98 @@ router.get('/session', verifyToken, async (req, res) => {
   }
 });
 
+// PUT /auth-service/profiles/:id/department
+router.put('/profiles/:id/department', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { department_id } = req.body;
+    
+    // Only allow users to update their own profile or admins to update any profile
+    if (req.user.id !== id) {
+      const adminResult = await query(
+        'SELECT role FROM user_roles WHERE user_id = $1 AND role = $2',
+        [req.user.id, 'admin']
+      );
+      
+      if (adminResult.rows.length === 0) {
+        return sendResponse(res, createErrorResponse('Access denied', 'FORBIDDEN', 403));
+      }
+    }
+    
+    const updateQuery = `
+      UPDATE profiles 
+      SET department_id = $2, updated_at = $3
+      WHERE id = $1
+      RETURNING *
+    `;
+    
+    const result = await query(updateQuery, [id, department_id, new Date()]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Profile not found', 'PROFILE_NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse({ message: 'Department updated successfully' }));
+  } catch (error) {
+    console.error('Update department error:', error);
+    sendResponse(res, createErrorResponse('Failed to update department', 'UPDATE_ERROR', 500));
+  }
+});
+
+// GET /auth-service/profiles/:id
+router.get('/profiles/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const profileQuery = `
+      SELECT p.*, d.name as department_name
+      FROM profiles p
+      LEFT JOIN departments d ON p.department_id = d.id
+      WHERE p.id = $1
+    `;
+    
+    const result = await query(profileQuery, [id]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Profile not found', 'PROFILE_NOT_FOUND', 404));
+    }
+    
+    const profile = result.rows[0];
+    
+    // Return departments as nested object for compatibility
+    if (profile.department_name) {
+      profile.departments = { name: profile.department_name };
+    }
+    
+    sendResponse(res, createSuccessResponse(profile));
+  } catch (error) {
+    console.error('Get profile error:', error);
+    sendResponse(res, createErrorResponse('Failed to get profile', 'GET_PROFILE_ERROR', 500));
+  }
+});
+
+// POST /auth-service/profiles/batch
+router.post('/profiles/batch', verifyToken, async (req, res) => {
+  try {
+    const { user_ids } = req.body;
+    
+    if (!user_ids || !Array.isArray(user_ids)) {
+      return sendResponse(res, createErrorResponse('User IDs array required', 'MISSING_FIELDS', 400));
+    }
+    
+    const profilesQuery = `
+      SELECT id, email, full_name, department_id, created_at, updated_at
+      FROM profiles
+      WHERE id = ANY($1::uuid[])
+    `;
+    
+    const result = await query(profilesQuery, [user_ids]);
+    
+    sendResponse(res, createSuccessResponse({ profiles: result.rows }));
+  } catch (error) {
+    console.error('Get profiles batch error:', error);
+    sendResponse(res, createErrorResponse('Failed to get profiles', 'GET_PROFILES_ERROR', 500));
+  }
+});
+
 module.exports = router;
