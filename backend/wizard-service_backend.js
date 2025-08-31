@@ -42,21 +42,23 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
 
       const project = projectResult.rows[0];
 
-      // 2. Create milestones if provided
+      // 2. Create milestones if provided (map incoming IDs to DB IDs)
       const createdMilestones = [];
+      const milestoneIdMap = {} as Record<string, string>;
       for (const milestone of milestones) {
         const milestoneId = uuidv4();
+        milestoneIdMap[milestone.id] = milestoneId;
         const milestoneResult = await client.query(`
-          INSERT INTO milestones (id, project_id, title, description, target_date, status, created_by, created_at, updated_at)
+          INSERT INTO milestones (id, project_id, name, description, due_date, status, created_by, created_at, updated_at)
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
           RETURNING *
         `, [
-          milestoneId, 
-          projectId, 
-          milestone.title, 
-          milestone.description || '', 
-          milestone.targetDate, 
-          'pending', 
+          milestoneId,
+          projectId,
+          milestone.name,
+          milestone.description || '',
+          milestone.dueDate,
+          milestone.status || 'planning',
           userId
         ]);
         createdMilestones.push(milestoneResult.rows[0]);
@@ -64,38 +66,66 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
 
       // 3. Create tasks if provided
       const createdTasks = [];
-      for (const task of tasks) {
-        const taskId = uuidv4();
-        const taskResult = await client.query(`
-          INSERT INTO tasks (id, project_id, milestone_id, title, description, status, priority, created_by, created_at, updated_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-          RETURNING *
-        `, [
-          taskId, 
-          projectId, 
-          task.milestoneId || null, 
-          task.title, 
-          task.description || '', 
-          'todo', 
-          task.priority || 'medium', 
-          userId
-        ]);
-        createdTasks.push(taskResult.rows[0]);
+      if (Array.isArray(milestones) && milestones.length > 0) {
+        for (const m of milestones) {
+          const newMilestoneId = milestoneIdMap[m.id];
+          for (const task of (m.tasks || [])) {
+            const taskId = uuidv4();
+            const taskResult = await client.query(`
+              INSERT INTO tasks (id, project_id, milestone_id, title, description, status, priority, owner_id, due_date, created_by, created_at, updated_at)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+              RETURNING *
+            `, [
+              taskId,
+              projectId,
+              newMilestoneId || null,
+              task.title,
+              task.description || '',
+              task.status || 'todo',
+              task.priority || 'medium',
+              task.ownerId || null,
+              task.dueDate || null,
+              userId
+            ]);
+            createdTasks.push(taskResult.rows[0]);
+          }
+        }
+      } else {
+        for (const task of tasks) {
+          const taskId = uuidv4();
+          const taskResult = await client.query(`
+            INSERT INTO tasks (id, project_id, milestone_id, title, description, status, priority, owner_id, due_date, created_by, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+            RETURNING *
+          `, [
+            taskId,
+            projectId,
+            task.milestoneId ? (milestoneIdMap[task.milestoneId] || task.milestoneId) : null,
+            task.title,
+            task.description || '',
+            task.status || 'todo',
+            task.priority || 'medium',
+            task.ownerId || null,
+            task.dueDate || null,
+            userId
+          ]);
+          createdTasks.push(taskResult.rows[0]);
+        }
       }
 
-      // 4. Add project creator as admin
+      // 4. Add project creator as admin member
       await client.query(`
-        INSERT INTO user_roles (id, user_id, project_id, role, created_at)
-        VALUES ($1, $2, $3, $4, NOW())
-      `, [uuidv4(), userId, projectId, 'admin']);
+        INSERT INTO project_members (project_id, user_id, role)
+        VALUES ($1, $2, $3)
+      `, [projectId, userId, 'admin']);
 
       // 5. Set default module permissions for creator
       const modules = ['roadmap', 'kanban', 'stakeholders', 'discussions', 'backlog', 'status', 'risks', 'capacity', 'retrospective'];
       for (const module of modules) {
         await client.query(`
-          INSERT INTO module_permissions (id, project_id, user_id, module, permission_level, created_at)
-          VALUES ($1, $2, $3, $4, $5, NOW())
-        `, [uuidv4(), projectId, userId, module, 'write']);
+          INSERT INTO module_permissions (project_id, user_id, module, access_level, granted_by)
+          VALUES ($1, $2, $3, $4, $5)
+        `, [projectId, userId, module, 'write', userId]);
       }
 
       await client.query('COMMIT');
