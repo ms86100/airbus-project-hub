@@ -12,15 +12,15 @@ router.post('/projects/wizard/start', (req, res) => {
 
 router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
   try {
-    const { 
-      projectName, 
-      objective, 
-      startDate, 
-      endDate, 
-      tasks = [], 
-      milestones = [], 
-      inviteEmails = [] 
-    } = req.body;
+      const body = req.body || {};
+      const projectName = body.projectName || body.name;
+      const objective = body.objective || body.description || '';
+      const startDate = body.startDate || body.start_date || null;
+      const endDate = body.endDate || body.end_date || null;
+      const tasks = Array.isArray(body.tasks) ? body.tasks : [];
+      const milestones = Array.isArray(body.milestones) ? body.milestones : [];
+      const inviteEmails = Array.isArray(body.inviteEmails) ? body.inviteEmails : [];
+
 
     const userId = req.user.id;
     const projectId = uuidv4();
@@ -47,7 +47,12 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
       const milestoneIdMap = {};
       for (const milestone of milestones) {
         const milestoneId = uuidv4();
-        milestoneIdMap[milestone.id] = milestoneId;
+        const mapKey = milestone.id || milestone.name;
+        if (mapKey) milestoneIdMap[mapKey] = milestoneId;
+        const name = milestone.name || 'Milestone';
+        const description = milestone.description || '';
+        const dueDate = milestone.dueDate || milestone.due_date || startDate || endDate || new Date().toISOString().slice(0, 10);
+        const status = milestone.status || 'planning';
         const milestoneResult = await client.query(`
           INSERT INTO milestones (id, project_id, name, description, due_date, status, created_by, created_at, updated_at)
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
@@ -55,10 +60,10 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
         `, [
           milestoneId,
           projectId,
-          milestone.name,
-          milestone.description || '',
-          milestone.dueDate,
-          milestone.status || 'planning',
+          name,
+          description,
+          dueDate,
+          status,
           userId
         ]);
         createdMilestones.push(milestoneResult.rows[0]);
@@ -68,7 +73,7 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
       const createdTasks = [];
       if (Array.isArray(milestones) && milestones.length > 0) {
         for (const m of milestones) {
-          const newMilestoneId = milestoneIdMap[m.id];
+          const newMilestoneId = milestoneIdMap[m.id] || milestoneIdMap[m.name];
           for (const task of (m.tasks || [])) {
             const taskId = uuidv4();
             const taskResult = await client.query(`
@@ -100,7 +105,7 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
           `, [
             taskId,
             projectId,
-            task.milestoneId ? (milestoneIdMap[task.milestoneId] || task.milestoneId) : null,
+            task.milestoneId ? (milestoneIdMap[task.milestoneId] || milestoneIdMap[task.milestoneName] || task.milestoneId) : null,
             task.title,
             task.description || '',
             task.status || 'todo',
