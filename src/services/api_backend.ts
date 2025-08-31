@@ -116,6 +116,7 @@ class ApiClient {
   getDepartmentsLegacy() { return this.makeRequest(`/department-service/departments`, { method: 'GET' }); }
   createDepartment(name: string) { return this.makeRequest(`/department-service/departments`, { method: 'POST', body: JSON.stringify({ name }) }); }
   deleteDepartment(departmentId: string) { return this.makeRequest(`/department-service/departments/${departmentId}`, { method: 'DELETE' }); }
+  assignUserDepartment(userId: string, departmentId: string) { return this.makeRequest(`/auth-service/assign-department`, { method: 'POST', body: JSON.stringify({ userId, departmentId }) }); }
 
   // Module permissions (consolidated)
   getModulePermissions(projectId: string) { return this.makeRequest(`/access-service/projects/${projectId}/access`, { method: 'GET' }); }

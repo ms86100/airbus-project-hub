@@ -63,20 +63,25 @@ export default function DepartmentSelectionDialogFixed({
 
     setLoading(true);
     try {
-      // For now, we'll just show success since assignUserDepartment method doesn't exist
-      // You may need to implement this endpoint in your backend
-      toast({
-        title: "Success",
-        description: "Department assigned successfully",
-      });
-      
-      onDepartmentAssigned();
-      onClose();
+      // Call API to assign user to department
+      const response = await apiClient.assignUserDepartment(userId, selectedDepartmentId);
+
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Department assigned successfully",
+        });
+        
+        onDepartmentAssigned();
+        onClose();
+      } else {
+        throw new Error(response.error || 'Failed to assign department');
+      }
     } catch (error: any) {
       console.error("Error assigning department:", error);
       toast({
         title: "Error",
-        description: "Failed to assign department",
+        description: error.message || "Failed to assign department",
         variant: "destructive",
       });
     } finally {
@@ -89,7 +94,7 @@ export default function DepartmentSelectionDialogFixed({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Select Your Department</DialogTitle>
-          <DialogDescription id="dept-dialog-description">
+          <DialogDescription>
             You must select a department before you can create projects. Please choose from the available departments below.
           </DialogDescription>
         </DialogHeader>
