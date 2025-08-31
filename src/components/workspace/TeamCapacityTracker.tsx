@@ -102,9 +102,11 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       console.log('📋 Iterations response:', response);
       
       if (response.success) {
-        const data = response.data || [];
+        // Backend returns { iterations: [...] }, extract the array
+        const responseData = response.data as any;
+        const data = responseData?.iterations || responseData || [];
         console.log('📋 Setting iterations data:', data);
-        setIterations(data);
+        setIterations(Array.isArray(data) ? data : []);
         
         if (data.length > 0 && !selectedIteration) {
           setSelectedIteration(data[0]);
