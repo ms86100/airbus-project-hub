@@ -36,19 +36,32 @@ app.use(compression());
 // CORS configuration
 const corsOptions = {
   origin: (origin, callback) => {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    try {
+      const allowedEnv = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [];
+      const isLocalhost = !!origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/.test(origin);
+      const isAllowedEnv = !!origin && allowedEnv.includes(origin);
+      let isLovableSandbox = false;
+      try {
+        if (origin) {
+          const hostname = new URL(origin).hostname;
+          isLovableSandbox = /lovable\.dev$/.test(hostname);
+        }
+      } catch {}
+
+      if (!origin || isLocalhost || isAllowedEnv || isLovableSandbox) {
+        return callback(null, true);
+      }
+    } catch {}
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'apikey']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'apikey'],
+  optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
