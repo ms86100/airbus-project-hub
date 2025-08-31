@@ -128,6 +128,57 @@ router.delete('/projects/:projectId/capacity/:id', (req, res) => {
   return res.json(ok({ message: 'Deleted (stub)' }));
 });
 
+// Get project capacity settings
+router.get('/projects/:projectId/settings', requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    console.log('🔧 Backend - GET /settings called:', { projectId, userId: req.user?.id });
+
+    if (!await checkProjectAccess(req.user.id, projectId)) {
+      console.log('🔧 Backend - Access denied for user:', req.user.id, 'project:', projectId);
+      return res.json(fail('Access denied', 'ACCESS_DENIED'));
+    }
+
+    // Return default capacity settings
+    const settings = {
+      defaultWorkingDays: 10,
+      defaultAvailabilityPercent: 100,
+      defaultCapacityPerDay: 8
+    };
+
+    console.log('🔧 Backend - Returning settings:', settings);
+    return res.json(ok(settings));
+  } catch (error) {
+    console.error('🔧 Backend - Get settings error:', error);
+    res.json(fail('Failed to fetch settings: ' + error.message, 'FETCH_ERROR'));
+  }
+});
+
+// Get project iterations only
+router.get('/projects/:projectId/iterations', requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    console.log('🔧 Backend - GET /iterations called:', { projectId, userId: req.user?.id });
+
+    if (!await checkProjectAccess(req.user.id, projectId)) {
+      console.log('🔧 Backend - Access denied for user:', req.user.id, 'project:', projectId);
+      return res.json(fail('Access denied', 'ACCESS_DENIED'));
+    }
+
+    const iterationsResult = await pool.query(`
+      SELECT * FROM team_capacity_iterations 
+      WHERE project_id = $1 
+      ORDER BY start_date DESC
+    `, [projectId]);
+
+    console.log('🔧 Backend - Found iterations:', iterationsResult.rows.length);
+    return res.json(ok({ iterations: iterationsResult.rows }));
+  } catch (error) {
+    console.error('🔧 Backend - Get iterations error:', error);
+    res.json(fail('Failed to fetch iterations: ' + error.message, 'FETCH_ERROR'));
+  }
+});
+
 router.get('/stats', (_req, res) => {
   return res.json(ok({ totalIterations: 0, totalMembers: 0, avgCapacity: 0, totalProjects: 0 }));
 });
