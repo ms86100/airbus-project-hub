@@ -120,7 +120,7 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
       `, [projectId, userId, 'admin']);
 
       // 5. Set default module permissions for creator
-      const modules = ['roadmap', 'kanban', 'stakeholders', 'discussions', 'backlog', 'status', 'risks', 'capacity', 'retrospective'];
+      const modules = ['tasks_milestones', 'task_backlog', 'stakeholders', 'discussions', 'risk_register', 'team_capacity', 'retrospectives'];
       for (const module of modules) {
         await client.query(`
           INSERT INTO module_permissions (project_id, user_id, module, access_level, granted_by)
