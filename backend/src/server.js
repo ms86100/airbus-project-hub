@@ -9,20 +9,32 @@ require('dotenv').config();
 const { errorHandler } = require('./middleware/errorHandler');
 const { notFound } = require('./middleware/notFound');
 
-// Import route modules
-const authRoutes = require('./routes/auth');
-const usersRoutes = require('./routes/users');
-const projectsRoutes = require('./routes/projects');
-const stakeholdersRoutes = require('./routes/stakeholders');
-const roadmapRoutes = require('./routes/roadmap');
-const backlogRoutes = require('./routes/backlog');
-const accessRoutes = require('./routes/access');
-const auditRoutes = require('./routes/audit');
-const capacityRoutes = require('./routes/capacity');
-const retroRoutes = require('./routes/retro');
-const workspaceRoutes = require('./routes/workspace');
-const wizardRoutes = require('./routes/wizard');
-const departmentRoutes = require('./routes/department');
+// Helper to accept CommonJS or ESM route exports
+const asMiddleware = (mod) => {
+  if (!mod) return mod;
+  // If it's already an Express router or middleware function
+  if (typeof mod === 'function' || (mod && typeof mod.use === 'function')) return mod;
+  // If exported as { router }
+  if (mod.router && (typeof mod.router === 'function' || (mod.router && typeof mod.router.use === 'function'))) return mod.router;
+  // If exported as ESM default
+  if (mod.default && (typeof mod.default === 'function' || (mod.default && typeof mod.default.use === 'function'))) return mod.default;
+  return mod;
+};
+
+// Import route modules (normalized)
+const authRoutes = asMiddleware(require('./routes/auth'));
+const usersRoutes = asMiddleware(require('./routes/users'));
+const projectsRoutes = asMiddleware(require('./routes/projects'));
+const stakeholdersRoutes = asMiddleware(require('./routes/stakeholders'));
+const roadmapRoutes = asMiddleware(require('./routes/roadmap'));
+const backlogRoutes = asMiddleware(require('./routes/backlog'));
+const accessRoutes = asMiddleware(require('./routes/access'));
+const auditRoutes = asMiddleware(require('./routes/audit'));
+const capacityRoutes = asMiddleware(require('./routes/capacity'));
+const retroRoutes = asMiddleware(require('./routes/retro'));
+const workspaceRoutes = asMiddleware(require('./routes/workspace'));
+const wizardRoutes = asMiddleware(require('./routes/wizard'));
+const departmentRoutes = asMiddleware(require('./routes/department'));
 
 const app = express();
 
