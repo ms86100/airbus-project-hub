@@ -111,7 +111,7 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
     if (!user) return;
 
     try {
-      const response = await apiClient.updateTask(task.id, {
+      const response = await apiClient.updateTask(projectId, task.id, {
         title: formData.title,
         description: formData.description || undefined,
         status: formData.status,
@@ -142,7 +142,7 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
 
   const handleDelete = async () => {
     try {
-      const response = await apiClient.deleteTask(task.id);
+      const response = await apiClient.deleteTask(projectId, task.id);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete task');

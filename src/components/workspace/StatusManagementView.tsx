@@ -372,7 +372,7 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
     const newMilestoneId = over.id as string;
     
     try {
-      const response = await apiClient.updateTask(taskId, { milestone_id: newMilestoneId });
+      const response = await apiClient.updateTask(projectId, taskId, { milestone_id: newMilestoneId });
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to move task');
@@ -418,7 +418,7 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
         due_date: editFormData.due_date || null,
         owner_id: editFormData.owner_id || null,
       };
-      const response = await apiClient.updateTask(editingTask.id, payload);
+      const response = await apiClient.updateTask(projectId, editingTask.id, payload);
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to update task');
@@ -445,7 +445,7 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
     if (!deletingTask) return;
 
     try {
-      const response = await apiClient.deleteTask(deletingTask.id);
+      const response = await apiClient.deleteTask(projectId, deletingTask.id);
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete task');

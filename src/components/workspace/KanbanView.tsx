@@ -210,7 +210,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       }
 
       // Update regular tasks via API
-      const response = await apiClient.updateTask(taskId, { status: newStatus });
+      const response = await apiClient.updateTask(projectId!, taskId, { status: newStatus });
       
       if (!response.success) {
         console.error('API update error:', response.error);
