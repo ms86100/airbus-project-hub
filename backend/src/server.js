@@ -11,6 +11,7 @@ const { notFound } = require('./middleware/notFound');
 
 // Import route modules
 const authRoutes = require('./routes/auth');
+const usersRoutes = require('./routes/users');
 const projectsRoutes = require('./routes/projects');
 const stakeholdersRoutes = require('./routes/stakeholders');
 const roadmapRoutes = require('./routes/roadmap');
@@ -83,6 +84,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/auth-service', authRoutes);
+app.use('/users', usersRoutes);
 app.use('/projects-service', projectsRoutes);
 app.use('/stakeholder-service', stakeholdersRoutes);
 app.use('/roadmap-service', roadmapRoutes);

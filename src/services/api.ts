@@ -486,6 +486,11 @@ class ApiClient {
     });
   }
 
+  // User Service Methods
+  async getUserRole(userId: string): Promise<ApiResponse<{ role: string | null }>> {
+    return this.makeRequest(`/users/${userId}/role`, { method: 'GET' });
+  }
+
   // Access Control Service Methods (consolidated)
   async getModulePermissions(projectId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/access-service/projects/${projectId}/permissions`, { method: 'GET' });
@@ -514,9 +519,6 @@ class ApiClient {
     return this.makeRequest(`/auth-service/users/${userId}/profile`, { method: 'GET' });
   }
 
-  async getUserRole(userId: string): Promise<ApiResponse<{ role: string }>> {
-    return this.makeRequest(`/auth-service/users/${userId}/role`, { method: 'GET' });
-  }
 
   async getProjectStats(): Promise<ApiResponse<{ totalProjects: number; activeProjects: number; completedProjects: number; totalUsers: number }>> {
     return this.makeRequest(`/projects-service/stats`, { method: 'GET' });
