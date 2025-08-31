@@ -155,7 +155,7 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
 
   } catch (error) {
     console.error('Wizard project creation error:', error);
-    res.json(fail('Failed to create project via wizard', 'CREATION_ERROR'));
+    res.json(fail('Failed to create project via wizard: ' + (error && error.message ? error.message : String(error)), 'CREATION_ERROR'));
   }
 });
 
