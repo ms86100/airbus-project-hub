@@ -86,7 +86,7 @@ router.post('/projects/:projectId/tasks', requireAuth, async (req, res) => {
       }
     });
 
-    const { title, description, status, priority, dueDate, ownerId, milestoneId } = req.body;
+    const { title, description, status, priority, due_date, owner_id, milestone_id } = req.body;
 
     if (!await checkProjectAccess(req.user.id, projectId)) {
       console.log('🔧 Backend - Access denied for user:', req.user.id, 'project:', projectId);
@@ -105,7 +105,7 @@ router.post('/projects/:projectId/tasks', requireAuth, async (req, res) => {
       INSERT INTO tasks (id, project_id, title, description, status, priority, due_date, owner_id, milestone_id, created_by, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
       RETURNING *
-    `, [taskId, projectId, title, description, status || 'todo', priority || 'medium', dueDate, ownerId, milestoneId, req.user.id]);
+    `, [taskId, projectId, title, description, status || 'todo', priority || 'medium', due_date, owner_id, milestone_id, req.user.id]);
 
     console.log('🔧 Backend - Task created successfully:', result.rows[0]);
     res.json(ok({ message: 'Task created successfully', task: result.rows[0] }));
@@ -130,7 +130,7 @@ router.put('/projects/:projectId/tasks/:taskId', requireAuth, async (req, res) =
       }
     });
 
-    const { title, description, status, priority, dueDate, ownerId, milestoneId } = req.body;
+    const { title, description, status, priority, due_date, owner_id, milestone_id } = req.body;
 
     if (!await checkProjectAccess(req.user.id, projectId)) {
       console.log('🔧 Backend - Access denied for user:', req.user.id, 'project:', projectId);
@@ -138,7 +138,7 @@ router.put('/projects/:projectId/tasks/:taskId', requireAuth, async (req, res) =
     }
 
     console.log('🔧 Backend - Updating task with fields:', {
-      title, description, status, priority, dueDate, ownerId, milestoneId
+      title, description, status, priority, due_date, owner_id, milestone_id
     });
 
     const result = await pool.query(`
@@ -153,7 +153,7 @@ router.put('/projects/:projectId/tasks/:taskId', requireAuth, async (req, res) =
           updated_at = NOW()
       WHERE id = $1 AND project_id = $2
       RETURNING *
-    `, [taskId, projectId, title, description, status, priority, dueDate, ownerId, milestoneId]);
+    `, [taskId, projectId, title, description, status, priority, due_date, owner_id, milestone_id]);
 
     if (result.rows.length === 0) {
       console.log('🔧 Backend - Task not found:', taskId);
@@ -173,7 +173,7 @@ router.put('/projects/:projectId/tasks/:taskId', requireAuth, async (req, res) =
 router.put('/tasks/:taskId', requireAuth, async (req, res) => {
   try {
     const { taskId } = req.params;
-    const { title, description, status, priority, dueDate, ownerId, milestoneId } = req.body;
+    const { title, description, status, priority, due_date, owner_id, milestone_id } = req.body;
 
     // Check project access through task
     const taskCheck = await pool.query(`
@@ -202,7 +202,7 @@ router.put('/tasks/:taskId', requireAuth, async (req, res) => {
           updated_at = NOW()
       WHERE id = $1
       RETURNING *
-    `, [taskId, title, description, status, priority, dueDate, ownerId, milestoneId]);
+    `, [taskId, title, description, status, priority, due_date, owner_id, milestone_id]);
 
     if (result.rows.length === 0) {
       return res.json(fail('Task not found', 'NOT_FOUND'));
