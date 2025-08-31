@@ -55,52 +55,75 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const token = await this.getAuthToken();
 
-    const doFetch = async (authToken?: string) => {
+    const doFetch = async (base: string, authToken?: string) => {
       const headers = {
         'Content-Type': 'application/json',
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
         ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-        ...options.headers,
+        ...options.headers as any,
       } as Record<string, string>;
 
-      const base = endpoint.startsWith('/wizard-service') ? this.cloudUrl : this.baseUrl;
       const url = `${base}${endpoint}`;
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
-
-      let result: any = null;
+      console.log(`➡️ Fetching: ${url}`);
       try {
-        result = await response.json();
-      } catch {}
-      return { response, result };
+        const response = await fetch(url, { ...options, headers });
+        let result: any = null;
+        try { result = await response.json(); } catch {}
+        return { response, result, networkError: false } as const;
+      } catch (e) {
+        console.warn(`⚠️ Network error for ${url}`);
+        return { response: undefined as any, result: null, networkError: true } as const;
+      }
     };
 
     try {
       console.log(`🌐 Making request to: ${endpoint}`);
       console.log(`🔐 Using token: ${token ? `${token.substring(0, 20)}...` : 'None'}`);
 
-      let { response, result } = await doFetch(token || undefined);
+      // Primary: prefer local gateway when available
+      let { response, result, networkError } = await doFetch(this.baseUrl, token || undefined);
 
       if (
-        response.status === 401 ||
-        (result && (result.message === 'Invalid JWT' || result.code === 'INVALID_TOKEN' || result.code === 'UNAUTHORIZED'))
+        response && (response.status === 401 || (result && (result.message === 'Invalid JWT' || result.code === 'INVALID_TOKEN' || result.code === 'UNAUTHORIZED')))
       ) {
         const refreshed = await this.refreshToken();
         if (refreshed) {
-          ({ response, result } = await doFetch(refreshed));
+          ({ response, result, networkError } = await doFetch(this.baseUrl, refreshed));
         }
       }
 
+      const shouldFallback = (
+        (networkError || (response && (response.status === 404 || response.status === 405))) &&
+        this.baseUrl !== this.cloudUrl
+      );
+
+      if (shouldFallback) {
+        console.log(`🔁 Falling back to cloud for ${endpoint}`);
+        let fb = await doFetch(this.cloudUrl, token || undefined);
+        if (
+          fb.response && (fb.response.status === 401 || (fb.result && (fb.result.message === 'Invalid JWT' || fb.result.code === 'INVALID_TOKEN' || fb.result.code === 'UNAUTHORIZED')))
+        ) {
+          const refreshed = await this.refreshToken();
+          if (refreshed) {
+            fb = await doFetch(this.cloudUrl, refreshed);
+          }
+        }
+        response = fb.response;
+        result = fb.result;
+        networkError = fb.networkError;
+      }
+
       console.log(`📡 Response from ${endpoint}:`, result);
-      if (!response.ok && (!result || typeof result.success === 'undefined')) {
+      if (response && !response.ok && (!result || typeof (result as any).success === 'undefined')) {
         return { success: false, error: `HTTP ${response.status} for ${endpoint}`, code: `HTTP_${response.status}` } as any;
       }
-      return result ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' };
+      if (!result && networkError) {
+        return { success: false, error: 'Network error (primary and fallback)', code: 'NETWORK_ERROR' } as any;
+      }
+      return (result as ApiResponse<T>) ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' } as any;
     } catch (error) {
       console.error('API request failed:', error);
-      return { success: false, error: 'Network error', code: 'NETWORK_ERROR' };
+      return { success: false, error: 'Network error', code: 'NETWORK_ERROR' } as any;
     }
   }
 
