@@ -33,12 +33,15 @@ interface CapacityIteration {
   working_days: number;
   committed_story_points: number;
   created_at: string;
+  members?: CapacityMember[]; // Members are included in the capacity data response
 }
 
 interface CapacityMember {
   id: string;
   iteration_id: string;
-  stakeholder_id: string;
+  member_name: string;
+  role: string;
+  work_mode: string;
   leaves: number;
   availability_percent: number;
   effective_capacity_days: number;
@@ -108,14 +111,13 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
   const fetchIterations = async () => {
     try {
-      console.log('🔄 Fetching iterations for project:', projectId);
-      const response = await apiClient.getCapacityIterations(projectId);
-      console.log('📋 Iterations response:', response);
+      console.log('🔄 Fetching capacity data for project:', projectId);
+      const response = await apiClient.getCapacityData(projectId);
+      console.log('📋 Capacity data response:', response);
       
       if (response.success) {
-        // Backend returns { iterations: [...] }, extract the array
-        const responseData = response.data as any;
-        const data = responseData?.iterations || responseData || [];
+        // Backend returns { projectId, iterations: [...], members: [...] }
+        const data = response.data?.iterations || [];
         console.log('📋 Setting iterations data:', data);
         setIterations(Array.isArray(data) ? data : []);
         
@@ -608,15 +610,35 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                          Add Member
                        </Button>
                      </div>
-                  </div>
-                  
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No team members assigned to this iteration</p>
-                     <Button variant="outline" className="mt-4" onClick={() => openAddMember(iteration)}>
-                       Add First Member
-                     </Button>
-                  </div>
+                   </div>
+                   
+                   {iteration.members && iteration.members.length > 0 ? (
+                     <div className="space-y-3">
+                       {iteration.members.map((member) => (
+                         <div key={member.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                           <div>
+                             <div className="font-medium">{member.member_name}</div>
+                             <div className="text-sm text-muted-foreground">
+                               {member.role} • {member.work_mode} • {member.availability_percent}% available
+                               {member.leaves > 0 && ` • ${member.leaves} days leave`}
+                             </div>
+                           </div>
+                           <div className="text-right">
+                             <div className="font-medium">{member.effective_capacity_days}</div>
+                             <div className="text-sm text-muted-foreground">effective days</div>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                   ) : (
+                     <div className="text-center py-8 text-muted-foreground">
+                       <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                       <p>No team members assigned to this iteration</p>
+                       <Button variant="outline" className="mt-4" onClick={() => openAddMember(iteration)}>
+                         Add First Member
+                       </Button>
+                     </div>
+                   )}
                 </Card>
               ))}
             </div>
