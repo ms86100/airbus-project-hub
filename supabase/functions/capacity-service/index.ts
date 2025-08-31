@@ -35,6 +35,45 @@ interface CapacityMemberRequest {
   teamId?: string;
 }
 
+async function hasProjectAccess(userId: string, projectId: string) {
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id, created_by')
+    .eq('id', projectId)
+    .maybeSingle();
+
+  if (!project) return { ok: false, reason: 'PROJECT_NOT_FOUND' };
+
+  const { data: adminRole } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('role', 'admin')
+    .maybeSingle();
+
+  if (project.created_by === userId || adminRole) return { ok: true };
+
+  const { data: membership } = await supabase
+    .from('project_members')
+    .select('id')
+    .eq('project_id', projectId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (membership) return { ok: true };
+
+  const { data: modulePerm } = await supabase
+    .from('module_permissions')
+    .select('id')
+    .eq('project_id', projectId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (modulePerm) return { ok: true };
+
+  return { ok: false, reason: 'FORBIDDEN' };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return handleCorsOptions();

@@ -70,9 +70,11 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Project created', project });
     }
 
-    // POST /projects/create - Create project with wizard data
+    // POST /wizard-service/projects/create - Create project with wizard data
     if (method === 'POST' && path.endsWith('/projects/create')) {
+      const body = await parseRequestBody(req);
       const {
+        name,
         projectName,
         objective,
         startDate,
@@ -80,17 +82,17 @@ Deno.serve(async (req) => {
         tasks,
         milestones,
         inviteEmails
-      } = await parseRequestBody(req);
+      } = body;
 
-      if (!projectName || !objective) {
+      const finalProjectName = projectName || name;
+      if (!finalProjectName || !objective) {
         return createErrorResponse('Project name and objective are required', 'MISSING_DATA');
       }
 
-      // Create project
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .insert({
-          name: projectName,
+          name: finalProjectName,
           description: objective,
           start_date: startDate,
           end_date: endDate,
@@ -152,7 +154,7 @@ Deno.serve(async (req) => {
 
       return createSuccessResponse({
         project,
-        message: `${projectName} has been created with ${tasks?.length || 0} tasks across ${milestones?.length || 0} milestones.`
+        message: `${finalProjectName} has been created with ${tasks?.length || 0} tasks across ${milestones?.length || 0} milestones.`
       });
     }
 
