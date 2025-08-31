@@ -649,9 +649,9 @@ class ApiClient {
       description: taskData.description,
       status: taskData.status,
       priority: taskData.priority,
-      dueDate: taskData.due_date, // Convert to camelCase for backend
-      ownerId: taskData.owner_id, // Convert to camelCase for backend  
-      milestoneId: taskData.milestone_id, // Convert to camelCase for backend
+      due_date: taskData.due_date, // Keep snake_case for backend
+      owner_id: taskData.owner_id, // Keep snake_case for backend  
+      milestone_id: taskData.milestone_id, // Keep snake_case for backend
     };
     
     console.log('🔧 API Client - transformed data for backend:', backendTaskData);
