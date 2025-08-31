@@ -52,10 +52,21 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
     if (!user || selectedItems.length === 0) return;
 
     try {
+      console.log('🔄 Moving backlog items to milestone:', {
+        selectedItems,
+        milestoneId,
+        projectId,
+        userId: user.id
+      });
+
       // Use the API to move backlog items to tasks in milestone
       for (const itemId of selectedItems) {
+        console.log(`📦 Moving item ${itemId} to milestone ${milestoneId}`);
         const response = await apiClient.moveBacklogToMilestone(projectId, itemId, milestoneId);
+        console.log(`📡 Move response for ${itemId}:`, response);
+        
         if (!response.success) {
+          console.error(`❌ Failed to move item ${itemId}:`, response.error, response.code);
           throw new Error(response.error || 'Failed to move backlog item');
         }
       }

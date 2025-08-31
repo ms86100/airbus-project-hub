@@ -622,9 +622,20 @@ class ApiClient {
 
   // Task creation for milestones (workspace service)
   async createTaskForMilestone(projectId: string, taskData: any): Promise<ApiResponse<{ message: string; task: any }>> {
+    // Ensure we pass the right field names for backend compatibility
+    const backendTaskData = {
+      title: taskData.title,
+      description: taskData.description,
+      status: taskData.status,
+      priority: taskData.priority,
+      dueDate: taskData.due_date, // Convert to camelCase for backend
+      ownerId: taskData.owner_id, // Convert to camelCase for backend  
+      milestoneId: taskData.milestone_id, // Convert to camelCase for backend
+    };
+    
     return this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, {
       method: 'POST',
-      body: JSON.stringify(taskData),
+      body: JSON.stringify(backendTaskData),
     });
   }
 
