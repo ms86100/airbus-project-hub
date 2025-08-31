@@ -418,9 +418,17 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
           title: 'Success',
           description: 'Action item converted to backlog item successfully'
         });
-        
         // Mark the action item as completed
-        await apiClient.updateActionItem(projectId, actionItem.id, { status: 'completed' });
+        const upd = await apiClient.updateActionItem(projectId, actionItem.id, { status: 'completed' });
+        console.log('📡 Update action item response:', upd);
+        if (!upd.success) {
+          console.error('❌ Failed to mark action item completed:', upd.error, upd.code);
+          toast({
+            title: 'Warning',
+            description: `Backlog item created, but failed to mark action item completed: ${upd.error || upd.code || 'Unknown error'}`,
+            variant: 'destructive'
+          });
+        }
         fetchActionItems();
       } else {
         throw new Error(response.error || 'Failed to convert action item');

@@ -711,13 +711,15 @@ router.put('/projects/:projectId/action-items/:actionItemId', requireAuth, async
     } catch (e) {
       try { await client.query('ROLLBACK'); } catch (_) {}
       console.error('Update action item error:', e);
-      res.json(fail('Failed to update action item', 'UPDATE_ERROR'));
+      const details = { message: e.message, code: e.code, detail: e.detail, schema: e.schema, table: e.table, constraint: e.constraint, position: e.position };
+      res.json(fail('Failed to update action item: ' + JSON.stringify(details), 'UPDATE_ERROR'));
     } finally {
       client.release();
     }
   } catch (error) {
     console.error('Update action item outer error:', error);
-    res.json(fail('Failed to update action item', 'UPDATE_ERROR'));
+    const details = { message: error.message, code: error.code, detail: error.detail, schema: error.schema, table: error.table, constraint: error.constraint, position: error.position };
+    res.json(fail('Failed to update action item: ' + JSON.stringify(details), 'UPDATE_ERROR'));
   }
 });
 
