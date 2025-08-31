@@ -237,8 +237,94 @@ class ApiClientBackend {
     });
   }
 
-  // Add other service methods as needed...
-  // For now, just implementing the core ones for testing
+  // Department Service Methods
+  async getDepartments(): Promise<ApiResponse<{ departments: any[] }>> {
+    return this.makeRequest('/department-service/departments', {
+      method: 'GET',
+    });
+  }
+
+  async createDepartment(name: string): Promise<ApiResponse<any>> {
+    return this.makeRequest('/department-service/departments', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async deleteDepartment(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/department-service/departments/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async assignUserDepartment(userId: string, departmentId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest('/department-service/assign', {
+      method: 'POST',
+      body: JSON.stringify({ userId, departmentId }),
+    });
+  }
+
+  // User Profile Methods
+  async getUserProfile(userId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/auth-service/users/${userId}/profile`, {
+      method: 'GET',
+    });
+  }
+
+  async getUserRole(userId: string): Promise<ApiResponse<{ role: string }>> {
+    return this.makeRequest(`/auth-service/users/${userId}/role`, {
+      method: 'GET',
+    });
+  }
+
+  async getProfile(userId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/auth-service/users/${userId}/profile`, {
+      method: 'GET',
+    });
+  }
+
+  // Stats Methods
+  async getProjectStats(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/projects-service/stats', {
+      method: 'GET',
+    });
+  }
+
+  // Access Control Methods
+  async getModulePermissions(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/access-service/projects/${projectId}/permissions`, {
+      method: 'GET',
+    });
+  }
+
+  async logModuleAccess(data: {
+    userId: string;
+    projectId: string;
+    module: string;
+    accessType: string;
+    accessLevel: string;
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest('/audit-service/log', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Wizard Service Methods
+  async createProjectWizard(data: {
+    projectName: string;
+    objective: string;
+    startDate: string;
+    endDate: string;
+    tasks: any[];
+    milestones: any[];
+    inviteEmails: string[];
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest('/wizard-service/create-project', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiClientBackend = new ApiClientBackend();

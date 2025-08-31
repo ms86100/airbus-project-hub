@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/services/api';
+import { apiClientBackend as apiClient } from '@/services/api_backend';
 import { useApiAuth } from '@/hooks/useApiAuth';
 
 export type ModuleName = 

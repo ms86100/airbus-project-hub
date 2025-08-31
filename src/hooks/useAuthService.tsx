@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { apiClient } from '@/services/api';
+import { apiClientBackend as apiClient } from '@/services/api_backend';
 import { useToast } from '@/hooks/use-toast';
 
 // Define custom User interface for microservice auth

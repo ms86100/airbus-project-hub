@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApiAuth } from "@/hooks/useApiAuth";
-import { apiClient } from "@/services/api";
+import { apiClientBackend as apiClient } from '@/services/api_backend';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
