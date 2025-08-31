@@ -146,6 +146,82 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Stakeholder created successfully', stakeholder });
     }
 
+    // PUT /stakeholder-service/projects/:id/stakeholders/:stakeholderId
+    if (method === 'PUT' && path.includes('/stakeholders/') && !path.endsWith('/stakeholders')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const stakeholderIdIndex = pathParts.findIndex(part => part === 'stakeholders') + 1;
+
+      const projectId = pathParts[projectIdIndex];
+      const stakeholderId = pathParts[stakeholderIdIndex];
+      const body = await parseRequestBody(req);
+
+      if (!projectId || !stakeholderId) {
+        return createErrorResponse('Project ID and Stakeholder ID are required', 'MISSING_IDS');
+      }
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { data: stakeholder, error } = await supabaseAuth
+        .from('stakeholders')
+        .update({
+          name: body.name,
+          email: body.email,
+          department: body.department,
+          raci: body.raci,
+          influence_level: body.influence_level,
+          notes: body.notes,
+        })
+        .eq('id', stakeholderId)
+        .eq('project_id', projectId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating stakeholder:', error);
+        return createErrorResponse('Failed to update stakeholder', 'UPDATE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Stakeholder updated successfully', stakeholder });
+    }
+
+    // DELETE /stakeholder-service/projects/:id/stakeholders/:stakeholderId
+    if (method === 'DELETE' && path.includes('/stakeholders/') && !path.endsWith('/stakeholders')) {
+      const pathParts = path.split('/');
+      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
+      const stakeholderIdIndex = pathParts.findIndex(part => part === 'stakeholders') + 1;
+
+      const projectId = pathParts[projectIdIndex];
+      const stakeholderId = pathParts[stakeholderIdIndex];
+
+      if (!projectId || !stakeholderId) {
+        return createErrorResponse('Project ID and Stakeholder ID are required', 'MISSING_IDS');
+      }
+
+      const access = await hasProjectAccess(user.id, projectId);
+      if (!access.ok) {
+        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
+        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
+      }
+
+      const { error } = await supabaseAuth
+        .from('stakeholders')
+        .delete()
+        .eq('id', stakeholderId)
+        .eq('project_id', projectId);
+
+      if (error) {
+        console.error('Error deleting stakeholder:', error);
+        return createErrorResponse('Failed to delete stakeholder', 'DELETE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Stakeholder deleted successfully' });
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
   } catch (error) {
     console.error('Stakeholder service error:', error);

@@ -461,8 +461,74 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Task updated successfully', task: updatedTask });
     }
 
+    // DELETE /workspace-service/tasks/:taskId
+    if (method === 'DELETE' && path.includes('/tasks/') && !path.includes('/projects/')) {
+      const pathParts = path.split('/');
+      const taskIdIndex = pathParts.findIndex(part => part === 'tasks') + 1;
+      const taskId = pathParts[taskIdIndex];
+
+      if (!taskId) return createErrorResponse('Task ID is required', 'MISSING_TASK_ID');
+
+      const { data: task } = await supabase
+        .from('tasks')
+        .select('project_id')
+        .eq('id', taskId)
+        .maybeSingle();
+
+      if (!task) return createErrorResponse('Task not found', 'TASK_NOT_FOUND', 404);
+
+      const access = await hasProjectAccess(user.id, task.project_id);
+      if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+
+      const { error } = await supabaseAuth
+        .from('tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) {
+        console.error('Error deleting task:', error);
+        return createErrorResponse('Failed to delete task', 'DELETE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Task deleted successfully' });
+    }
+
+    // PUT /workspace-service/tasks/:taskId/move
+    if (method === 'PUT' && path.includes('/tasks/') && path.endsWith('/move')) {
+      const pathParts = path.split('/');
+      const taskIdIndex = pathParts.findIndex(part => part === 'tasks') + 1;
+      const taskId = pathParts[taskIdIndex];
+      const { milestone_id } = await req.json();
+
+      if (!taskId) return createErrorResponse('Task ID is required', 'MISSING_TASK_ID');
+      if (!milestone_id) return createErrorResponse('milestone_id is required', 'MISSING_FIELDS');
+
+      const { data: task } = await supabase
+        .from('tasks')
+        .select('project_id')
+        .eq('id', taskId)
+        .maybeSingle();
+
+      if (!task) return createErrorResponse('Task not found', 'TASK_NOT_FOUND', 404);
+
+      const access = await hasProjectAccess(user.id, task.project_id);
+      if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
+
+      const { error } = await supabaseAuth
+        .from('tasks')
+        .update({ milestone_id })
+        .eq('id', taskId);
+
+      if (error) {
+        console.error('Error moving task:', error);
+        return createErrorResponse('Failed to move task', 'MOVE_ERROR');
+      }
+
+      return createSuccessResponse({ message: 'Task moved successfully' });
+    }
+
     // GET /workspace-service/tasks/:taskId/history
-    if (method === 'GET' && path.includes('/tasks/') && path.endsWith('/history')) {
+    if (method === 'GET' && path.includes('/tasks/') && (path.endsWith('/history') || path.endsWith('/status-history'))) {
       const pathParts = path.split('/');
       const taskIdIndex = pathParts.findIndex(part => part === 'tasks') + 1;
       const taskId = pathParts[taskIdIndex];
