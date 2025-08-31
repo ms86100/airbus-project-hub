@@ -29,16 +29,12 @@ const app = express();
 // Trust proxy for rate limiting behind reverse proxy
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(helmet());
-app.use(compression());
-
 // CORS configuration
 const corsOptions = {
   origin: (origin, callback) => {
     try {
       const allowedEnv = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [];
-      const isLocalhost = !!origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/.test(origin);
+      const isLocalhost = !!origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
       const isAllowedEnv = !!origin && allowedEnv.includes(origin);
       let isLovableSandbox = false;
       try {
@@ -60,8 +56,13 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
+// Apply CORS before security middleware
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
+// Security middleware
+app.use(helmet());
+app.use(compression());
 
 // Rate limiting
 const limiter = rateLimit({
