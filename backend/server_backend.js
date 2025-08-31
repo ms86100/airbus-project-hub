@@ -1,27 +1,25 @@
-// Lightweight Express server scaffold for local API on port 8080
-// Run locally (example):
-//   npm install express
-//   node backend/server_backend.js
-//
-// This wires up route stubs for each microservice with the same paths
-// your frontend expects (see src/services/api_backend.ts).
-
 const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
 
-// Basic CORS (match Supabase edge function defaults)
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
-  next();
-});
+// CORS configuration
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'apikey']
+}));
 
 app.use(express.json());
 
-// Routers (service stubs)
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Service routes
 app.use('/auth-service', require('./auth-service_backend'));
 app.use('/projects-service', require('./projects-service_backend'));
 app.use('/access-service', require('./access-service_backend'));
@@ -35,7 +33,27 @@ app.use('/workspace-service', require('./workspace-service_backend'));
 app.use('/wizard-service', require('./wizard-service_backend'));
 app.use('/department-service', require('./department-service_backend'));
 
-const PORT = 8080;
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    code: 'INTERNAL_ERROR'
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Endpoint not found',
+    code: 'NOT_FOUND'
+  });
+});
+
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`Local API server listening on http://localhost:${PORT}`);
+  console.log(`🚀 Local API server running on http://localhost:${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/health`);
 });
