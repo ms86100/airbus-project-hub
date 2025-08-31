@@ -791,9 +791,25 @@ class ApiClient {
     milestones: any[];
     inviteEmails: string[];
   }): Promise<ApiResponse<{ project: any; message: string }>> {
+    // Send both `name` and `projectName` for compatibility with local backend and edge functions
+    const payload = {
+      name: projectData.projectName,
+      projectName: projectData.projectName,
+      objective: projectData.objective,
+      startDate: projectData.startDate,
+      endDate: projectData.endDate,
+      tasks: projectData.tasks,
+      milestones: (projectData.milestones || []).map((m: any) => ({
+        ...m,
+        // Provide both dueDate (edge functions) and due_date (local backend)
+        due_date: m.dueDate ?? m.due_date,
+      })),
+      inviteEmails: projectData.inviteEmails,
+    };
+
     return this.makeRequest('/wizard-service/projects/create', {
       method: 'POST',
-      body: JSON.stringify(projectData),
+      body: JSON.stringify(payload),
     });
   }
 
