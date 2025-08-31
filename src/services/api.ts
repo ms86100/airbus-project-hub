@@ -846,10 +846,8 @@ class ApiClient {
     milestones: any[];
     inviteEmails: string[];
   }): Promise<ApiResponse<{ project: any; message: string }>> {
-    const endpoint = (this.baseUrl === this.cloudUrl)
-      ? '/wizard-service/projects/create'
-      : '/wizard-service/projects/wizard/complete';
-    return this.makeRequest(endpoint, {
+    // Always use local backend for wizard service
+    return this.makeRequest('/wizard-service/projects/wizard/complete', {
       method: 'POST',
       body: JSON.stringify(projectData),
     });
