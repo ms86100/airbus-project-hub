@@ -518,14 +518,26 @@ router.post('/projects/:projectId/discussions', requireAuth, async (req, res) =>
     const discussionId = uuidv4();
     console.log('🔧 Backend - Creating discussion with ID:', discussionId);
 
-    const result = await pool.query(`
-      INSERT INTO project_discussions (id, project_id, meeting_title, meeting_date, summary_notes, attendees, created_by, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-      RETURNING *
-    `, [discussionId, projectId, meeting_title, meeting_date, summary_notes, JSON.stringify(attendees || []), req.user.id]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query("SET LOCAL request.jwt.claims = $1", [JSON.stringify({ sub: req.user.id })]);
 
-    console.log('🔧 Backend - Discussion created successfully:', result.rows[0]);
-    res.json(ok({ message: 'Discussion created successfully', discussion: result.rows[0] }));
+      const result = await client.query(`
+        INSERT INTO project_discussions (id, project_id, meeting_title, meeting_date, summary_notes, attendees, created_by, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        RETURNING *
+      `, [discussionId, projectId, meeting_title, meeting_date, summary_notes, JSON.stringify(attendees || []), req.user.id]);
+
+      await client.query('COMMIT');
+      console.log('🔧 Backend - Discussion created successfully:', result.rows[0]);
+      res.json(ok({ message: 'Discussion created successfully', discussion: result.rows[0] }));
+    } catch (txErr) {
+      try { await client.query('ROLLBACK'); } catch(_) {}
+      throw txErr;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error('🔧 Backend - Create discussion error:', error);
     console.error('🔧 Backend - Error stack:', error.stack);
@@ -573,13 +585,26 @@ router.post('/projects/:projectId/discussions/:discussionId/action-items', requi
 
     const actionItemId = uuidv4();
 
-    const result = await pool.query(`
-      INSERT INTO discussion_action_items (id, discussion_id, task_description, owner_id, target_date, status, created_by, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-      RETURNING *
-    `, [actionItemId, discussionId, task_description, owner_id, target_date, status || 'open', req.user.id]);
+    const client = await pool.connect();
 
-    res.json(ok({ message: 'Action item created successfully', actionItem: result.rows[0] }));
+    try {
+      await client.query('BEGIN');
+      await client.query("SET LOCAL request.jwt.claims = $1", [JSON.stringify({ sub: req.user.id })]);
+
+      const result = await client.query(`
+        INSERT INTO discussion_action_items (id, discussion_id, task_description, owner_id, target_date, status, created_by, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        RETURNING *
+      `, [actionItemId, discussionId, task_description, owner_id, target_date, status || 'open', req.user.id]);
+
+      await client.query('COMMIT');
+      res.json(ok({ message: 'Action item created successfully', actionItem: result.rows[0] }));
+    } catch (txErr) {
+      try { await client.query('ROLLBACK'); } catch(_) {}
+      throw txErr;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error('Create action item error:', error);
     res.json(fail('Failed to create action item', 'CREATE_ERROR'));
