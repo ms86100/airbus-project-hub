@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 
 // Define custom User interface for microservice auth
 interface User {
@@ -92,11 +92,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Set auth state from API response
-      if (response.data?.session && response.data?.user) {
-        console.log('✅ Setting auth state for user:', response.data.user.email);
+      if (response.data && typeof response.data === 'object' && 'session' in response.data && 'user' in response.data) {
+        console.log('✅ Setting auth state for user:', (response.data as any).user.email);
         
-        const sessionData = response.data.session;
-        const userData = response.data.user;
+        const sessionData = (response.data as any).session as Session;
+        const userData = (response.data as any).user as User;
         
         setSession(sessionData);
         setUser(userData);
@@ -126,16 +126,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Update local state with the response
-      if (response.data?.session) {
-        setSession(response.data.session);
-        setUser(response.data.user);
+      if (response.data && typeof response.data === 'object' && 'session' in response.data) {
+        setSession((response.data as any).session as Session);
+        setUser((response.data as any).user as User);
         
         // Store session in localStorage
-        localStorage.setItem('auth_session', JSON.stringify(response.data.session));
-        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+        localStorage.setItem('auth_session', JSON.stringify((response.data as any).session));
+        localStorage.setItem('auth_user', JSON.stringify((response.data as any).user));
       }
 
-      return { message: response.data?.message };
+      return { message: (response.data as any)?.message as string };
     } catch (error) {
       console.error('Sign up error:', error);
       return { error: 'An unexpected error occurred' };

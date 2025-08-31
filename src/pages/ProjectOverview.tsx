@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -112,7 +112,7 @@ const ProjectOverview = () => {
       if (!projectResponse.success) {
         throw new Error(projectResponse.error || 'Failed to fetch project');
       }
-      setProject(projectResponse.data);
+      setProject(projectResponse.data as Project);
 
       // Fetch workspace data (summary, recent tasks, milestones)
       const workspaceResponse = await apiClient.getWorkspace(id!);

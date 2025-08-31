@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,7 +55,7 @@ const EditProject = () => {
         throw new Error(response.error || 'Failed to fetch project');
       }
       
-      const data = response.data;
+      const data = response.data as Project;
       setProject(data);
       setFormData({
         name: data.name,

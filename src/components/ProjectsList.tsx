@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,7 +68,7 @@ const ProjectsList = () => {
         throw new Error(response.error || 'Failed to fetch projects');
       }
       
-      setProjects(response.data || []);
+      setProjects(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast({
@@ -98,7 +98,7 @@ const ProjectsList = () => {
         throw new Error(response.error || 'Failed to create project');
       }
 
-      setProjects([response.data, ...projects]);
+      setProjects([response.data as Project, ...projects]);
       setShowCreateDialog(false);
       resetForm();
       
@@ -133,7 +133,7 @@ const ProjectsList = () => {
         throw new Error(response.error || 'Failed to update project');
       }
 
-      setProjects(projects.map(p => p.id === editingProject.id ? response.data : p));
+      setProjects(projects.map(p => p.id === editingProject.id ? response.data as Project : p));
       setShowEditDialog(false);
       setEditingProject(null);
       resetForm();

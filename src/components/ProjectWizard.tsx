@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { apiClient } from '@/services/api';
+import { apiClient } from '@/services/api_backend';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -131,11 +131,11 @@ const ProjectWizard = () => {
 
       toast({
         title: "Project Created Successfully!",
-        description: response.data?.message || `${projectData.projectName} has been created with ${projectData.tasks.length} tasks across ${projectData.milestones.length} milestones.`,
+        description: (response.data as any)?.message || `${projectData.projectName} has been created with ${projectData.tasks.length} tasks across ${projectData.milestones.length} milestones.`,
       });
 
       // Show celebration animation then success modal
-      setCreatedProjectId(response.data?.project?.id);
+      setCreatedProjectId((response.data as any)?.project?.id);
       setShowCelebration(true);
       
       // Show success modal after celebration
