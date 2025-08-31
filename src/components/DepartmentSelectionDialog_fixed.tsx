@@ -86,7 +86,7 @@ export default function DepartmentSelectionDialogFixed({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md" aria-describedby="dept-dialog-description">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Select Your Department</DialogTitle>
           <DialogDescription id="dept-dialog-description">
