@@ -44,7 +44,7 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
 
       // 2. Create milestones if provided (map incoming IDs to DB IDs)
       const createdMilestones = [];
-      const milestoneIdMap = {} as Record<string, string>;
+      const milestoneIdMap = {};
       for (const milestone of milestones) {
         const milestoneId = uuidv4();
         milestoneIdMap[milestone.id] = milestoneId;
