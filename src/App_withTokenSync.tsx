@@ -15,7 +15,7 @@ import ProjectWorkspace from "./components/ProjectWorkspace";
 import Retrospectives from "./pages/Retrospectives";
 import TeamCapacity from "./pages/TeamCapacity";
 import AccessControl from "./pages/AccessControl";
-import SupabaseLogin from "./pages/SupabaseLogin";
+
 import { useSupabaseTokenSync } from "@/hooks/useSupabaseTokenSync";
 
 const queryClient = new QueryClient();
@@ -28,7 +28,7 @@ function Shell() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/supabase-login" element={<SupabaseLogin />} />
+        
         <Route path="/create-project" element={<ProjectWizard />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/project/:id" element={<ProjectOverview />} />
