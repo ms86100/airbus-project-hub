@@ -139,6 +139,8 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
         consequence: newRisk.consequence || null,
         likelihood: newRisk.likelihood ? parseInt(newRisk.likelihood) : null,
         impact: newRisk.impact ? parseInt(newRisk.impact) : null,
+        // Calculate risk_score if both likelihood and impact are provided
+        risk_score: (newRisk.likelihood && newRisk.impact) ? parseInt(newRisk.likelihood) * parseInt(newRisk.impact) : null,
         owner: newRisk.owner || null,
         response_strategy: newRisk.response_strategy || null,
         mitigation_plan: newRisk.mitigation_plan ? newRisk.mitigation_plan.split('\n').filter(p => p.trim()) : null,
@@ -149,6 +151,8 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
         next_review_date: newRisk.next_review_date || null,
         residual_likelihood: newRisk.residual_likelihood ? parseInt(newRisk.residual_likelihood) : null,
         residual_impact: newRisk.residual_impact ? parseInt(newRisk.residual_impact) : null,
+        // Calculate residual_risk_score if both residual values are provided
+        residual_risk_score: (newRisk.residual_likelihood && newRisk.residual_impact) ? parseInt(newRisk.residual_likelihood) * parseInt(newRisk.residual_impact) : null,
         notes: newRisk.notes || null
       };
 

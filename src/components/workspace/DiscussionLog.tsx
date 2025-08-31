@@ -238,14 +238,25 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
     e.preventDefault();
     if (!user) return;
 
+    console.log('🗣️ DiscussionLog - Starting discussion submit');
+    console.log('🗣️ DiscussionLog - Form data:', discussionForm);
+    console.log('🗣️ DiscussionLog - Project ID:', projectId);
+    console.log('🗣️ DiscussionLog - User:', user);
+    console.log('🗣️ DiscussionLog - Editing discussion:', editingDiscussion);
+
     try {
       const discussionData = {
         ...discussionForm,
         attendees: JSON.stringify(discussionForm.attendees)
       };
 
+      console.log('🗣️ DiscussionLog - Processed discussion data:', discussionData);
+
       if (editingDiscussion) {
+        console.log('🗣️ DiscussionLog - Updating discussion:', editingDiscussion.id);
         const response = await apiClient.updateDiscussion(projectId, editingDiscussion.id, discussionData);
+        
+        console.log('🗣️ DiscussionLog - Update response:', JSON.stringify(response, null, 2));
         
         if (response.success) {
           toast({
@@ -253,10 +264,14 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
             description: 'Discussion updated successfully'
           });
         } else {
+          console.error('🗣️ DiscussionLog - Update failed:', response.error, response.code);
           throw new Error(response.error || 'Failed to update discussion');
         }
       } else {
+        console.log('🗣️ DiscussionLog - Creating new discussion');
         const response = await apiClient.createDiscussion(projectId, discussionData);
+        
+        console.log('🗣️ DiscussionLog - Create response:', JSON.stringify(response, null, 2));
         
         if (response.success) {
           toast({
@@ -264,6 +279,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
             description: 'Discussion created successfully'
           });
         } else {
+          console.error('🗣️ DiscussionLog - Create failed:', response.error, response.code);
           throw new Error(response.error || 'Failed to create discussion');
         }
       }
@@ -271,11 +287,13 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
       setShowDiscussionDialog(false);
       resetDiscussionForm();
       fetchDiscussions();
-    } catch (error) {
-      console.error('Error saving discussion:', error);
+    } catch (error: any) {
+      console.error('🗣️ DiscussionLog - Error saving discussion:', error);
+      console.error('🗣️ DiscussionLog - Error stack:', error.stack);
+      console.error('🗣️ DiscussionLog - Error details:', JSON.stringify(error, null, 2));
       toast({
         title: 'Error',
-        description: 'Failed to save discussion',
+        description: `Failed to save discussion: ${error.message} (Code: ${error.code || 'UNKNOWN'})`,
         variant: 'destructive'
       });
     }

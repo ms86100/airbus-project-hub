@@ -184,14 +184,21 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         committedStoryPoints: iterationForm.committed_story_points
       };
 
+      console.log('🔄 TeamCapacity - Iteration data:', iterationData);
+
       let response;
       if (editingIteration) {
+        console.log('🔄 TeamCapacity - Updating iteration:', editingIteration.id);
         response = await apiClient.updateCapacityIteration(projectId, editingIteration.id, iterationData);
       } else {
+        console.log('🔄 TeamCapacity - Creating new iteration');
         response = await apiClient.createCapacityIteration(projectId, iterationData);
       }
       
+      console.log('🔄 TeamCapacity - Iteration response:', JSON.stringify(response, null, 2));
+      
       if (response.success) {
+        console.log('🔄 TeamCapacity - Iteration operation successful');
         toast({
           title: 'Success',
           description: editingIteration ? 'Iteration updated successfully' : 'Iteration created successfully'
@@ -200,13 +207,16 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         resetIterationForm();
         fetchIterations();
       } else {
+        console.error('🔄 TeamCapacity - Iteration operation failed:', response.error, response.code);
         throw new Error(response.error || `Failed to ${editingIteration ? 'update' : 'create'} iteration`);
       }
-    } catch (error) {
-      console.error('Error saving iteration:', error);
+    } catch (error: any) {
+      console.error('🔄 TeamCapacity - Error saving iteration:', error);
+      console.error('🔄 TeamCapacity - Error stack:', error.stack);
+      console.error('🔄 TeamCapacity - Error details:', JSON.stringify(error, null, 2));
       toast({
         title: 'Error',
-        description: `Failed to ${editingIteration ? 'update' : 'create'} iteration`,
+        description: `${error.message} (Code: ${error.code || 'UNKNOWN'})`,
         variant: 'destructive'
       });
     }

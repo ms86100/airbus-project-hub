@@ -135,17 +135,19 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
       };
 
       console.log('🔧 TaskCard - Sending update request with data:', updateData);
+      console.log('🔧 TaskCard - API endpoint will be: PUT /projects/' + projectId + '/tasks/' + task.id);
 
       const response = await apiClient.updateTask(projectId, task.id, updateData);
 
-      console.log('🔧 TaskCard - Update response:', response);
+      console.log('🔧 TaskCard - Raw update response:', JSON.stringify(response, null, 2));
 
       if (!response.success) {
         console.error('🔧 TaskCard - Update failed:', response.error, response.code);
+        console.error('🔧 TaskCard - Full error response:', JSON.stringify(response, null, 2));
         throw new Error(response.error || 'Failed to update task');
       }
       
-      console.log('🔧 TaskCard - Task updated successfully');
+      console.log('🔧 TaskCard - Task updated successfully, response data:', response.data);
       
       toast({
         title: "Task updated",
@@ -155,7 +157,10 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
       setIsEditing(false);
       onTaskUpdate();
     } catch (error: any) {
-      console.error('🔧 TaskCard - Update error:', error);
+      console.error('🔧 TaskCard - Update error details:', error);
+      console.error('🔧 TaskCard - Error stack:', error.stack);
+      console.error('🔧 TaskCard - Error name:', error.name);
+      console.error('🔧 TaskCard - Error message:', error.message);
       toast({
         title: "Error updating task",
         description: `${error.message} (Code: ${error.code || 'UNKNOWN'})`,
