@@ -11,7 +11,15 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
+    const isBrowser = typeof window !== 'undefined';
+    const isLocalApp = isBrowser && (
+      window.location.origin.includes('localhost:8081') ||
+      window.location.origin.includes('127.0.0.1:8081') ||
+      localStorage.getItem('use_local_backend') === 'true'
+    );
+    // Prefer local backend when running the app locally
+    this.baseUrl = isLocalApp ? 'http://localhost:8080' : 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
+    (this as any)._useCloud = !isLocalApp;
   }
 
   private async getAuthToken(): Promise<string | null> {
