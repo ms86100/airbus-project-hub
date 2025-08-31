@@ -586,11 +586,24 @@ router.post('/projects/:projectId/discussions/:discussionId/action-items', requi
     const { projectId, discussionId } = req.params;
     const { task_description, owner_id, target_date, status } = req.body;
 
+    console.log('🔧 Create action item request:', {
+      projectId,
+      discussionId,
+      body: req.body,
+      user: req.user,
+      task_description,
+      owner_id,
+      target_date,
+      status
+    });
+
     if (!await checkProjectAccess(req.user.id, projectId)) {
+      console.log('🔧 Access denied for user:', req.user.id, 'project:', projectId);
       return res.json(fail('Access denied', 'ACCESS_DENIED'));
     }
 
     if (!task_description) {
+      console.log('🔧 Task description missing from body:', req.body);
       return res.json(fail('Task description is required', 'MISSING_FIELDS'));
     }
 
