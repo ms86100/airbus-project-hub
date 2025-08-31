@@ -155,8 +155,8 @@ router.post('/projects/create', verifyToken, async (req, res) => {
         }
       }
       
-      // Create standalone tasks if provided
-      if (tasks && Array.isArray(tasks)) {
+      // Create standalone tasks only when no milestones are provided
+      if ((!milestones || milestones.length === 0) && tasks && Array.isArray(tasks)) {
         for (const task of tasks) {
           const taskId = uuidv4();
           
