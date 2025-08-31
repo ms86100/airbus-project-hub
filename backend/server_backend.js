@@ -5,12 +5,35 @@ require('dotenv').config();
 const app = express();
 
 // CORS configuration
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080'],
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:8081',
+  'http://127.0.0.1:8081',
+  'http://localhost:3000'
+];
+
+const corsOptions = {
+  origin(origin, cb) {
+    if (!origin) return cb(null, true); // allow curl/postman
+    return allowedOrigins.includes(origin)
+      ? cb(null, true)
+      : cb(new Error('CORS blocked'));
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'apikey']
-}));
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'x-client-info',
+    'apikey',
+  ],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
