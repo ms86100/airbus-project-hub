@@ -119,7 +119,7 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
           email: formData.email || undefined,
           department: formData.department || undefined,
           raci: formData.raci || undefined,
-          influenceLevel: formData.influence_level || undefined,
+          influence_level: formData.influence_level || undefined,
           notes: formData.notes || undefined
         });
 

@@ -68,7 +68,7 @@ const ProjectsList = () => {
         throw new Error(response.error || 'Failed to fetch projects');
       }
       
-      setProjects(Array.isArray(response.data) ? response.data : []);
+      setProjects(response.data || []);
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast({
@@ -98,7 +98,7 @@ const ProjectsList = () => {
         throw new Error(response.error || 'Failed to create project');
       }
 
-      setProjects([response.data as Project, ...projects]);
+      setProjects([response.data, ...projects]);
       setShowCreateDialog(false);
       resetForm();
       
@@ -133,7 +133,7 @@ const ProjectsList = () => {
         throw new Error(response.error || 'Failed to update project');
       }
 
-      setProjects(projects.map(p => p.id === editingProject.id ? response.data as Project : p));
+      setProjects(projects.map(p => p.id === editingProject.id ? response.data : p));
       setShowEditDialog(false);
       setEditingProject(null);
       resetForm();

@@ -131,11 +131,11 @@ const ProjectWizard = () => {
 
       toast({
         title: "Project Created Successfully!",
-        description: (response.data as any)?.message || `${projectData.projectName} has been created with ${projectData.tasks.length} tasks across ${projectData.milestones.length} milestones.`,
+        description: response.data?.message || `${projectData.projectName} has been created with ${projectData.tasks.length} tasks across ${projectData.milestones.length} milestones.`,
       });
 
       // Show celebration animation then success modal
-      setCreatedProjectId((response.data as any)?.project?.id);
+      setCreatedProjectId(response.data?.project?.id);
       setShowCelebration(true);
       
       // Show success modal after celebration

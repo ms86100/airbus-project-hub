@@ -9,20 +9,9 @@ export interface ApiResponse<T = any> {
 
 class ApiClient {
   private baseUrl: string;
-  private cloudUrl: string;
 
   constructor() {
-    const isBrowser = typeof window !== 'undefined';
-    const isLocalApp = isBrowser && (
-      window.location.origin.includes('localhost:8081') ||
-      window.location.origin.includes('127.0.0.1:8081') ||
-      localStorage.getItem('use_local_backend') === 'true'
-    );
-    // Cloud Edge Functions base (always available)
-    this.cloudUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
-    // Prefer local backend when running the app locally
-    this.baseUrl = isLocalApp ? 'http://localhost:8080' : this.cloudUrl;
-    (this as any)._useCloud = !isLocalApp;
+    this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
   }
 
   private async getAuthToken(): Promise<string | null> {
@@ -55,46 +44,47 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const token = await this.getAuthToken();
 
-    const doFetch = async (base: string, authToken?: string) => {
+    const doFetch = async (authToken?: string) => {
       const headers = {
         'Content-Type': 'application/json',
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
         ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-        ...options.headers as any,
+        ...options.headers,
       } as Record<string, string>;
 
-      const url = `${base}${endpoint}`;
-      console.log(`➡️ Fetching: ${url} | Auth header: ${authToken ? 'present' : 'missing'}`);
-      const response = await fetch(url, { ...options, headers });
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        headers,
+      });
+
       let result: any = null;
-      try { result = await response.json(); } catch {}
-      return { response, result } as const;
+      try {
+        result = await response.json();
+      } catch {}
+      return { response, result };
     };
 
     try {
       console.log(`🌐 Making request to: ${endpoint}`);
       console.log(`🔐 Using token: ${token ? `${token.substring(0, 20)}...` : 'None'}`);
 
-      // Local/API only: always hit configured baseUrl, no cloud fallback
-      let { response, result } = await doFetch(this.baseUrl, token || undefined);
+      let { response, result } = await doFetch(token || undefined);
 
       if (
-        response && (response.status === 401 || (result && (result.message === 'Invalid JWT' || result.code === 'INVALID_TOKEN' || result.code === 'UNAUTHORIZED')))
+        response.status === 401 ||
+        (result && (result.message === 'Invalid JWT' || result.code === 'INVALID_TOKEN' || result.code === 'UNAUTHORIZED'))
       ) {
         const refreshed = await this.refreshToken();
         if (refreshed) {
-          ({ response, result } = await doFetch(this.baseUrl, refreshed));
+          ({ response, result } = await doFetch(refreshed));
         }
       }
 
       console.log(`📡 Response from ${endpoint}:`, result);
-      if (response && !response.ok && (!result || typeof (result as any).success === 'undefined')) {
-        return { success: false, error: `HTTP ${response.status} for ${endpoint}`, code: `HTTP_${response.status}` } as any;
-      }
-      return (result as ApiResponse<T>) ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' } as any;
+      return result ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' };
     } catch (error) {
       console.error('API request failed:', error);
-      return { success: false, error: 'Network error', code: 'NETWORK_ERROR' } as any;
+      return { success: false, error: 'Network error', code: 'NETWORK_ERROR' };
     }
   }
 
@@ -255,60 +245,32 @@ class ApiClient {
 
   async createCapacityIteration(projectId: string, data: {
     type: 'iteration';
-    iterationName?: string;
-    startDate?: string;
-    endDate?: string;
-    workingDays?: number;
+    iterationName: string;
+    startDate: string;
+    endDate: string;
+    workingDays: number;
     committedStoryPoints?: number;
-    // also support snake_case
-    iteration_name?: string;
-    start_date?: string;
-    end_date?: string;
-    working_days?: number;
-    committed_story_points?: number;
   }): Promise<ApiResponse<{ message: string; iteration: any }>> {
-    const payload = {
-      type: 'iteration',
-      iteration_name: (data as any).iteration_name ?? (data as any).iterationName,
-      start_date: (data as any).start_date ?? (data as any).startDate,
-      end_date: (data as any).end_date ?? (data as any).endDate,
-      working_days: (data as any).working_days ?? (data as any).workingDays,
-      committed_story_points: (data as any).committed_story_points ?? (data as any).committedStoryPoints ?? 0,
-    };
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
     });
   }
 
   async addCapacityMember(projectId: string, data: {
     type: 'member';
-    iterationId?: string;
-    memberName?: string;
+    iterationId: string;
+    memberName: string;
     role: string;
     workMode: string;
-    availabilityPercent?: number;
-    leaves?: number;
+    availabilityPercent: number;
+    leaves: number;
     stakeholderId?: string;
     teamId?: string;
-    // snake_case support
-    iteration_id?: string;
-    member_name?: string;
-    work_mode?: string;
-    availability_percent?: number;
   }): Promise<ApiResponse<{ message: string; member: any }>> {
-    const payload = {
-      type: 'member',
-      iteration_id: (data as any).iteration_id ?? (data as any).iterationId,
-      member_name: (data as any).member_name ?? (data as any).memberName,
-      role: (data as any).role,
-      work_mode: (data as any).work_mode ?? (data as any).workMode,
-      leaves: (data as any).leaves ?? 0,
-      availability_percent: (data as any).availability_percent ?? (data as any).availabilityPercent ?? 100,
-    };
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
     });
   }
 
@@ -371,7 +333,6 @@ class ApiClient {
   async getRoadmap(projectId: string): Promise<ApiResponse<{ projectId: string; milestones: any[] }>> {
     return this.makeRequest(`/roadmap-service/projects/${projectId}/roadmap`, { method: 'GET' });
   }
-
 
   async createMilestone(projectId: string, data: { name: string; description?: string; dueDate: string; status?: 'planning' | 'in_progress' | 'completed' | 'blocked'; }): Promise<ApiResponse<{ message: string; milestone: any }>> {
     return this.makeRequest(`/roadmap-service/projects/${projectId}/roadmap`, {
@@ -439,7 +400,17 @@ class ApiClient {
       body: JSON.stringify({ milestoneId }),
     });
   }
-  // Stakeholders Service Methods (moved to end to avoid duplicates)
+  // Stakeholders Service Methods
+  async getStakeholders(projectId: string): Promise<ApiResponse<{ projectId: string; stakeholders: any[] }>> {
+    return this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders`, { method: 'GET' });
+  }
+
+  async createStakeholder(projectId: string, data: { name: string; email?: string; department?: string; raci?: string; influence_level?: string; notes?: string; }): Promise<ApiResponse<{ message: string; stakeholder: any }>> {
+    return this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 
   async updateStakeholder(projectId: string, stakeholderId: string, data: { name?: string; email?: string; department?: string; raci?: string; influence_level?: string; notes?: string; }): Promise<ApiResponse<{ message: string; stakeholder: any }>> {
     return this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders/${stakeholderId}`, {
@@ -540,17 +511,9 @@ class ApiClient {
     return this.makeRequest(`/projects-service/stats`, { method: 'GET' });
   }
 
-  // Discussion Methods (moved to workspace section)
-
-  async getDiscussionActionItems(projectId: string, discussionId: string): Promise<ApiResponse<any[]>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/discussions/${discussionId}/action-items`, { method: 'GET' });
-  }
-
-  async createDiscussionActionItem(projectId: string, discussionId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/discussions/${discussionId}/action-items`, {
-      method: 'POST',
-      body: JSON.stringify(actionItemData),
-    });
+  // Discussion Methods (workspace service)
+  async getDiscussions(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/discussions`, { method: 'GET' });
   }
 
   async createDiscussion(projectId: string, discussionData: any): Promise<ApiResponse<{ message: string; discussion: any }>> {
@@ -573,37 +536,37 @@ class ApiClient {
     });
   }
 
-  // Action Items Methods (moved to workspace section)
-
-  async createActionItem(projectId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
-    try {
-      const discussionId = actionItemData?.discussion_id;
-      if (!discussionId) {
-        console.error('🔧 API Client - createActionItem missing discussion_id in payload');
-        return { success: false, error: 'discussion_id is required', code: 'VALIDATION_ERROR' } as any;
-      }
-      console.log('🔧 API Client - createActionItem:', { projectId, discussionId, actionItemData });
-      const resp = await this.makeRequest<{ message: string; actionItem: any }>(`/workspace-service/projects/${projectId}/discussions/${discussionId}/action-items`, {
-        method: 'POST',
-        body: JSON.stringify(actionItemData),
-      });
-      console.log('🔧 API Client - createActionItem response:', resp);
-      return resp;
-    } catch (err) {
-      console.error('🔧 API Client - createActionItem error:', err);
-      throw err;
-    }
+  // Action Items Methods (workspace service)
+  async getActionItems(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/action-items`, { method: 'GET' });
   }
 
-  // Task Methods (moved to workspace section)
+  async createActionItem(projectId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/action-items`, {
+      method: 'POST',
+      body: JSON.stringify(actionItemData),
+    });
+  }
+
+  // Task Methods (workspace service)
+  async getTasks(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, { method: 'GET' });
+  }
+
+  async updateTask(taskId: string, data: any): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/workspace-service/tasks/${taskId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
 
   async getTaskStatusHistoryLegacy(taskId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/workspace-service/tasks/${taskId}/history`);
   }
 
   // Milestones
-  async getMilestones(projectId: string): Promise<ApiResponse<{ projectId: string; milestones: any[] }>> {
-    return this.getRoadmap(projectId);
+  async getMilestones(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/milestones`);
   }
 
   // Profile management
@@ -626,28 +589,15 @@ class ApiClient {
 
   async updateCapacityIteration(projectId: string, iterationId: string, data: {
     type: 'iteration';
-    iterationName?: string;
-    startDate?: string;
-    endDate?: string;
-    workingDays?: number;
+    iterationName: string;
+    startDate: string;
+    endDate: string;
+    workingDays: number;
     committedStoryPoints?: number;
-    iteration_name?: string;
-    start_date?: string;
-    end_date?: string;
-    working_days?: number;
-    committed_story_points?: number;
   }): Promise<ApiResponse<{ message: string; iteration: any }>> {
-    const payload = {
-      type: 'iteration',
-      iteration_name: (data as any).iteration_name ?? (data as any).iterationName,
-      start_date: (data as any).start_date ?? (data as any).startDate,
-      end_date: (data as any).end_date ?? (data as any).endDate,
-      working_days: (data as any).working_days ?? (data as any).workingDays,
-      committed_story_points: (data as any).committed_story_points ?? (data as any).committedStoryPoints ?? 0,
-    };
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity/${iterationId}`, {
       method: 'PUT',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -658,16 +608,37 @@ class ApiClient {
     return this.makeRequest(`/capacity-service/projects/${projectId}/iterations/${iterationId}/members`, { method: 'GET' });
   }
 
-  // Risk Register Methods (moved to workspace section)
+  // Risk Register Methods (workspace service)
+  async getRisks(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/risks`, { method: 'GET' });
+  }
+
+  async createRisk(projectId: string, riskData: any): Promise<ApiResponse<{ message: string; risk: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/risks`, {
+      method: 'POST',
+      body: JSON.stringify(riskData),
+    });
+  }
+
+  async updateRisk(projectId: string, riskId: string, riskData: any): Promise<ApiResponse<{ message: string; risk: any }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/risks/${riskId}`, {
+      method: 'PUT',
+      body: JSON.stringify(riskData),
+    });
+  }
+
+  async deleteRisk(projectId: string, riskId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/risks/${riskId}`, {
+      method: 'DELETE',
+    });
+  }
 
   // Action Items Methods (workspace service) - extended
   async updateActionItem(projectId: string, actionItemId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
-      const resp = await this.makeRequest<{ message: string; actionItem: any }>(`/workspace-service/projects/${projectId}/action-items/${actionItemId}`, {
-        method: 'PUT',
-        body: JSON.stringify(actionItemData),
-      });
-      console.log('📡 Update action item API client response:', resp);
-      return resp;
+    return this.makeRequest(`/workspace-service/projects/${projectId}/action-items/${actionItemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(actionItemData),
+    });
   }
 
   async deleteActionItem(projectId: string, actionItemId: string): Promise<ApiResponse<{ message: string }>> {
@@ -678,32 +649,10 @@ class ApiClient {
 
   // Task creation for milestones (workspace service)
   async createTaskForMilestone(projectId: string, taskData: any): Promise<ApiResponse<{ message: string; task: any }>> {
-    console.log('🔧 API Client - createTaskForMilestone called:', {
-      projectId,
-      originalTaskData: taskData,
-      baseUrl: this.baseUrl
-    });
-
-    // Ensure we pass the right field names for backend compatibility
-    const backendTaskData = {
-      title: taskData.title,
-      description: taskData.description,
-      status: taskData.status,
-      priority: taskData.priority,
-      due_date: taskData.due_date, // Keep snake_case for backend
-      owner_id: taskData.owner_id, // Keep snake_case for backend  
-      milestone_id: taskData.milestone_id, // Keep snake_case for backend
-    };
-    
-    console.log('🔧 API Client - transformed data for backend:', backendTaskData);
-    
-    const response = await this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, {
       method: 'POST',
-      body: JSON.stringify(backendTaskData),
+      body: JSON.stringify(taskData),
     });
-
-    console.log('🔧 API Client - workspace service response:', response);
-    return response as ApiResponse<{ message: string; task: any }>;
   }
 
   // Capacity Data method  
@@ -819,82 +768,6 @@ class ApiClient {
     });
   }
 
-  // Workspace Service Methods
-  async getWorkspaceSummary(projectId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/summary`, { method: 'GET' });
-  }
-
-  async getTasks(projectId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, { method: 'GET' });
-  }
-
-  async createTask(projectId: string, data: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateTask(projectId: string, taskId: string, data: any): Promise<ApiResponse<any>> {
-    console.log('🔧 API Client - updateTask called:', { projectId, taskId, data });
-    
-    const response = await this.makeRequest(`/workspace-service/projects/${projectId}/tasks/${taskId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    
-    console.log('🔧 API Client - updateTask response:', response);
-    return response;
-  }
-
-  async getRisks(projectId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/risks`, { method: 'GET' });
-  }
-
-  async createRisk(projectId: string, data: any): Promise<ApiResponse<any>> {
-    console.log('🔧 API Client - createRisk called:', { projectId, data });
-    
-    const response = await this.makeRequest(`/workspace-service/projects/${projectId}/risks`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    
-    console.log('🔧 API Client - createRisk response:', response);
-    return response;
-  }
-
-  async updateRisk(projectId: string, riskId: string, data: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/risks/${riskId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteRisk(projectId: string, riskId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/risks/${riskId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async getDiscussions(projectId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/discussions`, { method: 'GET' });
-  }
-
-  async getActionItems(projectId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/action-items`, { method: 'GET' });
-  }
-
-  async getStakeholders(projectId: string): Promise<ApiResponse<{ stakeholders: any[] }>> {
-    return this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders`, { method: 'GET' });
-  }
-
-  async createStakeholder(projectId: string, data: { name: string; email?: string; department?: string; influenceLevel?: string; raci?: string; notes?: string }): Promise<ApiResponse<{ message: string; stakeholder: any }>> {
-    return this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
   // Wizard service methods
   async createProjectWizard(projectData: {
     projectName: string;
@@ -905,8 +778,7 @@ class ApiClient {
     milestones: any[];
     inviteEmails: string[];
   }): Promise<ApiResponse<{ project: any; message: string }>> {
-    // Always use local backend for wizard service
-    return this.makeRequest('/wizard-service/projects/wizard/complete', {
+    return this.makeRequest('/wizard-service/projects/create', {
       method: 'POST',
       body: JSON.stringify(projectData),
     });
@@ -929,15 +801,10 @@ class ApiClient {
     return this.makeRequest(`/workspace-service/tasks/${taskId}/status-history`, { method: 'GET' });
   }
 
-  async deleteTask(projectId: string, taskId: string): Promise<ApiResponse<{ message: string }>> {
-    console.log('🔧 API Client - deleteTask called:', { projectId, taskId });
-    
-    const response = await this.makeRequest(`/workspace-service/projects/${projectId}/tasks/${taskId}`, {
+  async deleteTask(taskId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/workspace-service/tasks/${taskId}`, {
       method: 'DELETE',
     });
-    
-    console.log('🔧 API Client - deleteTask response:', response);
-    return response as ApiResponse<{ message: string }>;
   }
 
   async getUserProfiles(userIds: string[]): Promise<ApiResponse<{ profiles: any[] }>> {

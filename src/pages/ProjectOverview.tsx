@@ -112,7 +112,7 @@ const ProjectOverview = () => {
       if (!projectResponse.success) {
         throw new Error(projectResponse.error || 'Failed to fetch project');
       }
-      setProject(projectResponse.data as Project);
+      setProject(projectResponse.data);
 
       // Fetch workspace data (summary, recent tasks, milestones)
       const workspaceResponse = await apiClient.getWorkspace(id!);

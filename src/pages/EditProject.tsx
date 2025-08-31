@@ -55,7 +55,7 @@ const EditProject = () => {
         throw new Error(response.error || 'Failed to fetch project');
       }
       
-      const data = response.data as Project;
+      const data = response.data;
       setProject(data);
       setFormData({
         name: data.name,

@@ -48,7 +48,7 @@ export function GanttChart({ projectId }: GanttChartProps) {
       if (!milestonesResponse.success) {
         throw new Error(milestonesResponse.error || 'Failed to fetch milestones');
       }
-      setMilestones(milestonesResponse.data.milestones || []);
+      setMilestones(milestonesResponse.data || []);
 
       // Fetch tasks via API
       const tasksResponse = await apiClient.getTasks(projectId);
@@ -56,7 +56,7 @@ export function GanttChart({ projectId }: GanttChartProps) {
         throw new Error(tasksResponse.error || 'Failed to fetch tasks');
       }
       const tasksData = tasksResponse.data || [];
-      const milestonesData = milestonesResponse.data.milestones || [];
+      const milestonesData = milestonesResponse.data || [];
       
       setTasks(tasksData);
 
@@ -252,7 +252,7 @@ export function GanttChart({ projectId }: GanttChartProps) {
           {/* Content rows */}
           <div className="space-y-0">
             {/* Milestones grouped with their tasks */}
-            {(Array.isArray(milestones) ? milestones : []).map((milestone) => {
+            {milestones.map((milestone) => {
               const milestoneTasks = tasks.filter(task => task.milestone_id === milestone.id);
               
               return (

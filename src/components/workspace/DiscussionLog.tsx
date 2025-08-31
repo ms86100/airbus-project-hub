@@ -238,25 +238,14 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
     e.preventDefault();
     if (!user) return;
 
-    console.log('🗣️ DiscussionLog - Starting discussion submit');
-    console.log('🗣️ DiscussionLog - Form data:', discussionForm);
-    console.log('🗣️ DiscussionLog - Project ID:', projectId);
-    console.log('🗣️ DiscussionLog - User:', user);
-    console.log('🗣️ DiscussionLog - Editing discussion:', editingDiscussion);
-
     try {
       const discussionData = {
         ...discussionForm,
         attendees: JSON.stringify(discussionForm.attendees)
       };
 
-      console.log('🗣️ DiscussionLog - Processed discussion data:', discussionData);
-
       if (editingDiscussion) {
-        console.log('🗣️ DiscussionLog - Updating discussion:', editingDiscussion.id);
         const response = await apiClient.updateDiscussion(projectId, editingDiscussion.id, discussionData);
-        
-        console.log('🗣️ DiscussionLog - Update response:', JSON.stringify(response, null, 2));
         
         if (response.success) {
           toast({
@@ -264,14 +253,10 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
             description: 'Discussion updated successfully'
           });
         } else {
-          console.error('🗣️ DiscussionLog - Update failed:', response.error, response.code);
           throw new Error(response.error || 'Failed to update discussion');
         }
       } else {
-        console.log('🗣️ DiscussionLog - Creating new discussion');
         const response = await apiClient.createDiscussion(projectId, discussionData);
-        
-        console.log('🗣️ DiscussionLog - Create response:', JSON.stringify(response, null, 2));
         
         if (response.success) {
           toast({
@@ -279,7 +264,6 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
             description: 'Discussion created successfully'
           });
         } else {
-          console.error('🗣️ DiscussionLog - Create failed:', response.error, response.code);
           throw new Error(response.error || 'Failed to create discussion');
         }
       }
@@ -287,13 +271,11 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
       setShowDiscussionDialog(false);
       resetDiscussionForm();
       fetchDiscussions();
-    } catch (error: any) {
-      console.error('🗣️ DiscussionLog - Error saving discussion:', error);
-      console.error('🗣️ DiscussionLog - Error stack:', error.stack);
-      console.error('🗣️ DiscussionLog - Error details:', JSON.stringify(error, null, 2));
+    } catch (error) {
+      console.error('Error saving discussion:', error);
       toast({
         title: 'Error',
-        description: `Failed to save discussion: ${error.message} (Code: ${error.code || 'UNKNOWN'})`,
+        description: 'Failed to save discussion',
         variant: 'destructive'
       });
     }
@@ -336,11 +318,11 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
       setShowActionItemDialog(false);
       resetActionItemForm();
       fetchActionItems();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving action item:', error);
       toast({
         title: 'Error',
-        description: `Failed to save action item: ${error?.message || 'Unknown error'}`,
+        description: 'Failed to save action item',
         variant: 'destructive'
       });
     }
@@ -418,26 +400,17 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
           title: 'Success',
           description: 'Action item converted to backlog item successfully'
         });
+        
         // Mark the action item as completed
-        const upd = await apiClient.updateActionItem(projectId, actionItem.id, { status: 'completed' });
-        console.log('📡 Update action item response:', upd);
-        if (!upd.success) {
-          console.error('❌ Failed to mark action item completed:', upd.error, upd.code);
-          toast({
-            title: 'Warning',
-            description: `Backlog item created, but failed to mark action item completed: ${upd.error || upd.code || 'Unknown error'}`,
-            variant: 'destructive'
-          });
-        }
+        await apiClient.updateActionItem(projectId, actionItem.id, { status: 'completed' });
         fetchActionItems();
       } else {
         throw new Error(response.error || 'Failed to convert action item');
       }
     } catch (error: any) {
-      console.error('❌ Convert to backlog failed:', error);
       toast({
         title: 'Error',
-        description: `Failed to convert action item to backlog: ${error?.message || 'Unknown error'}`,
+        description: 'Failed to convert action item to backlog',
         variant: 'destructive'
       });
     }

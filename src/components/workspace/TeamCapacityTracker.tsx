@@ -33,15 +33,12 @@ interface CapacityIteration {
   working_days: number;
   committed_story_points: number;
   created_at: string;
-  members?: CapacityMember[]; // Members are included in the capacity data response
 }
 
 interface CapacityMember {
   id: string;
   iteration_id: string;
-  member_name: string;
-  role: string;
-  work_mode: string;
+  stakeholder_id: string;
   leaves: number;
   availability_percent: number;
   effective_capacity_days: number;
@@ -69,8 +66,6 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const [loading, setLoading] = useState(true);
   const [showIterationDialog, setShowIterationDialog] = useState(false);
   const [editingIteration, setEditingIteration] = useState<CapacityIteration | null>(null);
-  const [showMemberDialog, setShowMemberDialog] = useState(false);
-  const [editingMember, setEditingMember] = useState<CapacityMember | null>(null);
   
   // Form state for iteration
   const [iterationForm, setIterationForm] = useState({
@@ -79,15 +74,6 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     end_date: '',
     working_days: 0,
     committed_story_points: 0
-  });
-
-  // Form state for member
-  const [memberForm, setMemberForm] = useState({
-    member_name: '',
-    role: '',
-    work_mode: 'office',
-    availability_percent: 100,
-    leaves: 0
   });
 
   useEffect(() => {
@@ -111,15 +97,14 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
   const fetchIterations = async () => {
     try {
-      console.log('🔄 Fetching capacity data for project:', projectId);
-      const response = await apiClient.getCapacityData(projectId);
-      console.log('📋 Capacity data response:', response);
+      console.log('🔄 Fetching iterations for project:', projectId);
+      const response = await apiClient.getCapacityIterations(projectId);
+      console.log('📋 Iterations response:', response);
       
       if (response.success) {
-        // Backend returns { projectId, iterations: [...], members: [...] }
-        const data = response.data?.iterations || [];
+        const data = response.data || [];
         console.log('📋 Setting iterations data:', data);
-        setIterations(Array.isArray(data) ? data : []);
+        setIterations(data);
         
         if (data.length > 0 && !selectedIteration) {
           setSelectedIteration(data[0]);
@@ -199,21 +184,14 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         committedStoryPoints: iterationForm.committed_story_points
       };
 
-      console.log('🔄 TeamCapacity - Iteration data:', iterationData);
-
       let response;
       if (editingIteration) {
-        console.log('🔄 TeamCapacity - Updating iteration:', editingIteration.id);
         response = await apiClient.updateCapacityIteration(projectId, editingIteration.id, iterationData);
       } else {
-        console.log('🔄 TeamCapacity - Creating new iteration');
         response = await apiClient.createCapacityIteration(projectId, iterationData);
       }
       
-      console.log('🔄 TeamCapacity - Iteration response:', JSON.stringify(response, null, 2));
-      
       if (response.success) {
-        console.log('🔄 TeamCapacity - Iteration operation successful');
         toast({
           title: 'Success',
           description: editingIteration ? 'Iteration updated successfully' : 'Iteration created successfully'
@@ -222,16 +200,13 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         resetIterationForm();
         fetchIterations();
       } else {
-        console.error('🔄 TeamCapacity - Iteration operation failed:', response.error, response.code);
         throw new Error(response.error || `Failed to ${editingIteration ? 'update' : 'create'} iteration`);
       }
-    } catch (error: any) {
-      console.error('🔄 TeamCapacity - Error saving iteration:', error);
-      console.error('🔄 TeamCapacity - Error stack:', error.stack);
-      console.error('🔄 TeamCapacity - Error details:', JSON.stringify(error, null, 2));
+    } catch (error) {
+      console.error('Error saving iteration:', error);
       toast({
         title: 'Error',
-        description: `${error.message} (Code: ${error.code || 'UNKNOWN'})`,
+        description: `Failed to ${editingIteration ? 'update' : 'create'} iteration`,
         variant: 'destructive'
       });
     }
@@ -276,66 +251,6 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       committed_story_points: iteration.committed_story_points
     });
     setShowIterationDialog(true);
-  };
-
-  const resetMemberForm = () => {
-    setMemberForm({
-      member_name: '',
-      role: '',
-      work_mode: 'office',
-      availability_percent: 100,
-      leaves: 0
-    });
-    setEditingMember(null);
-  };
-
-  const handleMemberSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedIteration) return;
-
-    try {
-      const memberData = {
-        type: 'member' as const,
-        iterationId: selectedIteration.id,
-        memberName: memberForm.member_name,
-        role: memberForm.role,
-        workMode: memberForm.work_mode,
-        availabilityPercent: memberForm.availability_percent,
-        leaves: memberForm.leaves
-      };
-
-      console.log('🔄 TeamCapacity - Member data:', memberData);
-
-      const response = await apiClient.addCapacityMember(projectId, memberData);
-      console.log('🔄 TeamCapacity - Member response:', JSON.stringify(response, null, 2));
-      
-      if (response.success) {
-        console.log('🔄 TeamCapacity - Member operation successful');
-        toast({
-          title: 'Success',
-          description: 'Team member added successfully'
-        });
-        setShowMemberDialog(false);
-        resetMemberForm();
-        fetchIterations();
-      } else {
-        console.error('🔄 TeamCapacity - Member operation failed:', response.error, response.code);
-        throw new Error(response.error || 'Failed to add team member');
-      }
-    } catch (error: any) {
-      console.error('🔄 TeamCapacity - Error saving member:', error);
-      toast({
-        title: 'Error',
-        description: `${error.message} (Code: ${error.code || 'UNKNOWN'})`,
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const openAddMember = (iteration: CapacityIteration) => {
-    setSelectedIteration(iteration);
-    resetMemberForm();
-    setShowMemberDialog(true);
   };
 
   if (loading) {
@@ -604,41 +519,21 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                         {format(new Date(iteration.start_date), 'MMM dd')} - {format(new Date(iteration.end_date), 'MMM dd, yyyy')}
                       </p>
                     </div>
-                     <div className="flex gap-2">
-                       <Button onClick={() => openAddMember(iteration)}>
-                         <Plus className="h-4 w-4 mr-2" />
-                         Add Member
-                       </Button>
-                     </div>
-                   </div>
-                   
-                   {iteration.members && iteration.members.length > 0 ? (
-                     <div className="space-y-3">
-                       {iteration.members.map((member) => (
-                         <div key={member.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                           <div>
-                             <div className="font-medium">{member.member_name}</div>
-                             <div className="text-sm text-muted-foreground">
-                               {member.role} • {member.work_mode} • {member.availability_percent}% available
-                               {member.leaves > 0 && ` • ${member.leaves} days leave`}
-                             </div>
-                           </div>
-                           <div className="text-right">
-                             <div className="font-medium">{member.effective_capacity_days}</div>
-                             <div className="text-sm text-muted-foreground">effective days</div>
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-                   ) : (
-                     <div className="text-center py-8 text-muted-foreground">
-                       <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                       <p>No team members assigned to this iteration</p>
-                       <Button variant="outline" className="mt-4" onClick={() => openAddMember(iteration)}>
-                         Add First Member
-                       </Button>
-                     </div>
-                   )}
+                    <div className="flex gap-2">
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Member
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No team members assigned to this iteration</p>
+                    <Button variant="outline" className="mt-4">
+                      Add First Member
+                    </Button>
+                  </div>
                 </Card>
               ))}
             </div>
@@ -655,91 +550,6 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           )}
         </TabsContent>
       </Tabs>
-
-      {/* Member Dialog */}
-      <Dialog open={showMemberDialog} onOpenChange={setShowMemberDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Team Member</DialogTitle>
-            <DialogDescription>
-              Add a team member to {selectedIteration?.iteration_name}.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleMemberSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="member_name">Member Name</Label>
-              <Input
-                id="member_name"
-                value={memberForm.member_name}
-                onChange={(e) => setMemberForm(prev => ({ ...prev, member_name: e.target.value }))}
-                placeholder="e.g., John Doe"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="role">Role</Label>
-              <Select value={memberForm.role} onValueChange={(value) => setMemberForm(prev => ({ ...prev, role: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="developer">Developer</SelectItem>
-                  <SelectItem value="designer">Designer</SelectItem>
-                  <SelectItem value="qa">QA Engineer</SelectItem>
-                  <SelectItem value="product_manager">Product Manager</SelectItem>
-                  <SelectItem value="scrum_master">Scrum Master</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="work_mode">Work Mode</Label>
-              <Select value={memberForm.work_mode} onValueChange={(value) => setMemberForm(prev => ({ ...prev, work_mode: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select work mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="office">Office</SelectItem>
-                  <SelectItem value="wfh">Work from Home</SelectItem>
-                  <SelectItem value="hybrid">Hybrid</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="availability_percent">Availability (%)</Label>
-                <Input
-                  id="availability_percent"
-                  type="number"
-                  value={memberForm.availability_percent}
-                  onChange={(e) => setMemberForm(prev => ({ ...prev, availability_percent: parseInt(e.target.value) || 0 }))}
-                  min="0"
-                  max="100"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="leaves">Leaves (days)</Label>
-                <Input
-                  id="leaves"
-                  type="number"
-                  value={memberForm.leaves}
-                  onChange={(e) => setMemberForm(prev => ({ ...prev, leaves: parseInt(e.target.value) || 0 }))}
-                  min="0"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setShowMemberDialog(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                Add Member
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

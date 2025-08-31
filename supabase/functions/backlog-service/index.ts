@@ -112,9 +112,6 @@ Deno.serve(async (req) => {
 
       if (statusFilter) {
         query = query.eq('status', statusFilter);
-      } else {
-        // By default, exclude items with status 'done' (moved to milestones)
-        query = query.neq('status', 'done');
       }
 
       const { data: items, error } = await query;
@@ -276,93 +273,38 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Validate that the milestone exists and belongs to the project
-      const { data: milestone, error: milestoneError } = await supabase
-        .from('milestones')
-        .select('id, name, project_id')
-        .eq('id', milestoneId)
-        .eq('project_id', projectId)
-        .maybeSingle();
-
-      if (milestoneError || !milestone) {
-        console.error('Milestone validation failed:', { milestoneId, projectId, error: milestoneError });
-        return createErrorResponse('Milestone not found or does not belong to project', 'INVALID_MILESTONE', 400);
-      }
-
-      console.log('✅ Milestone validated:', { milestone_id: milestone.id, name: milestone.name, project_id: milestone.project_id });
-
       // Get the backlog item
       const { data: backlogItem, error: fetchError } = await supabase
         .from('task_backlog')
         .select('*')
         .eq('id', itemId)
         .eq('project_id', projectId)
-        .maybeSingle();
+        .single();
 
       if (fetchError || !backlogItem) {
         return createErrorResponse('Backlog item not found', 'ITEM_NOT_FOUND', 404);
       }
 
-      console.log('Creating task from backlog item:', {
-        project_id: projectId,
-        milestone_id: milestoneId,
-        milestone_name: milestone.name,
-        title: backlogItem.title,
-        backlogItemId: itemId
-      });
-
-      // Create a task from the backlog item with explicit milestone assignment
-      console.log('🔧 About to create task with milestone_id:', milestoneId, typeof milestoneId);
-      
-      const taskData = {
-        project_id: projectId,
-        milestone_id: milestoneId, // Ensure this is a string UUID
-        title: backlogItem.title,
-        description: backlogItem.description,
-        priority: backlogItem.priority,
-        status: 'todo',
-        due_date: backlogItem.target_date,
-        owner_id: backlogItem.owner_id,
-        created_by: user.id,
-      };
-      
-      console.log('📋 Task data being inserted:', taskData);
-      
+      // Create a task from the backlog item
       const { data: task, error: createError } = await supabaseAuth
         .from('tasks')
-        .insert(taskData)
+        .insert({
+          project_id: projectId,
+          milestone_id: milestoneId,
+          title: backlogItem.title,
+          description: backlogItem.description,
+          priority: backlogItem.priority,
+          status: 'todo',
+          due_date: backlogItem.target_date,
+          owner_id: backlogItem.owner_id,
+          created_by: user.id,
+        })
         .select()
         .single();
 
       if (createError) {
         console.error('Error creating task from backlog:', createError);
         return createErrorResponse('Failed to create task from backlog item', 'CREATE_TASK_ERROR');
-      }
-
-      console.log('✅ Task created successfully:', {
-        task_id: task.id,
-        milestone_id: task.milestone_id,
-        milestone_id_type: typeof task.milestone_id,
-        title: task.title,
-        project_id: task.project_id,
-        full_task: task
-      });
-
-      // Verify the task was created with the correct milestone_id
-      if (!task.milestone_id) {
-        console.error('🚨 CRITICAL: Task was created without milestone_id!', {
-          expected_milestone_id: milestoneId,
-          actual_milestone_id: task.milestone_id,
-          task_id: task.id
-        });
-      } else if (task.milestone_id !== milestoneId) {
-        console.error('🚨 CRITICAL: Task milestone_id mismatch!', {
-          expected_milestone_id: milestoneId,
-          actual_milestone_id: task.milestone_id,
-          task_id: task.id
-        });
-      } else {
-        console.log('✅ Milestone assignment verified successfully');
       }
 
       // Update backlog item status to indicate it's been moved
@@ -374,8 +316,6 @@ Deno.serve(async (req) => {
       if (updateError) {
         console.error('Error updating backlog status:', updateError);
         // Continue even if this fails - the task was created successfully
-      } else {
-        console.log('✅ Backlog item status updated to "done"');
       }
 
       return createSuccessResponse({ message: 'Backlog item moved to milestone successfully', task });

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Users, FolderOpen, Calendar, BarChart3, Clock, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import DepartmentManagement from '@/components/DepartmentManagement';
-import DepartmentSelectionDialog from '@/components/DepartmentSelectionDialog_fixed';
+import DepartmentSelectionDialog from '@/components/DepartmentSelectionDialog';
 import { apiClient } from '@/services/api';
 
 interface Project {
@@ -89,7 +89,7 @@ const Dashboard = () => {
       const response = await apiClient.getUserRole(user.id);
       
       if (response.success) {
-        setUserRole((response.data as any)?.role || null);
+        setUserRole(response.data?.role || null);
       } else {
         console.error("Error fetching user role:", response.error);
       }
@@ -104,7 +104,7 @@ const Dashboard = () => {
       
       if (response.success) {
         // Get first 6 projects for dashboard display
-        setProjects(((response.data as any[]) || []).slice(0, 6));
+        setProjects((response.data || []).slice(0, 6));
       } else {
         console.error('Error fetching projects:', response.error);
         toast({
@@ -127,12 +127,12 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const anyClient = apiClient as any;
-      if (typeof anyClient.getProjectStats === 'function') {
-        const response = await anyClient.getProjectStats();
-        if (response.success) {
-          setStats(response.data as any);
-        }
+      const response = await apiClient.getProjectStats();
+      
+      if (response.success) {
+        setStats(response.data);
+      } else {
+        console.error('Error fetching stats:', response.error);
       }
     } catch (error) {
       console.error('Error fetching stats:', error);

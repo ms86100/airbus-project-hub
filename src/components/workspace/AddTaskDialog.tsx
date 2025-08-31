@@ -86,18 +86,6 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
     if (!user || !formData.title.trim()) return;
 
     try {
-      console.log('🔨 Creating task with data:', {
-        title: formData.title,
-        description: formData.description || null,
-        status: formData.status,
-        priority: formData.priority,
-        due_date: formData.due_date || null,
-        owner_id: formData.owner_id || null,
-        milestone_id: milestoneId,
-        projectId,
-        userId: user.id
-      });
-
       const taskData = {
         title: formData.title,
         description: formData.description || null,
@@ -109,10 +97,8 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
       };
 
       const response = await apiClient.createTaskForMilestone(projectId, taskData);
-      console.log('📡 Task creation response:', response);
 
       if (!response.success) {
-        console.error('❌ Task creation failed:', response.error, response.code);
         throw new Error(response.error || 'Failed to create task');
       }
       
@@ -122,10 +108,7 @@ export function AddTaskDialog({ milestoneId, projectId, onTaskAdded }: AddTaskDi
       });
       
       resetForm();
-      // Small delay to ensure DB changes are committed before refreshing
-      setTimeout(() => {
-        onTaskAdded();
-      }, 100);
+      onTaskAdded();
     } catch (error: any) {
       toast({
         title: "Error creating task",

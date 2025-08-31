@@ -166,18 +166,13 @@ Deno.serve(async (req) => {
       const projectId = params.id;
       const riskData = await req.json();
 
-      console.log('🔧 Edge Function - POST risks called:', { projectId, riskData, userId: user.id });
-
       if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
 
       const access = await hasProjectAccess(user.id, projectId);
       if (!access.ok) {
-        console.log('🔧 Edge Function - Access denied:', access);
         const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
-
-      console.log('🔧 Edge Function - Inserting risk data:', { ...riskData, project_id: projectId, created_by: user.id });
 
       const { data: risk, error } = await supabaseAuth
         .from('risk_register')
@@ -190,11 +185,10 @@ Deno.serve(async (req) => {
         .single();
 
       if (error) {
-        console.error('🔧 Edge Function - Error creating risk:', error);
-        return createErrorResponse(`Failed to create risk: ${error.message}`, 'CREATE_ERROR');
+        console.error('Error creating risk:', error);
+        return createErrorResponse('Failed to create risk', 'CREATE_ERROR');
       }
 
-      console.log('🔧 Edge Function - Risk created successfully:', risk);
       return createSuccessResponse({ message: 'Risk created successfully', risk });
     }
 
@@ -408,68 +402,12 @@ Deno.serve(async (req) => {
       return createSuccessResponse({ message: 'Task created successfully', task });
     }
 
-    // PUT /workspace-service/projects/:id/tasks/:taskId  
-    if (method === 'PUT' && path.includes('/projects/') && path.includes('/tasks/') && !path.endsWith('/tasks')) {
-      const pathParts = path.split('/');
-      const projectIdIndex = pathParts.findIndex(part => part === 'projects') + 1;
-      const taskIdIndex = pathParts.findIndex(part => part === 'tasks') + 1;
-      
-      const projectId = pathParts[projectIdIndex];
-      const taskId = pathParts[taskIdIndex];
-      const rawData = await req.json();
-
-      console.log('🔧 Edge Function - PUT projects/tasks called:', { projectId, taskId, rawData, userId: user.id });
-
-      if (!projectId || !taskId) return createErrorResponse('Project ID and Task ID are required', 'MISSING_IDS');
-
-      const access = await hasProjectAccess(user.id, projectId);
-      if (!access.ok) {
-        console.log('🔧 Edge Function - Access denied for project task:', access);
-        const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
-        return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
-      }
-
-      // Sanitize and whitelist updatable fields (convert empty strings to null for nullable columns)
-      const allowedFields = ['title', 'description', 'status', 'priority', 'due_date', 'owner_id', 'milestone_id'] as const;
-      const taskData: Record<string, any> = {};
-      for (const key of allowedFields) {
-        if (Object.prototype.hasOwnProperty.call(rawData, key)) {
-          let value = (rawData as any)[key];
-          if (typeof value === 'string' && value.trim() === '') {
-            // Convert empty strings to null for date/uuid/text nullable fields
-            value = null;
-          }
-          taskData[key] = value;
-        }
-      }
-
-      console.log('🔧 Edge Function - Updating project task with data:', taskData);
-
-      const { data: updatedTask, error } = await supabaseAuth
-        .from('tasks')
-        .update(taskData)
-        .eq('id', taskId)
-        .eq('project_id', projectId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('🔧 Edge Function - Error updating project task:', error);
-        return createErrorResponse(`Failed to update task: ${error.message}`, 'UPDATE_ERROR');
-      }
-
-      console.log('🔧 Edge Function - Project task updated successfully:', updatedTask);
-      return createSuccessResponse({ message: 'Task updated successfully', task: updatedTask });
-    }
-
     // PUT /workspace-service/tasks/:taskId
     if (method === 'PUT' && path.includes('/tasks/') && !path.includes('/projects/')) {
       const pathParts = path.split('/');
       const taskIdIndex = pathParts.findIndex(part => part === 'tasks') + 1;
       const taskId = pathParts[taskIdIndex];
       const rawData = await req.json();
-
-      console.log('🔧 Edge Function - PUT tasks called:', { taskId, rawData, userId: user.id });
 
       if (!taskId) return createErrorResponse('Task ID is required', 'MISSING_TASK_ID');
 
@@ -480,16 +418,10 @@ Deno.serve(async (req) => {
         .eq('id', taskId)
         .single();
 
-      if (!task) {
-        console.log('🔧 Edge Function - Task not found:', taskId);
-        return createErrorResponse('Task not found', 'TASK_NOT_FOUND', 404);
-      }
+      if (!task) return createErrorResponse('Task not found', 'TASK_NOT_FOUND', 404);
 
       const access = await hasProjectAccess(user.id, task.project_id);
-      if (!access.ok) {
-        console.log('🔧 Edge Function - Access denied for task:', access);
-        return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
-      }
+      if (!access.ok) return createErrorResponse('Insufficient permissions', 'FORBIDDEN', 403);
 
       // Sanitize and whitelist updatable fields (convert empty strings to null for nullable columns)
       const allowedFields = ['title', 'description', 'status', 'priority', 'due_date', 'owner_id', 'milestone_id'] as const;
@@ -505,8 +437,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.log('🔧 Edge Function - Updating task with data:', taskData);
-
       const { data: updatedTask, error } = await supabaseAuth
         .from('tasks')
         .update(taskData)
@@ -515,11 +445,10 @@ Deno.serve(async (req) => {
         .single();
 
       if (error) {
-        console.error('🔧 Edge Function - Error updating task:', error);
-        return createErrorResponse(`Failed to update task: ${error.message}`, 'UPDATE_ERROR');
+        console.error('Error updating task:', error);
+        return createErrorResponse('Failed to update task', 'UPDATE_ERROR');
       }
 
-      console.log('🔧 Edge Function - Task updated successfully:', updatedTask);
       return createSuccessResponse({ message: 'Task updated successfully', task: updatedTask });
     }
 

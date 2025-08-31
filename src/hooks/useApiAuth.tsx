@@ -46,8 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initializeAuth = async () => {
     try {
       // Check for stored session first
-      const storedSession = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
-      const storedUser = localStorage.getItem('auth_user') || localStorage.getItem('app_user');
+      const storedSession = localStorage.getItem('auth_session');
+      const storedUser = localStorage.getItem('auth_user');
       
       console.log('📱 Checking stored auth...', { 
         hasSession: !!storedSession, 
@@ -92,21 +92,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Set auth state from API response
-      if (response.data && typeof response.data === 'object' && 'session' in response.data && 'user' in response.data) {
-        console.log('✅ Setting auth state for user:', (response.data as any).user.email);
+      if (response.data?.session && response.data?.user) {
+        console.log('✅ Setting auth state for user:', response.data.user.email);
         
-        const sessionData = (response.data as any).session as Session;
-        const userData = (response.data as any).user as User;
+        const sessionData = response.data.session;
+        const userData = response.data.user;
         
         setSession(sessionData);
         setUser(userData);
         
-        // Store session in localStorage for persistence (both legacy and current keys)
+        // Store session in localStorage for persistence
         console.log('💾 Storing session and user data');
         localStorage.setItem('auth_session', JSON.stringify(sessionData));
         localStorage.setItem('auth_user', JSON.stringify(userData));
-        localStorage.setItem('app_session', JSON.stringify(sessionData));
-        localStorage.setItem('app_user', JSON.stringify(userData));
         
         console.log('🏠 Redirecting to dashboard');
         window.location.href = '/';
@@ -128,18 +126,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Update local state with the response
-      if (response.data && typeof response.data === 'object' && 'session' in response.data) {
-        setSession((response.data as any).session as Session);
-        setUser((response.data as any).user as User);
+      if (response.data?.session) {
+        setSession(response.data.session);
+        setUser(response.data.user);
         
         // Store session in localStorage
-        localStorage.setItem('auth_session', JSON.stringify((response.data as any).session));
-        localStorage.setItem('auth_user', JSON.stringify((response.data as any).user));
-        localStorage.setItem('app_session', JSON.stringify((response.data as any).session));
-        localStorage.setItem('app_user', JSON.stringify((response.data as any).user));
+        localStorage.setItem('auth_session', JSON.stringify(response.data.session));
+        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
       }
 
-      return { message: (response.data as any)?.message as string };
+      return { message: response.data?.message };
     } catch (error) {
       console.error('Sign up error:', error);
       return { error: 'An unexpected error occurred' };

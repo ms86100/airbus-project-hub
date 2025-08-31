@@ -47,7 +47,6 @@ interface Milestone {
 interface TasksTableViewProps {
   tasks: Task[];
   milestones: Milestone[];
-  projectId: string;
   onTaskUpdate?: () => void;
   onMilestoneUpdate?: () => void;
 }
@@ -55,7 +54,7 @@ interface TasksTableViewProps {
 type ItemType = 'task' | 'milestone';
 type TableItem = (Task | Milestone) & { type: ItemType; milestone_name?: string };
 
-export function TasksTableView({ tasks, milestones, projectId, onTaskUpdate, onMilestoneUpdate }: TasksTableViewProps) {
+export function TasksTableView({ tasks, milestones, onTaskUpdate, onMilestoneUpdate }: TasksTableViewProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -149,7 +148,7 @@ export function TasksTableView({ tasks, milestones, projectId, onTaskUpdate, onM
 
   const handleDeleteTask = useCallback(async (taskId: string) => {
     try {
-      const response = await apiClient.deleteTask(projectId, taskId);
+      const response = await apiClient.deleteTask(taskId);
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete task');
@@ -174,7 +173,7 @@ export function TasksTableView({ tasks, milestones, projectId, onTaskUpdate, onM
 
   const handleEditTask = useCallback(async (task: Task, updatedData: Partial<Task>) => {
     try {
-      const response = await apiClient.updateTask(projectId, task.id, updatedData);
+      const response = await apiClient.updateTask(task.id, updatedData);
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to update task');
@@ -195,7 +194,7 @@ export function TasksTableView({ tasks, milestones, projectId, onTaskUpdate, onM
         variant: "destructive",
       });
     }
-  }, [projectId, onTaskUpdate]);
+  }, [onTaskUpdate]);
 
   const toggleMilestone = (milestoneId: string) => {
     setExpandedMilestones(prev => {

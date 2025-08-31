@@ -110,44 +110,19 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
     e.preventDefault();
     if (!user) return;
 
-    console.log('🔧 TaskCard - Updating task:', {
-      taskId: task.id,
-      projectId,
-      originalData: {
-        title: task.title,
-        description: task.description,
-        status: task.status,
-        priority: task.priority,
-        due_date: task.due_date,
-        owner_id: task.owner_id
-      },
-      newData: formData
-    });
-
     try {
-      const updateData = {
+      const response = await apiClient.updateTask(task.id, {
         title: formData.title,
         description: formData.description || undefined,
         status: formData.status,
         priority: formData.priority,
         due_date: formData.due_date || undefined,
         owner_id: formData.owner_id || undefined
-      };
-
-      console.log('🔧 TaskCard - Sending update request with data:', updateData);
-      console.log('🔧 TaskCard - API endpoint will be: PUT /projects/' + projectId + '/tasks/' + task.id);
-
-      const response = await apiClient.updateTask(projectId, task.id, updateData);
-
-      console.log('🔧 TaskCard - Raw update response:', JSON.stringify(response, null, 2));
+      });
 
       if (!response.success) {
-        console.error('🔧 TaskCard - Update failed:', response.error, response.code);
-        console.error('🔧 TaskCard - Full error response:', JSON.stringify(response, null, 2));
         throw new Error(response.error || 'Failed to update task');
       }
-      
-      console.log('🔧 TaskCard - Task updated successfully, response data:', response.data);
       
       toast({
         title: "Task updated",
@@ -157,13 +132,9 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
       setIsEditing(false);
       onTaskUpdate();
     } catch (error: any) {
-      console.error('🔧 TaskCard - Update error details:', error);
-      console.error('🔧 TaskCard - Error stack:', error.stack);
-      console.error('🔧 TaskCard - Error name:', error.name);
-      console.error('🔧 TaskCard - Error message:', error.message);
       toast({
         title: "Error updating task",
-        description: `${error.message} (Code: ${error.code || 'UNKNOWN'})`,
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -171,7 +142,7 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
 
   const handleDelete = async () => {
     try {
-      const response = await apiClient.deleteTask(projectId, task.id);
+      const response = await apiClient.deleteTask(task.id);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete task');

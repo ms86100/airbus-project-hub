@@ -48,39 +48,17 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
     }
   };
 
-
   const handleAddTasks = async () => {
     if (!user || selectedItems.length === 0) return;
 
     try {
-      console.log('🔄 Moving backlog items to milestone:', {
-        selectedItems,
-        milestoneId,
-        projectId,
-        userId: user.id
-      });
-
       // Use the API to move backlog items to tasks in milestone
       for (const itemId of selectedItems) {
-        console.log(`📦 Moving item ${itemId} to milestone ${milestoneId}`, {
-          itemId: itemId,
-          milestoneId: milestoneId,
-          milestoneIdType: typeof milestoneId,
-          projectId: projectId,
-          isValidMilestoneId: milestoneId && milestoneId.length > 0
-        });
-        debugger; // Pause here during local debugging to inspect values and network
         const response = await apiClient.moveBacklogToMilestone(projectId, itemId, milestoneId);
-        console.log(`📡 Move response for ${itemId}:`, response);
-        
         if (!response.success) {
-          console.error(`❌ Failed to move item ${itemId}:`, response.error, response.code);
           throw new Error(response.error || 'Failed to move backlog item');
         }
       }
-      
-      // Immediately remove moved items from local state
-      setBacklogItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
       
       toast({
         title: 'Success',
@@ -89,11 +67,7 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
       
       setSelectedItems([]);
       setIsOpen(false);
-      
-      // Small delay to ensure DB changes are committed before refreshing
-      setTimeout(() => {
-        onTaskAdded();
-      }, 500);
+      onTaskAdded();
     } catch (error: any) {
       toast({
         title: 'Error',
