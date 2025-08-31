@@ -531,10 +531,12 @@ router.post('/projects/:projectId/discussions', requireAuth, async (req, res) =>
       `, [discussionId, projectId, meeting_title, meeting_date, summary_notes, JSON.stringify(attendees || []), req.user.id]);
 
       // Manual change log entry to replace DB trigger behavior in local env
+      const changedBy = req.user?.id || result.rows[0]?.created_by || '00000000-0000-0000-0000-000000000000';
+      console.log('🔧 Backend - Discussion change log context:', { reqUser: req.user, created_by: result.rows[0]?.created_by, changedBy });
       await client.query(`
         INSERT INTO discussion_change_log (discussion_id, change_type, field_name, new_value, changed_by)
         VALUES ($1, 'created', 'discussion', 'Discussion created', $2)
-      `, [result.rows[0].id, req.user.id]);
+      `, [result.rows[0].id, changedBy]);
 
       await client.query('COMMIT');
       console.log('🔧 Backend - Discussion created successfully:', result.rows[0]);
@@ -548,7 +550,9 @@ router.post('/projects/:projectId/discussions', requireAuth, async (req, res) =>
   } catch (error) {
     console.error('🔧 Backend - Create discussion error:', error);
     console.error('🔧 Backend - Error stack:', error.stack);
-    res.json(fail('Failed to create discussion: ' + error.message, 'CREATE_ERROR'));
+    const details = { message: error.message, code: error.code, detail: error.detail, schema: error.schema, table: error.table, constraint: error.constraint, position: error.position };
+    console.error('🔧 Backend - Error details:', details);
+    res.json(fail('Failed to create discussion: ' + JSON.stringify(details), 'CREATE_ERROR'));
   }
 });
 
