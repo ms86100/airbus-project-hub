@@ -123,7 +123,7 @@ router.post('/projects/wizard/complete', requireAuth, async (req, res) => {
       await client.query(`
         INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, $3)
-      `, [projectId, userId, 'admin']);
+      `, [projectId, userId, 'member']);
 
       // 5. Set default module permissions for creator
       const modules = ['tasks_milestones', 'task_backlog', 'stakeholders', 'discussions', 'risk_register', 'team_capacity', 'retrospectives'];
