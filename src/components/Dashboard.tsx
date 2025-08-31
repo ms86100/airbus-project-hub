@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Users, FolderOpen, Calendar, BarChart3, Clock, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import DepartmentManagement from '@/components/DepartmentManagement';
-import DepartmentSelectionDialog from '@/components/DepartmentSelectionDialog';
+import DepartmentSelectionDialog from '@/components/DepartmentSelectionDialog_fixed';
 import { apiClient } from '@/services/api';
 
 interface Project {
