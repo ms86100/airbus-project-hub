@@ -11,7 +11,8 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
+    //this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
+    this.baseUrl = 'http://localhost:4000';
   }
 
   private async getAuthToken(): Promise<string | null> {
