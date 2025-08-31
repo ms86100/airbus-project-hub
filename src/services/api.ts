@@ -621,10 +621,12 @@ class ApiClient {
 
   // Action Items Methods (workspace service) - extended
   async updateActionItem(projectId: string, actionItemId: string, actionItemData: any): Promise<ApiResponse<{ message: string; actionItem: any }>> {
-    return this.makeRequest(`/workspace-service/projects/${projectId}/action-items/${actionItemId}`, {
-      method: 'PUT',
-      body: JSON.stringify(actionItemData),
-    });
+      const resp = await this.makeRequest<{ message: string; actionItem: any }>(`/workspace-service/projects/${projectId}/action-items/${actionItemId}`, {
+        method: 'PUT',
+        body: JSON.stringify(actionItemData),
+      });
+      console.log('📡 Update action item API client response:', resp);
+      return resp;
   }
 
   async deleteActionItem(projectId: string, actionItemId: string): Promise<ApiResponse<{ message: string }>> {

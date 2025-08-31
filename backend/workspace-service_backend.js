@@ -621,11 +621,11 @@ router.post('/projects/:projectId/discussions/:discussionId/action-items', requi
         RETURNING *
       `, [actionItemId, discussionId, task_description, owner_id, target_date, status || 'open', req.user.id]);
 
-      // Manual change log entry to replace DB trigger behavior in local env
+      const changedByCreate = (req.user && req.user.id) ? req.user.id : (result.rows[0]?.created_by || result.rows[0]?.owner_id || '00000000-0000-0000-0000-000000000000');
       await client.query(`
         INSERT INTO discussion_change_log (discussion_id, action_item_id, change_type, field_name, new_value, changed_by)
         VALUES ($1, $2, 'created', 'action_item', 'Action item created', $3)
-      `, [discussionId, result.rows[0].id, req.user.id]);
+      `, [discussionId, result.rows[0].id, changedByCreate]);
 
       await client.query('COMMIT');
       res.json(ok({ message: 'Action item created successfully', actionItem: result.rows[0] }));
@@ -700,10 +700,11 @@ router.put('/projects/:projectId/action-items/:actionItemId', requireAuth, async
 
       const updated = updatedRows[0];
       if (status && oldItem.status !== updated.status) {
+        const changedByUpdate = (req.user && req.user.id) ? req.user.id : (updated.created_by || oldItem.created_by || updated.owner_id || oldItem.owner_id || '00000000-0000-0000-0000-000000000000');
         await client.query(`
           INSERT INTO discussion_change_log (discussion_id, action_item_id, change_type, field_name, old_value, new_value, changed_by)
           VALUES ($1, $2, 'updated', 'status', $3, $4, $5)
-        `, [updated.discussion_id, updated.id, oldItem.status, updated.status, req.user.id]);
+        `, [updated.discussion_id, updated.id, oldItem.status, updated.status, changedByUpdate]);
       }
 
       await client.query('COMMIT');
@@ -744,10 +745,11 @@ router.delete('/projects/:projectId/action-items/:actionItemId', requireAuth, as
 
       await client.query(`DELETE FROM discussion_action_items WHERE id = $1`, [actionItemId]);
 
+      const changedByDelete = (req.user && req.user.id) ? req.user.id : (item.created_by || item.owner_id || '00000000-0000-0000-0000-000000000000');
       await client.query(`
         INSERT INTO discussion_change_log (discussion_id, action_item_id, change_type, field_name, old_value, changed_by)
         VALUES ($1, $2, 'deleted', 'action_item', 'Action item deleted', $3)
-      `, [item.discussion_id, item.id, req.user.id]);
+      `, [item.discussion_id, item.id, changedByDelete]);
 
       await client.query('COMMIT');
       res.json(ok({ message: 'Action item deleted successfully' }));

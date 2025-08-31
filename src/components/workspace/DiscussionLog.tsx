@@ -434,9 +434,10 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
         throw new Error(response.error || 'Failed to convert action item');
       }
     } catch (error: any) {
+      console.error('❌ Convert to backlog failed:', error);
       toast({
         title: 'Error',
-        description: 'Failed to convert action item to backlog',
+        description: `Failed to convert action item to backlog: ${error?.message || 'Unknown error'}`,
         variant: 'destructive'
       });
     }
