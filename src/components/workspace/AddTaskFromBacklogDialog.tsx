@@ -88,15 +88,20 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
       setSelectedItems([]);
       setIsOpen(false);
       
-      // Force immediate UI refresh and delayed refresh for DB consistency
+      // Force multiple UI refreshes to clear any caching issues
       console.log('🔄 Triggering immediate UI refresh...');
       onTaskAdded();
       
-      // Additional delayed refresh to ensure DB changes are committed
+      // Additional refreshes with delays to handle different caching scenarios
       setTimeout(() => {
-        console.log('🔄 Triggering delayed UI refresh for DB consistency...');
+        console.log('🔄 Second refresh after 200ms...');
         onTaskAdded();
-      }, 1000); // Increased to 1 second to ensure DB consistency
+      }, 200);
+      
+      setTimeout(() => {
+        console.log('🔄 Final refresh after 1 second for DB consistency...');
+        onTaskAdded();
+      }, 1000);
     } catch (error: any) {
       toast({
         title: 'Error',
