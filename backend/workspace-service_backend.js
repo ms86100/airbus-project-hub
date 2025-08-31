@@ -641,4 +641,125 @@ router.post('/projects/:projectId/discussions/:discussionId/action-items', requi
   }
 });
 
+// Project-level Action Items - list all action items for a project across discussions
+router.get('/projects/:projectId/action-items', requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    if (!await checkProjectAccess(req.user.id, projectId)) {
+      return res.json(fail('Access denied', 'ACCESS_DENIED'));
+    }
+
+    const result = await pool.query(`
+      SELECT dai.*, p.full_name as owner_name, p2.full_name as created_by_name
+      FROM discussion_action_items dai
+      JOIN project_discussions pd ON pd.id = dai.discussion_id
+      LEFT JOIN profiles p ON dai.owner_id = p.id
+      LEFT JOIN profiles p2 ON dai.created_by = p2.id
+      WHERE pd.project_id = $1
+      ORDER BY dai.created_at DESC
+    `, [projectId]);
+
+    res.json(ok(result.rows));
+  } catch (error) {
+    console.error('Get project action items error:', error);
+    res.json(fail('Failed to fetch action items', 'FETCH_ERROR'));
+  }
+});
+
+// Project-level Action Items - update
+router.put('/projects/:projectId/action-items/:actionItemId', requireAuth, async (req, res) => {
+  const { projectId, actionItemId } = req.params;
+  const { task_description, owner_id, target_date, status } = req.body;
+
+  try {
+    if (!await checkProjectAccess(req.user.id, projectId)) {
+      return res.json(fail('Access denied', 'ACCESS_DENIED'));
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: oldRows } = await client.query(`SELECT * FROM discussion_action_items WHERE id = $1`, [actionItemId]);
+      if (oldRows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.json(fail('Action item not found', 'NOT_FOUND'));
+      }
+      const oldItem = oldRows[0];
+
+      const { rows: updatedRows } = await client.query(`
+        UPDATE discussion_action_items
+        SET task_description = COALESCE($1, task_description),
+            owner_id = COALESCE($2, owner_id),
+            target_date = COALESCE($3, target_date),
+            status = COALESCE($4, status),
+            updated_at = NOW()
+        WHERE id = $5
+        RETURNING *
+      `, [task_description, owner_id, target_date, status, actionItemId]);
+
+      const updated = updatedRows[0];
+      if (status && oldItem.status !== updated.status) {
+        await client.query(`
+          INSERT INTO discussion_change_log (discussion_id, action_item_id, change_type, field_name, old_value, new_value, changed_by)
+          VALUES ($1, $2, 'updated', 'status', $3, $4, $5)
+        `, [updated.discussion_id, updated.id, oldItem.status, updated.status, req.user.id]);
+      }
+
+      await client.query('COMMIT');
+      res.json(ok({ message: 'Action item updated successfully', actionItem: updated }));
+    } catch (e) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+      console.error('Update action item error:', e);
+      res.json(fail('Failed to update action item', 'UPDATE_ERROR'));
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Update action item outer error:', error);
+    res.json(fail('Failed to update action item', 'UPDATE_ERROR'));
+  }
+});
+
+// Project-level Action Items - delete
+router.delete('/projects/:projectId/action-items/:actionItemId', requireAuth, async (req, res) => {
+  const { projectId, actionItemId } = req.params;
+
+  try {
+    if (!await checkProjectAccess(req.user.id, projectId)) {
+      return res.json(fail('Access denied', 'ACCESS_DENIED'));
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query(`SELECT * FROM discussion_action_items WHERE id = $1`, [actionItemId]);
+      if (rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.json(ok({ message: 'Action item already deleted' }));
+      }
+      const item = rows[0];
+
+      await client.query(`DELETE FROM discussion_action_items WHERE id = $1`, [actionItemId]);
+
+      await client.query(`
+        INSERT INTO discussion_change_log (discussion_id, action_item_id, change_type, field_name, old_value, changed_by)
+        VALUES ($1, $2, 'deleted', 'action_item', 'Action item deleted', $3)
+      `, [item.discussion_id, item.id, req.user.id]);
+
+      await client.query('COMMIT');
+      res.json(ok({ message: 'Action item deleted successfully' }));
+    } catch (e) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+      console.error('Delete action item error:', e);
+      res.json(fail('Failed to delete action item', 'DELETE_ERROR'));
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Delete action item outer error:', error);
+    res.json(fail('Failed to delete action item', 'DELETE_ERROR'));
+  }
+});
+
 module.exports = router;
