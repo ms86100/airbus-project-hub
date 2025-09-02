@@ -14,7 +14,7 @@ class ApiClient {
     // Environment-agnostic API configuration
     // Set VITE_API_URL=http://localhost:3001 for local backend
     // Leave empty or set to Supabase URL for cloud backend
-    const apiUrl = import.meta.env.VITE_API_URL;
+    const apiUrl = import.meta.env?.VITE_API_URL;
     
     if (apiUrl && apiUrl.trim() !== '') {
       // Local backend - use direct routes without service prefixes
@@ -111,10 +111,27 @@ class ApiClient {
         }
       }
 
+      // Enhanced error logging for failed requests
+      if (!response.ok) {
+        console.error(`❌ Request failed:`, {
+          endpoint,
+          status: response.status,
+          statusText: response.statusText,
+          result,
+          requestBody: options.body,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+      }
+
       console.log(`📡 Response from ${endpoint}:`, result);
       return result ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' };
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error('❌ API request failed:', {
+        endpoint,
+        error: error.message,
+        stack: error.stack,
+        requestOptions: options
+      });
       return { success: false, error: 'Network error', code: 'NETWORK_ERROR' };
     }
   }
