@@ -1,13 +1,10 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import DashboardLayout from '@/components/DashboardLayout';
 import Dashboard from '@/components/Dashboard';
 
-// Wrapper component that handles navigation logic
-const IndexNavigation = ({ user, loading }: { user: any; loading: boolean }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+const Index = () => {
+  const { user, loading } = useApiAuth();
 
   useEffect(() => {
     console.log('🏠 Index page loaded');
@@ -15,17 +12,12 @@ const IndexNavigation = ({ user, loading }: { user: any; loading: boolean }) => 
     console.log('⏳ Loading state:', loading);
     
     // Only redirect if not already on auth page and no user found after loading
-    if (!loading && !user && location.pathname !== '/auth') {
+    if (!loading && !user) {
       console.log('🔄 No user detected, redirecting to auth');
-      navigate('/auth');
+      // Use window.location to avoid Router context issues during auth state
+      window.location.href = '/auth';
     }
-  }, [user, loading, navigate, location.pathname]);
-
-  return null;
-};
-
-const Index = () => {
-  const { user, loading } = useApiAuth();
+  }, [user, loading]);
 
   if (loading) {
     return (
@@ -37,12 +29,9 @@ const Index = () => {
 
   if (!user) {
     return (
-      <>
-        <IndexNavigation user={user} loading={loading} />
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
     );
   }
 
