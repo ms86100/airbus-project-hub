@@ -16,16 +16,13 @@ class ApiClient {
     // Leave empty or set to Supabase URL for cloud backend
     const apiUrl = import.meta.env.VITE_API_URL;
     
-    console.log('🔧 VITE_API_URL:', apiUrl);
-    console.log('🔧 All env vars:', import.meta.env);
-    
-    if (apiUrl && apiUrl.includes('localhost')) {
+    if (apiUrl && apiUrl.trim() !== '') {
       // Local backend - use direct routes without service prefixes
       this.baseUrl = apiUrl;
       this.isLocalBackend = true;
       console.log('✅ Using LOCAL backend:', this.baseUrl);
     } else {
-      // Supabase edge functions (default) - use service prefixes
+      // Supabase edge functions (fallback) - use service prefixes
       this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
       this.isLocalBackend = false;
       console.log('☁️ Using SUPABASE backend:', this.baseUrl);
