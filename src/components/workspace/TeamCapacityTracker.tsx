@@ -69,6 +69,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const [selectedIteration, setSelectedIteration] = useState<CapacityIteration | null>(null);
   const [loading, setLoading] = useState(true);
   const [showIterationDialog, setShowIterationDialog] = useState(false);
+  const [showMemberDialog, setShowMemberDialog] = useState(false);
   const [editingIteration, setEditingIteration] = useState<CapacityIteration | null>(null);
   
   // Form state for iteration
@@ -78,6 +79,17 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     end_date: '',
     working_days: 0,
     committed_story_points: 0
+  });
+  
+  // Form state for member
+  const [memberForm, setMemberForm] = useState({
+    iteration_id: '',
+    member_name: '',
+    role: '',
+    work_mode: 'office',
+    leaves: 0,
+    availability_percent: 100,
+    stakeholder_id: ''
   });
 
   useEffect(() => {
@@ -175,6 +187,18 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       committed_story_points: 0
     });
     setEditingIteration(null);
+  };
+
+  const resetMemberForm = () => {
+    setMemberForm({
+      iteration_id: '',
+      member_name: '',
+      role: '',
+      work_mode: 'office',
+      leaves: 0,
+      availability_percent: 100,
+      stakeholder_id: ''
+    });
   };
 
   const handleIterationSubmit = async (e: React.FormEvent) => {
@@ -275,6 +299,51 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       committed_story_points: iteration.committed_story_points
     });
     setShowIterationDialog(true);
+  };
+
+  const handleMemberSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      const memberData = {
+        type: 'member' as const,
+        iterationId: memberForm.iteration_id,
+        memberName: memberForm.member_name,
+        role: memberForm.role,
+        workMode: memberForm.work_mode,
+        leaves: memberForm.leaves,
+        availabilityPercent: memberForm.availability_percent,
+        stakeholderId: memberForm.stakeholder_id || undefined
+      };
+
+      const response = await apiClient.addCapacityMember(projectId, memberData);
+      
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Team member added successfully'
+        });
+
+        setShowMemberDialog(false);
+        resetMemberForm();
+        fetchCapacityData();
+      } else {
+        throw new Error(response.error || 'Failed to add team member');
+      }
+    } catch (error) {
+      console.error('Error adding member:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add team member',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const openAddMember = (iterationId: string) => {
+    setMemberForm(prev => ({ ...prev, iteration_id: iterationId }));
+    setShowMemberDialog(true);
   };
 
   if (loading) {
@@ -379,6 +448,110 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                   </Button>
                   <Button type="submit">
                     {editingIteration ? 'Update Iteration' : 'Create Iteration'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Member Dialog */}
+          <Dialog open={showMemberDialog} onOpenChange={setShowMemberDialog}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Add Team Member</DialogTitle>
+                <DialogDescription>
+                  Add a team member to the selected iteration for capacity planning.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleMemberSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="member_name">Member Name</Label>
+                  <Input
+                    id="member_name"
+                    value={memberForm.member_name}
+                    onChange={(e) => setMemberForm(prev => ({ ...prev, member_name: e.target.value }))}
+                    placeholder="Enter team member name"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="role">Role</Label>
+                  <Input
+                    id="role"
+                    value={memberForm.role}
+                    onChange={(e) => setMemberForm(prev => ({ ...prev, role: e.target.value }))}
+                    placeholder="e.g., Developer, Tester, Designer"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="work_mode">Work Mode</Label>
+                  <Select 
+                    value={memberForm.work_mode} 
+                    onValueChange={(value) => setMemberForm(prev => ({ ...prev, work_mode: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select work mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="office">Office</SelectItem>
+                      <SelectItem value="wfh">Work from Home</SelectItem>
+                      <SelectItem value="hybrid">Hybrid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="leaves">Planned Leaves (days)</Label>
+                    <Input
+                      id="leaves"
+                      type="number"
+                      value={memberForm.leaves}
+                      onChange={(e) => setMemberForm(prev => ({ ...prev, leaves: parseInt(e.target.value) || 0 }))}
+                      min="0"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="availability_percent">Availability %</Label>
+                    <Input
+                      id="availability_percent"
+                      type="number"
+                      value={memberForm.availability_percent}
+                      onChange={(e) => setMemberForm(prev => ({ ...prev, availability_percent: parseInt(e.target.value) || 100 }))}
+                      min="0"
+                      max="100"
+                      placeholder="100"
+                    />
+                  </div>
+                </div>
+                {stakeholders.length > 0 && (
+                  <div>
+                    <Label htmlFor="stakeholder_id">Link to Stakeholder (Optional)</Label>
+                    <Select 
+                      value={memberForm.stakeholder_id} 
+                      onValueChange={(value) => setMemberForm(prev => ({ ...prev, stakeholder_id: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select stakeholder" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {stakeholders.map(stakeholder => (
+                          <SelectItem key={stakeholder.id} value={stakeholder.id}>
+                            {stakeholder.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setShowMemberDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    Add Member
                   </Button>
                 </div>
               </form>
@@ -569,7 +742,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button>
+                      <Button onClick={() => openAddMember(iteration.id)}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Member
                       </Button>
@@ -599,7 +772,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     <div className="text-center py-8 text-muted-foreground">
                       <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No team members assigned to this iteration</p>
-                      <Button variant="outline" className="mt-4">
+                      <Button variant="outline" className="mt-4" onClick={() => openAddMember(iteration.id)}>
                         Add First Member
                       </Button>
                     </div>
