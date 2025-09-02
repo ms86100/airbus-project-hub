@@ -65,7 +65,7 @@ const verifyToken = async (req, res, next) => {
 const verifyAdmin = async (req, res, next) => {
   try {
     const userRoleResult = await query(
-      'SELECT role FROM user_roles WHERE user_id = $1 AND role = 'admin'::app_role',
+      'SELECT role FROM user_roles WHERE user_id = $1 AND role = $2::app_role',
       [req.user.id, 'admin']
     );
 

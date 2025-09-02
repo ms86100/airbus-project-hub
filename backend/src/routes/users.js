@@ -13,7 +13,7 @@ router.get('/:id/role', verifyToken, async (req, res) => {
     // Allow users to get their own role or admin to get any role
     if (req.user.id !== id) {
       const adminResult = await query(
-        'SELECT role FROM user_roles WHERE user_id = $1 AND role = 'admin'::app_role',
+        'SELECT role FROM user_roles WHERE user_id = $1 AND role = $2::app_role',
         [req.user.id, 'admin']
       );
       
