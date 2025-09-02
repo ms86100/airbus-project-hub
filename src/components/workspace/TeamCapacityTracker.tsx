@@ -11,17 +11,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Edit2, Trash2, Users, Calendar, TrendingUp, TrendingDown, Settings } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Calendar, TrendingUp, TrendingDown, Settings, Eye, BarChart3, Copy } from 'lucide-react';
 import { format, differenceInDays, eachDayOfInterval, isWeekend } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { Textarea } from '@/components/ui/textarea';
 
 interface CapacitySettings {
-  id: string;
-  project_id: string;
-  iteration_basis: string;
-  work_week: number;
-  office_weight: number;
-  wfh_weight: number;
-  hybrid_weight: number;
+  workModeWeights: {
+    office: number;
+    wfh: number;
+    hybrid: number;
+  };
+  defaultWorkingDays: number;
+  defaultAvailability: number;
 }
 
 interface CapacityIteration {
@@ -33,12 +35,16 @@ interface CapacityIteration {
   working_days: number;
   committed_story_points: number;
   created_at: string;
+  members: CapacityMember[];
+  totalEffectiveCapacity: number;
+  totalMembers: number;
 }
 
 interface CapacityMember {
   id: string;
   iteration_id: string;
-  stakeholder_id: string;
+  stakeholder_id: string | null;
+  team_id: string | null;
   member_name: string;
   role: string;
   work_mode: string;
@@ -54,6 +60,42 @@ interface Stakeholder {
   department?: string;
 }
 
+interface Team {
+  id: string;
+  project_id: string;
+  team_name: string;
+  description: string;
+  created_at: string;
+  members: TeamMember[];
+}
+
+interface TeamMember {
+  id: string;
+  team_id: string;
+  member_name: string;
+  role: string;
+  work_mode: string;
+  default_availability_percent: number;
+  stakeholder_id: string | null;
+}
+
+interface CapacityAnalytics {
+  project_id: string;
+  iteration_id?: string;
+  team_id?: string;
+  total_capacity_days: number;
+  allocated_capacity_days: number;
+  utilization_percentage: number;
+  velocity_points: number;
+  team_size: number;
+  avg_member_capacity: number;
+  work_mode_distribution: {
+    office: number;
+    wfh: number;
+    hybrid: number;
+  };
+}
+
 interface TeamCapacityTrackerProps {
   projectId: string;
 }
@@ -64,12 +106,16 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   
   const [settings, setSettings] = useState<CapacitySettings | null>(null);
   const [iterations, setIterations] = useState<CapacityIteration[]>([]);
-  const [members, setMembers] = useState<CapacityMember[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
+  const [analytics, setAnalytics] = useState<CapacityAnalytics[]>([]);
   const [selectedIteration, setSelectedIteration] = useState<CapacityIteration | null>(null);
+  const [viewingIteration, setViewingIteration] = useState<CapacityIteration | null>(null);
   const [loading, setLoading] = useState(true);
   const [showIterationDialog, setShowIterationDialog] = useState(false);
   const [showMemberDialog, setShowMemberDialog] = useState(false);
+  const [showTeamDialog, setShowTeamDialog] = useState(false);
+  const [showViewDialog, setShowViewDialog] = useState(false);
   const [editingIteration, setEditingIteration] = useState<CapacityIteration | null>(null);
   
   // Form state for iteration
@@ -89,7 +135,15 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     work_mode: 'office',
     leaves: 0,
     availability_percent: 100,
-      stakeholder_id: 'none'
+    stakeholder_id: 'none',
+    team_id: 'none'
+  });
+
+  // Form state for team
+  const [teamForm, setTeamForm] = useState({
+    team_name: '',
+    description: '',
+    members: [] as TeamMember[]
   });
 
   useEffect(() => {
@@ -97,14 +151,26 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       fetchSettings();
       fetchCapacityData();
       fetchStakeholders();
+      fetchTeams();
+      fetchAnalytics();
     }
   }, [projectId]);
 
   const fetchSettings = async () => {
     try {
-      const response = await apiClient.getCapacitySettings(projectId);
-      if (response.success && response.data) {
-        setSettings(response.data);
+      console.log('🔧 Fetching capacity settings...');
+      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/settings`, {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+          'Authorization': `Bearer ${supabase?.auth?.getSession && (await supabase.auth.getSession())?.data?.session?.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setSettings(data.data);
+        console.log('✅ Settings loaded:', data.data);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -113,26 +179,24 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
   const fetchCapacityData = async () => {
     try {
-      console.log('🔄 Fetching capacity data for project:', projectId);
-      const response = await apiClient.getCapacityData(projectId);
-      console.log('📋 Capacity data response:', response);
-      
-      if (response.success && response.data) {
-        const { iterations: iterationsData = [], members: membersData = [] } = response.data;
-        console.log('📋 Setting iterations data:', iterationsData);
-        console.log('👥 Setting members data:', membersData);
-        
-        setIterations(iterationsData);
-        setMembers(membersData);
-        
-        if (iterationsData.length > 0 && !selectedIteration) {
-          setSelectedIteration(iterationsData[0]);
+      console.log('📋 Fetching capacity data...');
+      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/capacity`, {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+          'Authorization': `Bearer ${supabase?.auth?.getSession && (await supabase.auth.getSession())?.data?.session?.access_token}`,
+          'Content-Type': 'application/json'
         }
-      } else {
-        console.error('❌ Error in capacity data response:', response.error);
+      });
+      
+      const data = await response.json();
+      console.log('📋 Capacity data response:', data);
+      
+      if (data.success) {
+        setIterations(data.data.iterations || []);
+        console.log('📋 Setting iterations data:', data.data.iterations);
       }
     } catch (error) {
-      console.error('❌ Error fetching capacity data:', error);
+      console.error('Error fetching capacity data:', error);
     } finally {
       setLoading(false);
     }
@@ -142,41 +206,305 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     try {
       const response = await apiClient.getStakeholders(projectId);
       if (response.success) {
-        const stakeholdersList = Array.isArray(response.data) ? response.data : response.data?.stakeholders || [];
-        setStakeholders(stakeholdersList);
+        setStakeholders(response.data.stakeholders || []);
       }
     } catch (error) {
       console.error('Error fetching stakeholders:', error);
     }
   };
 
-  // Calculate working days between two dates (excluding weekends)
-  const calculateWorkingDays = (startDate: string, endDate: string): number => {
-    if (!startDate || !endDate) return 0;
-    
+  const fetchTeams = async () => {
     try {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      
-      if (start > end) return 0;
-      
-      const allDays = eachDayOfInterval({ start, end });
-      const workingDays = allDays.filter(day => !isWeekend(day));
-      
-      return workingDays.length;
+      // For now, using empty array until tables are properly set up
+      setTeams([]);
     } catch (error) {
-      console.error('Error calculating working days:', error);
-      return 0;
+      console.error('Error fetching teams:', error);
     }
   };
 
-  // Effect to automatically calculate working days when dates change
+  const fetchAnalytics = async () => {
+    try {
+      // For now, using empty array until tables are properly set up
+      setAnalytics([]);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    }
+  };
+
+  const generateAnalytics = async () => {
+    try {
+      // Generate mock analytics based on current data
+      const mockAnalytics: CapacityAnalytics[] = iterations.map(iteration => ({
+        project_id: projectId,
+        iteration_id: iteration.id,
+        total_capacity_days: iteration.totalEffectiveCapacity || 0,
+        allocated_capacity_days: iteration.committed_story_points,
+        utilization_percentage: iteration.totalEffectiveCapacity > 0 
+          ? (iteration.committed_story_points / iteration.totalEffectiveCapacity) * 100 
+          : 0,
+        velocity_points: iteration.committed_story_points,
+        team_size: iteration.totalMembers || 0,
+        avg_member_capacity: iteration.totalMembers > 0 
+          ? (iteration.totalEffectiveCapacity || 0) / iteration.totalMembers 
+          : 0,
+        work_mode_distribution: {
+          office: iteration.members?.filter(m => m.work_mode === 'office').length || 0,
+          wfh: iteration.members?.filter(m => m.work_mode === 'wfh').length || 0,
+          hybrid: iteration.members?.filter(m => m.work_mode === 'hybrid').length || 0
+        }
+      }));
+
+      setAnalytics(mockAnalytics);
+      toast({
+        title: "Analytics Updated",
+        description: "Capacity analytics have been refreshed.",
+      });
+    } catch (error) {
+      console.error('Error generating analytics:', error);
+    }
+  };
+
+  const createTeam = async (teamData: typeof teamForm) => {
+    try {
+      // Create mock team for now
+      const newTeam: Team = {
+        id: `team-${Date.now()}`,
+        project_id: projectId,
+        team_name: teamData.team_name,
+        description: teamData.description,
+        created_at: new Date().toISOString(),
+        members: teamData.members.map(member => ({
+          ...member,
+          id: `member-${Date.now()}-${Math.random()}`,
+          team_id: `team-${Date.now()}`
+        }))
+      };
+
+      setTeams(prev => [...prev, newTeam]);
+      toast({
+        title: "Team Created",
+        description: `Team "${teamData.team_name}" has been created successfully.`,
+      });
+    } catch (error) {
+      console.error('Error creating team:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create team. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const addTeamToIteration = async (teamId: string, iterationId: string) => {
+    try {
+      const team = teams.find(t => t.id === teamId);
+      if (!team) return;
+
+      // Create a proper form event object
+      const mockEvent = {
+        preventDefault: () => {},
+        target: {} as any,
+        currentTarget: {} as any,
+        bubbles: false,
+        cancelable: false,
+        defaultPrevented: false,
+        eventPhase: 0,
+        isTrusted: false,
+        timeStamp: Date.now(),
+        type: 'submit',
+        nativeEvent: {} as any,
+        isDefaultPrevented: () => false,
+        isPropagationStopped: () => false,
+        persist: () => {},
+        stopPropagation: () => {}
+      } as React.FormEvent;
+
+      for (const member of team.members) {
+        await handleMemberSubmit(mockEvent, {
+          iteration_id: iterationId,
+          member_name: member.member_name,
+          role: member.role,
+          work_mode: member.work_mode,
+          leaves: 0,
+          availability_percent: member.default_availability_percent,
+          stakeholder_id: member.stakeholder_id || 'none',
+          team_id: teamId
+        });
+      }
+
+      toast({
+        title: "Team Added",
+        description: `Team "${team.team_name}" has been added to the iteration.`,
+      });
+    } catch (error) {
+      console.error('Error adding team to iteration:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add team to iteration.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const calculateWorkingDays = (startDate: string, endDate: string): number => {
+    if (!startDate || !endDate) return 0;
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days = eachDayOfInterval({ start, end });
+    
+    return days.filter(day => !isWeekend(day)).length;
+  };
+
+  // Update working days when dates change
   useEffect(() => {
     if (iterationForm.start_date && iterationForm.end_date) {
       const workingDays = calculateWorkingDays(iterationForm.start_date, iterationForm.end_date);
       setIterationForm(prev => ({ ...prev, working_days: workingDays }));
     }
   }, [iterationForm.start_date, iterationForm.end_date]);
+
+  const handleIterationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const requestData = {
+        type: 'iteration',
+        iterationName: iterationForm.iteration_name,
+        startDate: iterationForm.start_date,
+        endDate: iterationForm.end_date,
+        workingDays: iterationForm.working_days,
+        committedStoryPoints: iterationForm.committed_story_points
+      };
+
+      console.log('🚀 Creating iteration with data:', requestData);
+
+      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/capacity`, {
+        method: editingIteration ? 'PUT' : 'POST',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+          'Authorization': `Bearer ${supabase?.auth?.getSession && (await supabase.auth.getSession())?.data?.session?.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      const data = await response.json();
+      console.log('📡 Response from capacity service:', data);
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create iteration');
+      }
+
+      toast({
+        title: editingIteration ? "Iteration Updated" : "Iteration Created",
+        description: `Iteration "${iterationForm.iteration_name}" has been ${editingIteration ? 'updated' : 'created'} successfully.`,
+      });
+
+      resetIterationForm();
+      setShowIterationDialog(false);
+      setEditingIteration(null);
+      await fetchCapacityData();
+    } catch (error) {
+      console.error('Error creating/updating iteration:', error);
+      toast({
+        title: "Error",
+        description: `Failed to ${editingIteration ? 'update' : 'create'} iteration: ${error}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleMemberSubmit = async (e: React.FormEvent, memberData?: typeof memberForm) => {
+    e.preventDefault();
+    
+    const formData = memberData || memberForm;
+    
+    try {
+      const requestData = {
+        type: 'member',
+        iterationId: formData.iteration_id,
+        memberName: formData.member_name,
+        role: formData.role,
+        workMode: formData.work_mode,
+        availabilityPercent: formData.availability_percent,
+        leaves: formData.leaves,
+        stakeholderId: formData.stakeholder_id === 'none' ? null : formData.stakeholder_id,
+        teamId: formData.team_id === 'none' ? null : formData.team_id
+      };
+
+      console.log('🚀 Adding member with data:', requestData);
+
+      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/capacity`, {
+        method: 'POST',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+          'Authorization': `Bearer ${supabase?.auth?.getSession && (await supabase.auth.getSession())?.data?.session?.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      const data = await response.json();
+      console.log('📡 Response from capacity service:', data);
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create capacity item');
+      }
+
+      if (!memberData) {
+        toast({
+          title: "Member Added",
+          description: `Team member "${formData.member_name}" has been added successfully.`,
+        });
+
+        resetMemberForm();
+        setShowMemberDialog(false);
+      }
+      
+      await fetchCapacityData();
+    } catch (error) {
+      console.error('Error adding member:', error);
+      toast({
+        title: "Error",
+        description: `Failed to add team member: ${error}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteIteration = async (iterationId: string) => {
+    try {
+      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/capacity/${iterationId}?type=iteration`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+          'Authorization': `Bearer ${supabase?.auth?.getSession && (await supabase.auth.getSession())?.data?.session?.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to delete iteration');
+      }
+
+      toast({
+        title: "Iteration Deleted",
+        description: "The iteration and all its capacity data have been deleted.",
+      });
+      
+      await fetchCapacityData();
+    } catch (error) {
+      console.error('Error deleting iteration:', error);
+      toast({
+        title: "Error",
+        description: `Failed to delete iteration: ${error}`,
+        variant: "destructive"
+      });
+    }
+  };
 
   const resetIterationForm = () => {
     setIterationForm({
@@ -186,7 +514,6 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       working_days: 0,
       committed_story_points: 0
     });
-    setEditingIteration(null);
   };
 
   const resetMemberForm = () => {
@@ -197,96 +524,17 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       work_mode: 'office',
       leaves: 0,
       availability_percent: 100,
-      stakeholder_id: 'none'
+      stakeholder_id: 'none',
+      team_id: 'none'
     });
   };
 
-  const handleIterationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      const iterationData = {
-        type: 'iteration' as const,
-        iterationName: iterationForm.iteration_name,
-        startDate: iterationForm.start_date,
-        endDate: iterationForm.end_date,
-        workingDays: iterationForm.working_days,
-        committedStoryPoints: iterationForm.committed_story_points
-      };
-
-      let response;
-      if (editingIteration) {
-        response = await apiClient.updateCapacityIteration(projectId, editingIteration.id, iterationData);
-      } else {
-        response = await apiClient.createCapacityIteration(projectId, iterationData);
-      }
-      
-      if (response.success) {
-        toast({
-          title: 'Success',
-          description: editingIteration ? 'Iteration updated successfully' : 'Iteration created successfully'
-        });
-
-        // Optimistic UI update so the new/updated iteration appears immediately
-        if (editingIteration) {
-          const updated = (response as any).data?.iteration;
-          if (updated) {
-            setIterations(prev => prev.map(it => it.id === updated.id ? updated : it));
-            setSelectedIteration(updated);
-          }
-        } else {
-          const created = (response as any).data?.iteration;
-          if (created) {
-            setIterations(prev => [created, ...prev]);
-            setSelectedIteration(created);
-          }
-        }
-
-        setShowIterationDialog(false);
-        resetIterationForm();
-        // Also refetch to ensure full consistency
-        fetchCapacityData();
-      } else {
-        throw new Error(response.error || `Failed to ${editingIteration ? 'update' : 'create'} iteration`);
-      }
-    } catch (error) {
-      console.error('Error saving iteration:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to ${editingIteration ? 'update' : 'create'} iteration`,
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const handleDeleteIteration = async (iterationId: string) => {
-    try {
-      const response = await apiClient.deleteCapacityIteration(projectId, iterationId);
-      
-      if (response.success) {
-        toast({
-          title: 'Success',
-          description: 'Iteration deleted successfully'
-        });
-        
-        // Clear selection if deleted iteration was selected
-        if (selectedIteration?.id === iterationId) {
-          setSelectedIteration(null);
-        }
-        
-        fetchCapacityData();
-      } else {
-        throw new Error(response.error || 'Failed to delete iteration');
-      }
-    } catch (error) {
-      console.error('Error deleting iteration:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete iteration',
-        variant: 'destructive'
-      });
-    }
+  const resetTeamForm = () => {
+    setTeamForm({
+      team_name: '',
+      description: '',
+      members: []
+    });
   };
 
   const openEditIteration = (iteration: CapacityIteration) => {
@@ -301,44 +549,9 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     setShowIterationDialog(true);
   };
 
-  const handleMemberSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      const memberData = {
-        type: 'member' as const,
-        iterationId: memberForm.iteration_id,
-        memberName: memberForm.member_name,
-        role: memberForm.role,
-        workMode: memberForm.work_mode,
-        leaves: memberForm.leaves,
-        availabilityPercent: memberForm.availability_percent,
-        stakeholderId: memberForm.stakeholder_id && memberForm.stakeholder_id !== 'none' ? memberForm.stakeholder_id : undefined
-      };
-
-      const response = await apiClient.addCapacityMember(projectId, memberData);
-      
-      if (response.success) {
-        toast({
-          title: 'Success',
-          description: 'Team member added successfully'
-        });
-
-        setShowMemberDialog(false);
-        resetMemberForm();
-        fetchCapacityData();
-      } else {
-        throw new Error(response.error || 'Failed to add team member');
-      }
-    } catch (error) {
-      console.error('Error adding member:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add team member',
-        variant: 'destructive'
-      });
-    }
+  const openViewIteration = (iteration: CapacityIteration) => {
+    setViewingIteration(iteration);
+    setShowViewDialog(true);
   };
 
   const openAddMember = (iterationId: string) => {
@@ -348,38 +561,55 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
+      {/* Header with Analytics */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Team Capacity Tracker</h1>
-          <p className="text-muted-foreground">Track team capacity and plan iterations effectively</p>
+          <h2 className="text-2xl font-bold">Team Capacity Tracker</h2>
+          <p className="text-muted-foreground">
+            Plan and track team capacity across iterations with advanced analytics
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
+          <Button variant="outline" onClick={generateAnalytics}>
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Refresh Analytics
           </Button>
+          <Button variant="outline" onClick={() => {
+            resetTeamForm();
+            setShowTeamDialog(true);
+          }}>
+            <Users className="h-4 w-4 mr-2" />
+            Create Team
+          </Button>
+          <Button onClick={() => {
+            resetIterationForm();
+            setEditingIteration(null);
+            setShowIterationDialog(true);
+          }}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Iteration
+          </Button>
+
+          {/* Iteration Dialog */}
           <Dialog open={showIterationDialog} onOpenChange={setShowIterationDialog}>
-            <DialogTrigger asChild>
-              <Button onClick={resetIterationForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Iteration
-              </Button>
-            </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>
                   {editingIteration ? 'Edit Iteration' : 'Create New Iteration'}
                 </DialogTitle>
                 <DialogDescription>
-                  {editingIteration ? 'Update the iteration details.' : 'Set up a new iteration for team capacity planning.'}
+                  {editingIteration 
+                    ? 'Update the iteration details below.' 
+                    : 'Set up a new iteration for capacity planning.'
+                  }
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleIterationSubmit} className="space-y-4">
@@ -389,7 +619,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     id="iteration_name"
                     value={iterationForm.iteration_name}
                     onChange={(e) => setIterationForm(prev => ({ ...prev, iteration_name: e.target.value }))}
-                    placeholder="e.g., Sprint 1, Iteration 2024-Q1"
+                    placeholder="e.g., Sprint 1, Q1 Iteration"
                     required
                   />
                 </div>
@@ -525,6 +755,27 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     />
                   </div>
                 </div>
+                {teams.length > 0 && (
+                  <div>
+                    <Label htmlFor="team_id">Link to Team (Optional)</Label>
+                    <Select 
+                      value={memberForm.team_id} 
+                      onValueChange={(value) => setMemberForm(prev => ({ ...prev, team_id: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {teams.map(team => (
+                          <SelectItem key={team.id} value={team.id}>
+                            {team.team_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 {stakeholders.length > 0 && (
                   <div>
                     <Label htmlFor="stakeholder_id">Link to Stakeholder (Optional)</Label>
@@ -557,6 +808,241 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
               </form>
             </DialogContent>
           </Dialog>
+
+          {/* Team Dialog */}
+          <Dialog open={showTeamDialog} onOpenChange={setShowTeamDialog}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create Reusable Team</DialogTitle>
+                <DialogDescription>
+                  Create a team template that can be reused across multiple iterations.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="team_name">Team Name</Label>
+                  <Input
+                    id="team_name"
+                    value={teamForm.team_name}
+                    onChange={(e) => setTeamForm(prev => ({ ...prev, team_name: e.target.value }))}
+                    placeholder="e.g., Backend Team, Frontend Squad"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="team_description">Description</Label>
+                  <Textarea
+                    id="team_description"
+                    value={teamForm.description}
+                    onChange={(e) => setTeamForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Brief description of the team's role and responsibilities"
+                  />
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Team Members</Label>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setTeamForm(prev => ({
+                        ...prev,
+                        members: [...prev.members, {
+                          id: `temp-${Date.now()}`,
+                          team_id: '',
+                          member_name: '',
+                          role: '',
+                          work_mode: 'office',
+                          default_availability_percent: 100,
+                          stakeholder_id: null
+                        }]
+                      }))}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Member
+                    </Button>
+                  </div>
+                  
+                  {teamForm.members.map((member, index) => (
+                    <Card key={member.id} className="p-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label>Name</Label>
+                          <Input
+                            value={member.member_name}
+                            onChange={(e) => {
+                              const newMembers = [...teamForm.members];
+                              newMembers[index].member_name = e.target.value;
+                              setTeamForm(prev => ({ ...prev, members: newMembers }));
+                            }}
+                            placeholder="Member name"
+                          />
+                        </div>
+                        <div>
+                          <Label>Role</Label>
+                          <Input
+                            value={member.role}
+                            onChange={(e) => {
+                              const newMembers = [...teamForm.members];
+                              newMembers[index].role = e.target.value;
+                              setTeamForm(prev => ({ ...prev, members: newMembers }));
+                            }}
+                            placeholder="e.g., Developer, Tester"
+                          />
+                        </div>
+                        <div>
+                          <Label>Work Mode</Label>
+                          <Select 
+                            value={member.work_mode} 
+                            onValueChange={(value) => {
+                              const newMembers = [...teamForm.members];
+                              newMembers[index].work_mode = value;
+                              setTeamForm(prev => ({ ...prev, members: newMembers }));
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="office">Office</SelectItem>
+                              <SelectItem value="wfh">Work from Home</SelectItem>
+                              <SelectItem value="hybrid">Hybrid</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1">
+                            <Label>Default Availability %</Label>
+                            <Input
+                              type="number"
+                              value={member.default_availability_percent}
+                              onChange={(e) => {
+                                const newMembers = [...teamForm.members];
+                                newMembers[index].default_availability_percent = parseInt(e.target.value) || 100;
+                                setTeamForm(prev => ({ ...prev, members: newMembers }));
+                              }}
+                              min="0"
+                              max="100"
+                            />
+                          </div>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              const newMembers = teamForm.members.filter((_, i) => i !== index);
+                              setTeamForm(prev => ({ ...prev, members: newMembers }));
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setShowTeamDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="button"
+                    onClick={async () => {
+                      await createTeam(teamForm);
+                      setShowTeamDialog(false);
+                      resetTeamForm();
+                    }}
+                  >
+                    Create Team
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* View Iteration Dialog */}
+          <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {viewingIteration?.iteration_name} - Detailed View
+                </DialogTitle>
+                <DialogDescription>
+                  Complete capacity overview and team member breakdown
+                </DialogDescription>
+              </DialogHeader>
+              
+              {viewingIteration && (
+                <div className="space-y-6">
+                  {/* Analytics Summary */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold">{viewingIteration.totalEffectiveCapacity.toFixed(1)}</div>
+                      <p className="text-sm text-muted-foreground">Total Capacity Days</p>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold">{viewingIteration.committed_story_points}</div>
+                      <p className="text-sm text-muted-foreground">Committed Points</p>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold">{viewingIteration.totalMembers}</div>
+                      <p className="text-sm text-muted-foreground">Team Members</p>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold">{viewingIteration.working_days}</div>
+                      <p className="text-sm text-muted-foreground">Working Days</p>
+                    </Card>
+                  </div>
+
+                  {/* Team Members Breakdown */}
+                  <div>
+                    <h4 className="text-lg font-semibold mb-3">Team Members</h4>
+                    <div className="grid gap-3">
+                      {viewingIteration.members?.map(member => (
+                        <Card key={member.id} className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h5 className="font-medium">{member.member_name}</h5>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span>{member.role}</span>
+                                <Badge variant="outline">{member.work_mode}</Badge>
+                                <span>{member.availability_percent}% available</span>
+                                {member.leaves > 0 && (
+                                  <span>{member.leaves} days leave</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xl font-bold">{Number(member.effective_capacity_days).toFixed(1)}</div>
+                              <p className="text-sm text-muted-foreground">effective days</p>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Work Mode Distribution */}
+                  <div>
+                    <h4 className="text-lg font-semibold mb-3">Work Mode Distribution</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      {['office', 'wfh', 'hybrid'].map(mode => {
+                        const count = viewingIteration.members?.filter(m => m.work_mode === mode).length || 0;
+                        return (
+                          <Card key={mode} className="p-4 text-center">
+                            <div className="text-2xl font-bold">{count}</div>
+                            <p className="text-sm text-muted-foreground capitalize">{mode === 'wfh' ? 'Work from Home' : mode}</p>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -565,6 +1051,8 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="iterations">Iterations</TabsTrigger>
           <TabsTrigger value="capacity">Team Capacity</TabsTrigger>
+          <TabsTrigger value="teams">Teams</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -589,10 +1077,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">
-                          {members
-                            .filter(m => m.iteration_id === iteration.id)
-                            .reduce((sum, m) => sum + Number(m.effective_capacity_days || 0), 0)
-                            .toFixed(1)}
+                          {iteration.totalEffectiveCapacity?.toFixed(1) || '0.0'}
                         </div>
                         <p className="text-xs text-muted-foreground">effective days</p>
                       </CardContent>
@@ -615,9 +1100,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                       <CardContent>
                         <div className="text-2xl font-bold flex items-center gap-2">
                           {(() => {
-                            const totalCapacity = members
-                              .filter(m => m.iteration_id === iteration.id)
-                              .reduce((sum, m) => sum + Number(m.effective_capacity_days || 0), 0);
+                            const totalCapacity = iteration.totalEffectiveCapacity || 0;
                             const variance = totalCapacity - iteration.committed_story_points;
                             return (
                               <>
@@ -630,9 +1113,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {(() => {
-                            const totalCapacity = members
-                              .filter(m => m.iteration_id === iteration.id)
-                              .reduce((sum, m) => sum + Number(m.effective_capacity_days || 0), 0);
+                            const totalCapacity = iteration.totalEffectiveCapacity || 0;
                             const variance = totalCapacity - iteration.committed_story_points;
                             return variance > 0 ? 'Over-capacity' : variance < 0 ? 'Under-capacity' : 'Balanced';
                           })()}
@@ -681,6 +1162,16 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
+                          openViewIteration(iteration);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
                           openEditIteration(iteration);
                         }}
                       >
@@ -722,6 +1213,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                   <div className="flex items-center gap-4">
                     <Badge variant="outline">{iteration.working_days} working days</Badge>
                     <Badge variant="outline">{iteration.committed_story_points} story points</Badge>
+                    <Badge variant="outline">{iteration.totalMembers || 0} members</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -742,6 +1234,23 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                       </p>
                     </div>
                     <div className="flex gap-2">
+                      {teams.length > 0 && (
+                        <Select onValueChange={(teamId) => addTeamToIteration(teamId, iteration.id)}>
+                          <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Add Team" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {teams.map(team => (
+                              <SelectItem key={team.id} value={team.id}>
+                                <div className="flex items-center gap-2">
+                                  <Copy className="h-4 w-4" />
+                                  {team.team_name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                       <Button onClick={() => openAddMember(iteration.id)}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Member
@@ -749,30 +1258,40 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     </div>
                   </div>
                   
-                  {members.filter(m => m.iteration_id === iteration.id).length > 0 ? (
+                  {iteration.members && iteration.members.length > 0 ? (
                     <div className="space-y-4">
-                      {members
-                        .filter(m => m.iteration_id === iteration.id)
-                        .map(member => (
-                          <Card key={member.id} className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h4 className="font-medium">{member.member_name}</h4>
-                                <p className="text-sm text-muted-foreground">{member.role} • {member.work_mode}</p>
-                              </div>
-                              <div className="text-right">
-                                <div className="font-medium">{Number(member.effective_capacity_days || 0).toFixed(1)} days</div>
-                                <p className="text-sm text-muted-foreground">{member.availability_percent}% available</p>
+                      {iteration.members.map(member => (
+                        <Card key={member.id} className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium">{member.member_name}</h4>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>{member.role}</span>
+                                <Badge variant="outline">{member.work_mode}</Badge>
+                                {member.team_id && (
+                                  <Badge variant="secondary">
+                                    {teams.find(t => t.id === member.team_id)?.team_name || 'Team'}
+                                  </Badge>
+                                )}
                               </div>
                             </div>
-                          </Card>
-                        ))}
+                            <div className="text-right">
+                              <div className="font-medium">{Number(member.effective_capacity_days || 0).toFixed(1)} days</div>
+                              <p className="text-sm text-muted-foreground">{member.availability_percent}% available</p>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No team members assigned to this iteration</p>
-                      <Button variant="outline" className="mt-4" onClick={() => openAddMember(iteration.id)}>
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h4 className="text-lg font-semibold mb-2">No team members yet</h4>
+                      <p className="text-muted-foreground mb-4">
+                        Add team members to start capacity planning for this iteration.
+                      </p>
+                      <Button onClick={() => openAddMember(iteration.id)}>
+                        <Plus className="h-4 w-4 mr-2" />
                         Add First Member
                       </Button>
                     </div>
@@ -783,11 +1302,150 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           ) : (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No iterations yet</h3>
                 <p className="text-muted-foreground text-center mb-4">
-                  Create an iteration first to manage team capacity.
+                  Create your first iteration to start capacity planning.
                 </p>
+                <Button onClick={() => {
+                  resetIterationForm();
+                  setShowIterationDialog(true);
+                }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Iteration
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="teams" className="space-y-4">
+          <div className="grid gap-4">
+            {teams.map((team) => (
+              <Card key={team.id} className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">{team.team_name}</h3>
+                    <p className="text-sm text-muted-foreground">{team.description}</p>
+                  </div>
+                  <Badge variant="outline">{team.members.length} members</Badge>
+                </div>
+                
+                {team.members.length > 0 ? (
+                  <div className="grid gap-3">
+                    {team.members.map(member => (
+                      <Card key={member.id} className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{member.member_name}</h4>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span>{member.role}</span>
+                              <Badge variant="outline">{member.work_mode}</Badge>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">{member.default_availability_percent}%</div>
+                            <p className="text-sm text-muted-foreground">default availability</p>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">No members in this team</p>
+                )}
+              </Card>
+            ))}
+            
+            {teams.length === 0 && (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No teams yet</h3>
+                  <p className="text-muted-foreground text-center mb-4">
+                    Create reusable teams to streamline capacity planning across iterations.
+                  </p>
+                  <Button onClick={() => {
+                    resetTeamForm();
+                    setShowTeamDialog(true);
+                  }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Team
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          {analytics.length > 0 ? (
+            <div className="grid gap-6">
+              <Card className="p-6">
+                <CardHeader>
+                  <CardTitle>Capacity Analytics Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="p-4">
+                      <h4 className="font-semibold mb-2">Total Capacity Days</h4>
+                      <div className="text-2xl font-bold">
+                        {analytics.reduce((sum, a) => sum + (a.total_capacity_days || 0), 0).toFixed(1)}
+                      </div>
+                    </Card>
+                    <Card className="p-4">
+                      <h4 className="font-semibold mb-2">Average Team Size</h4>
+                      <div className="text-2xl font-bold">
+                        {(analytics.reduce((sum, a) => sum + (a.team_size || 0), 0) / analytics.length).toFixed(1)}
+                      </div>
+                    </Card>
+                    <Card className="p-4">
+                      <h4 className="font-semibold mb-2">Average Member Capacity</h4>
+                      <div className="text-2xl font-bold">
+                        {(analytics.reduce((sum, a) => sum + (a.avg_member_capacity || 0), 0) / analytics.length).toFixed(1)}
+                      </div>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Work Mode Distribution */}
+              <Card className="p-6">
+                <CardHeader>
+                  <CardTitle>Work Mode Distribution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4">
+                    {['office', 'wfh', 'hybrid'].map(mode => {
+                      const total = analytics.reduce((sum, a) => {
+                        const distribution = a.work_mode_distribution || {};
+                        return sum + (distribution[mode as keyof typeof distribution] || 0);
+                      }, 0);
+                      return (
+                        <Card key={mode} className="p-4 text-center">
+                          <div className="text-2xl font-bold">{total}</div>
+                          <p className="text-sm text-muted-foreground capitalize">
+                            {mode === 'wfh' ? 'Work from Home' : mode}
+                          </p>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No analytics data yet</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  Analytics will be generated automatically as you add iterations and team members.
+                </p>
+                <Button onClick={generateAnalytics}>
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Generate Analytics
+                </Button>
               </CardContent>
             </Card>
           )}

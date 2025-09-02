@@ -500,6 +500,170 @@ Deno.serve(async (req) => {
         return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
       }
 
+      // Return default settings with work mode weights
+      return createSuccessResponse({
+        workModeWeights: {
+          office: 1.0,
+          wfh: 0.9,
+          hybrid: 0.95
+        },
+        defaultWorkingDays: 10,
+        defaultAvailability: 100
+      });
+    }
+
+    // GET /capacity-service/projects/:id/teams - Get teams for project
+    if (method === 'GET' && path.includes('/projects/') && path.endsWith('/teams')) {
+      const params = extractPathParams(url, '/capacity-service/projects/:id/teams');
+      const projectId = params.id;
+
+      if (!projectId) {
+        return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+      }
+
+      // Check project access
+      const accessCheck = await hasProjectAccess(user.id, projectId);
+      if (!accessCheck.ok) {
+        return createErrorResponse(
+          accessCheck.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Access denied',
+          accessCheck.reason || 'FORBIDDEN',
+          accessCheck.reason === 'PROJECT_NOT_FOUND' ? 404 : 403
+        );
+      }
+
+      const { data: teams, error: teamsError } = await supabase
+        .from('teams')
+        .select(`
+          *,
+          team_members (*)
+        `)
+        .eq('project_id', projectId);
+
+      if (teamsError) {
+        console.error('Error fetching teams:', teamsError);
+        return createErrorResponse('Failed to fetch teams', 'FETCH_ERROR');
+      }
+
+      return createSuccessResponse({
+        projectId,
+        teams: teams || []
+      });
+    }
+
+    // POST /capacity-service/projects/:id/teams - Create new team
+    if (method === 'POST' && path.includes('/projects/') && path.endsWith('/teams')) {
+      const params = extractPathParams(url, '/capacity-service/projects/:id/teams');
+      const projectId = params.id;
+      const body = await parseRequestBody(req);
+
+      if (!projectId) {
+        return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
+      }
+
+      // Check project access
+      const accessCheck = await hasProjectAccess(user.id, projectId);
+      if (!accessCheck.ok) {
+        return createErrorResponse(
+          accessCheck.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Access denied',
+          accessCheck.reason || 'FORBIDDEN',
+          accessCheck.reason === 'PROJECT_NOT_FOUND' ? 404 : 403
+        );
+      }
+
+      const { teamName, description, members } = body;
+
+      if (!teamName) {
+        return createErrorResponse('Team name is required', 'MISSING_FIELDS');
+      }
+
+      // Create team
+      const { data: team, error: teamError } = await supabase
+        .from('teams')
+        .insert([{
+          project_id: projectId,
+          team_name: teamName,
+          description: description || '',
+          created_by: user.id
+        }])
+        .select()
+        .single();
+
+      if (teamError) {
+        console.error('Error creating team:', teamError);
+        return createErrorResponse('Failed to create team', 'CREATE_ERROR');
+      }
+
+      // Add team members if provided
+      if (members && members.length > 0) {
+        const { error: membersError } = await supabase
+          .from('team_members')
+          .insert(members.map((member: any) => ({
+            team_id: team.id,
+            member_name: member.memberName,
+            role: member.role,
+            work_mode: member.workMode || 'office',
+            default_availability_percent: member.defaultAvailabilityPercent || 100,
+            stakeholder_id: member.stakeholderId,
+            created_by: user.id
+          })));
+
+        if (membersError) {
+          console.error('Error creating team members:', membersError);
+          return createErrorResponse('Failed to add team members', 'CREATE_ERROR');
+        }
+      }
+
+      return createSuccessResponse({
+        message: 'Team created successfully',
+        team
+      });
+    }
+
+    // GET /capacity-service/stats - Get capacity statistics
+    if (method === 'GET' && path.endsWith('/stats')) {
+      // Get total iterations across all projects user has access to
+      const { data: iterations, error: iterationsError } = await supabase
+        .from('team_capacity_iterations')
+        .select('id, project_id')
+        .order('created_at', { ascending: false });
+
+      if (iterationsError) {
+        console.error('Error fetching iterations for stats:', iterationsError);
+        return createErrorResponse('Failed to fetch capacity statistics', 'FETCH_ERROR');
+      }
+
+      // Filter iterations by project access
+      const accessibleIterations = [];
+      for (const iteration of iterations || []) {
+        const accessCheck = await hasProjectAccess(user.id, iteration.project_id);
+        if (accessCheck.ok) {
+          accessibleIterations.push(iteration);
+        }
+      }
+
+      // Get capacity members for accessible iterations
+      const { data: members, error: membersError } = await supabase
+        .from('team_capacity_members')
+        .select('iteration_id, effective_capacity_days')
+        .in('iteration_id', accessibleIterations.map(i => i.id));
+
+      if (membersError) {
+        console.error('Error fetching members for stats:', membersError);
+      }
+
+      const totalMembers = members?.length || 0;
+      const totalCapacity = members?.reduce((sum, m) => sum + (m.effective_capacity_days || 0), 0) || 0;
+      const avgCapacity = totalMembers > 0 ? (totalCapacity / totalMembers) : 0;
+      const uniqueProjects = new Set(accessibleIterations.map(i => i.project_id)).size;
+
+      return createSuccessResponse({
+        totalIterations: accessibleIterations.length,
+        totalMembers,
+        avgCapacity: Math.round(avgCapacity * 10) / 10,
+        totalProjects: uniqueProjects
+      });
+      }
+
       // Check if user has access to this project
       const { data: project } = await supabase
         .from('projects')
