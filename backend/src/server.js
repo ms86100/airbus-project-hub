@@ -92,10 +92,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging middleware
+const { requestLogger } = require('./middleware/requestLogger');
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
+  app.use(requestLogger);
 } else {
   app.use(morgan('combined'));
+  app.use(requestLogger);
 }
 
 // Health check endpoint

@@ -1,17 +1,25 @@
 const errorHandler = (err, req, res, next) => {
-  console.error('Error:', {
+  const isProd = process.env.NODE_ENV === 'production';
+  console.error('🔥 Unhandled Error:', {
     message: err.message,
     stack: err.stack,
+    code: err.code,
+    detail: err.detail,
+    hint: err.hint,
+    table: err.table,
+    column: err.column,
     url: req.url,
     method: req.method,
     timestamp: new Date().toISOString()
   });
 
-  // Default error
+  const statusCode = err.statusCode || err.status || 500;
+
+  // Default error shape
   let error = {
     success: false,
-    error: 'Internal server error',
-    code: 'INTERNAL_ERROR'
+    error: isProd ? 'Internal server error' : (err.message || 'Internal server error'),
+    code: err.code || 'INTERNAL_ERROR',
   };
 
   // Database errors
@@ -83,8 +91,19 @@ const errorHandler = (err, req, res, next) => {
     };
   }
 
-  // Send error response
-  const statusCode = err.statusCode || err.status || 500;
+  // Attach debug details in non-prod for quicker diagnosis
+  if (!isProd) {
+    error.debug = {
+      message: err.message,
+      detail: err.detail,
+      hint: err.hint,
+      code: err.code,
+      table: err.table,
+      column: err.column,
+      stack: err.stack,
+    };
+  }
+
   res.status(statusCode).json(error);
 };
 
