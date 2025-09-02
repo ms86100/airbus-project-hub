@@ -644,8 +644,13 @@ router.get('/projects/:id/risks', verifyToken, verifyProjectAccess, async (req, 
     
     sendResponse(res, createSuccessResponse(result.rows));
   } catch (error) {
-    console.error('Get risks error:', error);
-    sendResponse(res, createErrorResponse('Failed to fetch risks', 'FETCH_ERROR', 500));
+    console.error('Get risks error:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail
+    });
+    sendResponse(res, createErrorResponse(`Failed to fetch risks: ${error.message}`, 'FETCH_ERROR', 500));
   }
 });
 
@@ -689,8 +694,13 @@ router.post('/projects/:id/risks', verifyToken, verifyProjectAccess, async (req,
       risk: result.rows[0]
     }));
   } catch (error) {
-    console.error('Create risk error:', error);
-    sendResponse(res, createErrorResponse('Failed to create risk', 'CREATE_ERROR', 500));
+    console.error('Create risk error:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail
+    });
+    sendResponse(res, createErrorResponse(`Failed to create risk: ${error.message}`, 'CREATE_ERROR', 500));
   }
 });
 

@@ -185,9 +185,11 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
       
       fetchRisks();
     } catch (error: any) {
+      console.error('Full error details:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
       toast({
         title: "Error adding risk",
-        description: error.message,
+        description: `Detailed error: ${errorMessage}`,
         variant: "destructive",
       });
     }
