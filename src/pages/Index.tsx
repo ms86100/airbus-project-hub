@@ -4,8 +4,8 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import DashboardLayout from '@/components/DashboardLayout';
 import Dashboard from '@/components/Dashboard';
 
-const Index = () => {
-  const { user, loading } = useApiAuth();
+// Wrapper component that handles navigation logic
+const IndexNavigation = ({ user, loading }: { user: any; loading: boolean }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -21,6 +21,12 @@ const Index = () => {
     }
   }, [user, loading, navigate, location.pathname]);
 
+  return null;
+};
+
+const Index = () => {
+  const { user, loading } = useApiAuth();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -30,7 +36,14 @@ const Index = () => {
   }
 
   if (!user) {
-    return null; // Will redirect to auth
+    return (
+      <>
+        <IndexNavigation user={user} loading={loading} />
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </>
+    );
   }
 
   return (
