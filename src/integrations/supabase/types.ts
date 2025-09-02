@@ -1317,6 +1317,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_current_user_id: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       access_level: "read" | "write"
