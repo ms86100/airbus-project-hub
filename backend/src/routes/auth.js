@@ -396,4 +396,86 @@ router.post('/profiles/batch', verifyToken, async (req, res) => {
   }
 });
 
+// GET /auth-service/profiles/:userId
+router.get('/profiles/:userId', verifyToken, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    const profileQuery = `
+      SELECT pr.*, ur.role as user_role, d.name as department_name
+      FROM profiles pr
+      LEFT JOIN user_roles ur ON pr.id = ur.user_id
+      LEFT JOIN departments d ON pr.department_id = d.id
+      WHERE pr.id = $1
+    `;
+    
+    const result = await query(profileQuery, [userId]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Profile not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse(result.rows[0]));
+  } catch (error) {
+    console.error('Get profile error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch profile', 'FETCH_ERROR', 500));
+  }
+});
+
+// POST /auth-service/profiles/batch
+router.post('/profiles/batch', verifyToken, async (req, res) => {
+  try {
+    const { user_ids } = req.body;
+    
+    if (!user_ids || !Array.isArray(user_ids)) {
+      return sendResponse(res, createErrorResponse('user_ids array is required', 'MISSING_FIELDS', 400));
+    }
+    
+    const placeholders = user_ids.map((_, index) => `$${index + 1}`).join(',');
+    const profilesQuery = `
+      SELECT pr.*, ur.role as user_role, d.name as department_name
+      FROM profiles pr
+      LEFT JOIN user_roles ur ON pr.id = ur.user_id
+      LEFT JOIN departments d ON pr.department_id = d.id
+      WHERE pr.id IN (${placeholders})
+    `;
+    
+    const result = await query(profilesQuery, user_ids);
+    
+    sendResponse(res, createSuccessResponse({ profiles: result.rows }));
+  } catch (error) {
+    console.error('Get profiles batch error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch profiles', 'FETCH_ERROR', 500));
+  }
+});
+
+// PUT /auth-service/profiles/:userId/department
+router.put('/profiles/:userId/department', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { department_id } = req.body;
+    
+    const updateQuery = `
+      UPDATE profiles 
+      SET department_id = $1, updated_at = $2
+      WHERE id = $3
+      RETURNING *
+    `;
+    
+    const result = await query(updateQuery, [department_id, new Date(), userId]);
+    
+    if (result.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Profile not found', 'NOT_FOUND', 404));
+    }
+    
+    sendResponse(res, createSuccessResponse({
+      message: 'Department updated successfully',
+      profile: result.rows[0]
+    }));
+  } catch (error) {
+    console.error('Update profile department error:', error);
+    sendResponse(res, createErrorResponse('Failed to update department', 'UPDATE_ERROR', 500));
+  }
+});
+
 module.exports = router;

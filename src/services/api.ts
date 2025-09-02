@@ -759,6 +759,16 @@ class ApiClient {
     });
   }
 
+  // Project Members Methods
+  async getProjectMembers(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/members`, { method: 'GET' });
+  }
+
+  // Change Log Methods
+  async getChangeLog(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/change-log`, { method: 'GET' });
+  }
+
   // Alias methods for component compatibility
   async voteOnRetrospectiveCard(cardId: string): Promise<ApiResponse<{ message: string }>> {
     return this.voteCard(cardId);

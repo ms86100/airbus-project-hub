@@ -178,11 +178,16 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
 
   const fetchChangeLog = async () => {
     try {
-      // For now, we'll skip the change log functionality since it's not critical
-      // This would need its own API endpoint in workspace-service
-      setChangeLog([]);
+      const response = await apiClient.getChangeLog(projectId);
+      if (response.success) {
+        setChangeLog(response.data || []);
+      } else {
+        console.error('Error fetching change log:', response.error);
+        setChangeLog([]);
+      }
     } catch (error) {
       console.error('Error fetching change log:', error);
+      setChangeLog([]);
     }
   };
 
@@ -204,11 +209,16 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
 
   const fetchProjectMembers = async () => {
     try {
-      // For now, we'll use an empty array since project members 
-      // would need its own API endpoint
-      setProjectMembers([]);
+      const response = await apiClient.getProjectMembers(projectId);
+      if (response.success) {
+        setProjectMembers(response.data || []);
+      } else {
+        console.error('Error fetching project members:', response.error);
+        setProjectMembers([]);
+      }
     } catch (error) {
       console.error('Error fetching project members:', error);
+      setProjectMembers([]);
     } finally {
       setLoading(false);
     }

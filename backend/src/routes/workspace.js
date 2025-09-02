@@ -774,4 +774,54 @@ router.delete('/projects/:id/risks/:riskId', verifyToken, verifyProjectAccess, a
   }
 });
 
+// GET /workspace-service/projects/:id/members
+router.get('/projects/:id/members', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    
+    const membersQuery = `
+      SELECT pm.*, pr.full_name, pr.email
+      FROM project_members pm
+      LEFT JOIN profiles pr ON pm.user_id = pr.id
+      WHERE pm.project_id = $1
+      ORDER BY pr.full_name ASC
+    `;
+    
+    const result = await query(membersQuery, [projectId]);
+    
+    sendResponse(res, createSuccessResponse(result.rows));
+  } catch (error) {
+    console.error('Get project members error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch project members', 'FETCH_ERROR', 500));
+  }
+});
+
+// GET /workspace-service/projects/:id/change-log
+router.get('/projects/:id/change-log', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    
+    const changeLogQuery = `
+      SELECT dcl.*, pr.full_name as changed_by_name,
+             pd.meeting_title as discussion_title,
+             dai.task_description as action_item_description
+      FROM discussion_change_log dcl
+      LEFT JOIN profiles pr ON dcl.changed_by = pr.id
+      LEFT JOIN project_discussions pd ON dcl.discussion_id = pd.id
+      LEFT JOIN discussion_action_items dai ON dcl.action_item_id = dai.id
+      WHERE dcl.discussion_id IN (
+        SELECT id FROM project_discussions WHERE project_id = $1
+      )
+      ORDER BY dcl.created_at DESC
+    `;
+    
+    const result = await query(changeLogQuery, [projectId]);
+    
+    sendResponse(res, createSuccessResponse(result.rows));
+  } catch (error) {
+    console.error('Get change log error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch change log', 'FETCH_ERROR', 500));
+  }
+});
+
 module.exports = router;
