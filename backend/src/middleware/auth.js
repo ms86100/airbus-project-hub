@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
+const { setUserId } = require('../utils/requestContext');
 
 // Middleware to verify JWT token
 const verifyToken = async (req, res, next) => {
@@ -37,6 +38,9 @@ const verifyToken = async (req, res, next) => {
         email: decoded.email,
         ...userResult.rows[0]
       };
+      
+      // Make user id available to DB layer so triggers using auth.uid() work
+      setUserId(decoded.userId);
       
       next();
     } catch (jwtError) {

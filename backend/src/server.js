@@ -38,6 +38,10 @@ const departmentRoutes = asMiddleware(require('./routes/department'));
 
 const app = express();
 
+// Initialize async context per request for auth.uid support
+const { runWithContext } = require('./utils/requestContext');
+app.use((req, res, next) => runWithContext({}, next));
+
 // Trust proxy for rate limiting behind reverse proxy
 app.set('trust proxy', 1);
 

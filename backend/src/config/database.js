@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const { getUserId } = require('../utils/requestContext');
 
 // Database configuration
 const dbConfig = {
@@ -39,6 +40,24 @@ pool.on('error', (err) => {
 // Helper function to execute queries
 const query = async (text, params) => {
   const start = Date.now();
+  const userId = getUserId();
+  // If we have a user in context, ensure auth.uid() works by setting the claim in this session
+  if (userId) {
+    const client = await pool.connect();
+    try {
+      await client.query('select set_current_user_id($1)', [userId]);
+      const res = await client.query(text, params);
+      const duration = Date.now() - start;
+      console.log('📊 Query executed (ctx user)', { text: text.substring(0, 100), duration, rows: res.rowCount });
+      return res;
+    } catch (error) {
+      console.error('❌ Query error (ctx user)', { text: text.substring(0, 100), error: error.message });
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+  // Fallback: no user context
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
