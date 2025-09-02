@@ -664,31 +664,6 @@ Deno.serve(async (req) => {
       });
       }
 
-      // Check if user has access to this project
-      const { data: project } = await supabase
-        .from('projects')
-        .select('id, created_by')
-        .eq('id', projectId)
-        .single();
-
-      if (!project) {
-        return createErrorResponse('Project not found', 'PROJECT_NOT_FOUND', 404);
-      }
-
-      // Return default capacity settings (can be enhanced to store custom settings in DB)
-      const defaultSettings = {
-        workModeWeights: {
-          office: 1.0,
-          wfh: 0.9,
-          hybrid: 0.95,
-        },
-        defaultWorkingDays: 10,
-        defaultAvailability: 100,
-      };
-
-      return createSuccessResponse(defaultSettings);
-    }
-
     // GET /capacity-service/projects/:id/iterations - Get iterations only (ApiClient compatible)
     if (method === 'GET' && path.includes('/projects/') && path.endsWith('/iterations')) {
       const params = extractPathParams(url, '/capacity-service/projects/:id/iterations');
