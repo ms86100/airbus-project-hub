@@ -39,6 +39,9 @@ interface CapacityMember {
   id: string;
   iteration_id: string;
   stakeholder_id: string;
+  member_name: string;
+  role: string;
+  work_mode: string;
   leaves: number;
   availability_percent: number;
   effective_capacity_days: number;
@@ -61,6 +64,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   
   const [settings, setSettings] = useState<CapacitySettings | null>(null);
   const [iterations, setIterations] = useState<CapacityIteration[]>([]);
+  const [members, setMembers] = useState<CapacityMember[]>([]);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [selectedIteration, setSelectedIteration] = useState<CapacityIteration | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,7 +83,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   useEffect(() => {
     if (projectId) {
       fetchSettings();
-      fetchIterations();
+      fetchCapacityData();
       fetchStakeholders();
     }
   }, [projectId]);
@@ -95,25 +99,28 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     }
   };
 
-  const fetchIterations = async () => {
+  const fetchCapacityData = async () => {
     try {
-      console.log('🔄 Fetching iterations for project:', projectId);
-      const response = await apiClient.getCapacityIterations(projectId);
-      console.log('📋 Iterations response:', response);
+      console.log('🔄 Fetching capacity data for project:', projectId);
+      const response = await apiClient.getCapacityData(projectId);
+      console.log('📋 Capacity data response:', response);
       
-      if (response.success) {
-        const data = response.data || [];
-        console.log('📋 Setting iterations data:', data);
-        setIterations(data);
+      if (response.success && response.data) {
+        const { iterations: iterationsData = [], members: membersData = [] } = response.data;
+        console.log('📋 Setting iterations data:', iterationsData);
+        console.log('👥 Setting members data:', membersData);
         
-        if (data.length > 0 && !selectedIteration) {
-          setSelectedIteration(data[0]);
+        setIterations(iterationsData);
+        setMembers(membersData);
+        
+        if (iterationsData.length > 0 && !selectedIteration) {
+          setSelectedIteration(iterationsData[0]);
         }
       } else {
-        console.error('❌ Error in iterations response:', response.error);
+        console.error('❌ Error in capacity data response:', response.error);
       }
     } catch (error) {
-      console.error('❌ Error fetching iterations:', error);
+      console.error('❌ Error fetching capacity data:', error);
     } finally {
       setLoading(false);
     }
@@ -215,7 +222,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         setShowIterationDialog(false);
         resetIterationForm();
         // Also refetch to ensure full consistency
-        fetchIterations();
+        fetchCapacityData();
       } else {
         throw new Error(response.error || `Failed to ${editingIteration ? 'update' : 'create'} iteration`);
       }
@@ -244,7 +251,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
           setSelectedIteration(null);
         }
         
-        fetchIterations();
+        fetchCapacityData();
       } else {
         throw new Error(response.error || 'Failed to delete iteration');
       }
@@ -408,7 +415,12 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                         <CardTitle className="text-sm font-medium">Total Capacity</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">0.0</div>
+                        <div className="text-2xl font-bold">
+                          {members
+                            .filter(m => m.iteration_id === iteration.id)
+                            .reduce((sum, m) => sum + Number(m.effective_capacity_days || 0), 0)
+                            .toFixed(1)}
+                        </div>
                         <p className="text-xs text-muted-foreground">effective days</p>
                       </CardContent>
                     </Card>
@@ -429,9 +441,29 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold flex items-center gap-2">
-                          0.0
+                          {(() => {
+                            const totalCapacity = members
+                              .filter(m => m.iteration_id === iteration.id)
+                              .reduce((sum, m) => sum + Number(m.effective_capacity_days || 0), 0);
+                            const variance = totalCapacity - iteration.committed_story_points;
+                            return (
+                              <>
+                                {variance > 0 ? <TrendingUp className="h-5 w-5 text-green-500" /> : 
+                                 variance < 0 ? <TrendingDown className="h-5 w-5 text-red-500" /> : null}
+                                {Math.abs(variance).toFixed(1)}
+                              </>
+                            );
+                          })()}
                         </div>
-                        <p className="text-xs text-muted-foreground">Balanced</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(() => {
+                            const totalCapacity = members
+                              .filter(m => m.iteration_id === iteration.id)
+                              .reduce((sum, m) => sum + Number(m.effective_capacity_days || 0), 0);
+                            const variance = totalCapacity - iteration.committed_story_points;
+                            return variance > 0 ? 'Over-capacity' : variance < 0 ? 'Under-capacity' : 'Balanced';
+                          })()}
+                        </p>
                       </CardContent>
                     </Card>
                   </div>
@@ -544,13 +576,34 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     </div>
                   </div>
                   
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No team members assigned to this iteration</p>
-                    <Button variant="outline" className="mt-4">
-                      Add First Member
-                    </Button>
-                  </div>
+                  {members.filter(m => m.iteration_id === iteration.id).length > 0 ? (
+                    <div className="space-y-4">
+                      {members
+                        .filter(m => m.iteration_id === iteration.id)
+                        .map(member => (
+                          <Card key={member.id} className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-medium">{member.member_name}</h4>
+                                <p className="text-sm text-muted-foreground">{member.role} • {member.work_mode}</p>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium">{Number(member.effective_capacity_days || 0).toFixed(1)} days</div>
+                                <p className="text-sm text-muted-foreground">{member.availability_percent}% available</p>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No team members assigned to this iteration</p>
+                      <Button variant="outline" className="mt-4">
+                        Add First Member
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               ))}
             </div>
