@@ -89,7 +89,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     work_mode: 'office',
     leaves: 0,
     availability_percent: 100,
-    stakeholder_id: ''
+      stakeholder_id: 'none'
   });
 
   useEffect(() => {
@@ -197,7 +197,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       work_mode: 'office',
       leaves: 0,
       availability_percent: 100,
-      stakeholder_id: ''
+      stakeholder_id: 'none'
     });
   };
 
@@ -314,7 +314,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         workMode: memberForm.work_mode,
         leaves: memberForm.leaves,
         availabilityPercent: memberForm.availability_percent,
-        stakeholderId: memberForm.stakeholder_id || undefined
+        stakeholderId: memberForm.stakeholder_id && memberForm.stakeholder_id !== 'none' ? memberForm.stakeholder_id : undefined
       };
 
       const response = await apiClient.addCapacityMember(projectId, memberData);
@@ -536,7 +536,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                         <SelectValue placeholder="Select stakeholder" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {stakeholders.map(stakeholder => (
                           <SelectItem key={stakeholder.id} value={stakeholder.id}>
                             {stakeholder.name}
