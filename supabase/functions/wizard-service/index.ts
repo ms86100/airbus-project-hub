@@ -10,8 +10,7 @@ import {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -25,7 +24,13 @@ Deno.serve(async (req) => {
   logRequest(method, path);
 
   try {
-    const { user, error: authError } = await validateAuthToken(req, supabase);
+    // Create user-authenticated client for proper audit logging
+    const authHeader = req.headers.get('authorization')?.replace('Bearer ', '');
+    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${authHeader}` } }
+    });
+
+    const { user, error: authError } = await validateAuthToken(req, userSupabase);
     if (authError || !user) return createErrorResponse('Authentication required', 'UNAUTHORIZED', 401);
 
     // POST /wizard-service/projects/wizard/start
@@ -47,7 +52,7 @@ Deno.serve(async (req) => {
 
       if (!name) return createErrorResponse('name is required', 'MISSING_FIELDS');
 
-      const { data: project, error } = await supabase
+      const { data: project, error } = await userSupabase
         .from('projects')
         .insert({
           name,
@@ -89,7 +94,7 @@ Deno.serve(async (req) => {
         return createErrorResponse('Project name and objective are required', 'MISSING_DATA');
       }
 
-      const { data: project, error: projectError } = await supabase
+      const { data: project, error: projectError } = await userSupabase
         .from('projects')
         .insert({
           name: finalProjectName,
@@ -114,7 +119,7 @@ Deno.serve(async (req) => {
           created_by: user.id
         }));
 
-        const { data: createdMilestones, error: milestoneError } = await supabase
+        const { data: createdMilestones, error: milestoneError } = await userSupabase
           .from('milestones')
           .insert(milestonesWithProjectId)
           .select();
@@ -143,7 +148,7 @@ Deno.serve(async (req) => {
           }
 
           if (tasksToCreate.length > 0) {
-            const { error: taskError } = await supabase
+            const { error: taskError } = await userSupabase
               .from('tasks')
               .insert(tasksToCreate);
 
