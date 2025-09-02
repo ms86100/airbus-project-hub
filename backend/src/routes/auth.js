@@ -311,7 +311,7 @@ router.put('/profiles/:id/department', verifyToken, async (req, res) => {
     // Only allow users to update their own profile or admins to update any profile
     if (req.user.id !== id) {
       const adminResult = await query(
-        'SELECT role FROM user_roles WHERE user_id = $1 AND role = $2',
+        'SELECT role FROM user_roles WHERE user_id = $1 AND role = 'admin'::app_role',
         [req.user.id, 'admin']
       );
       

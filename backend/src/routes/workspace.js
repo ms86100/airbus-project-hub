@@ -186,7 +186,7 @@ router.put('/tasks/:id', verifyToken, async (req, res) => {
         JOIN projects p ON t.project_id = p.id
         WHERE t.id = $1 AND (
           p.created_by = $2 OR
-          EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = $2 AND ur.role = 'admin') OR
+          EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = $2 AND ur.role = 'admin'::app_role) OR
           EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $2) OR
           EXISTS (SELECT 1 FROM module_permissions mp WHERE mp.project_id = p.id AND mp.user_id = $2)
         )
