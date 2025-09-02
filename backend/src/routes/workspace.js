@@ -770,16 +770,16 @@ router.post('/projects/:id/risks', verifyToken, verifyProjectAccess, async (req,
     const insertQuery = `
       INSERT INTO risk_register (
         id, project_id, risk_code, title, description, category, cause, consequence,
-        likelihood, impact, risk_score, owner, response_strategy, mitigation_plan,
+        likelihood, impact, owner, response_strategy, mitigation_plan,
         contingency_plan, status, notes, identified_date, created_by, created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
       RETURNING *
     `;
     
     const result = await query(insertQuery, [
       riskId, projectId, risk_code, title, description, category, cause, consequence,
-      likelihood, impact, risk_score, owner, response_strategy, mitigation_plan,
+      likelihood, impact, owner, response_strategy, mitigation_plan,
       contingency_plan, status, notes, now.toISOString().split('T')[0], userId, now, now
     ]);
     
@@ -847,22 +847,21 @@ router.put('/projects/:id/risks/:riskId', verifyToken, verifyProjectAccess, asyn
           consequence = COALESCE($8, consequence),
           likelihood = COALESCE($9, likelihood),
           impact = COALESCE($10, impact),
-          risk_score = COALESCE($11, risk_score),
-          owner = COALESCE($12, owner),
-          response_strategy = COALESCE($13, response_strategy),
-          mitigation_plan = COALESCE($14, mitigation_plan),
-          contingency_plan = COALESCE($15, contingency_plan),
-          status = COALESCE($16, status),
-          notes = COALESCE($17, notes),
-          last_updated = $18,
-          updated_at = $19
+          owner = COALESCE($11, owner),
+          response_strategy = COALESCE($12, response_strategy),
+          mitigation_plan = COALESCE($13, mitigation_plan),
+          contingency_plan = COALESCE($14, contingency_plan),
+          status = COALESCE($15, status),
+          notes = COALESCE($16, notes),
+          last_updated = $17,
+          updated_at = $18
       WHERE id = $1 AND project_id = $2
       RETURNING *
     `;
     
     const result = await query(updateQuery, [
       riskId, projectId, risk_code, title, description, category, cause, consequence,
-      likelihood, impact, risk_score, owner, response_strategy, mitigation_plan,
+      likelihood, impact, owner, response_strategy, mitigation_plan,
       contingency_plan, status, notes, new Date().toISOString().split('T')[0], new Date()
     ]);
     
