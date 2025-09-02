@@ -11,14 +11,10 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    // Environment-agnostic API configurationgit stash
+    // Environment-agnostic API configuration
     // Set VITE_API_URL=http://localhost:3001 for local backend
     // Leave empty or set to Supabase URL for cloud backend
-<<<<<<< Updated upstream
-    const apiUrl = (import.meta as any)?.env?.VITE_API_URL;
-=======
     const apiUrl = import.meta.env.VITE_API_URL;
->>>>>>> Stashed changes
     
     if (apiUrl && apiUrl.trim() !== '') {
       // Local backend - use direct routes without service prefixes
