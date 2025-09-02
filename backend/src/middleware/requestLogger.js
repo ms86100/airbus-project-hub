@@ -30,7 +30,29 @@ const requestLogger = (req, res, next) => {
     body: isProd ? undefined : safeBody,
   };
 
-  console.info('➡️  Request', logBase);
+console.info('➡️  Request', logBase);
+
+  // Intercept JSON responses to log body details in non-production
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    const duration = Date.now() - start;
+    const meta = {
+      status: res.statusCode,
+      durationMs: duration,
+      method: req.method,
+      url: req.originalUrl || req.url,
+    };
+
+    if (!isProd) {
+      const isError = res.statusCode >= 400 || (body && body.success === false);
+      const level = isError ? 'error' : 'info';
+      console[level](`⬅️  Response${isError ? ' (error)' : ''}`, { ...meta, body });
+    } else {
+      console.info('⬅️  Response', meta);
+    }
+
+    return originalJson(body);
+  };
 
   const onFinish = () => {
     res.removeListener('finish', onFinish);
@@ -41,7 +63,10 @@ const requestLogger = (req, res, next) => {
       method: req.method,
       url: req.originalUrl || req.url,
     };
-    console.info('⬅️  Response', meta);
+    // Keep a lightweight finish log to trace non-JSON responses
+    if (isProd) {
+      console.info('⬅️  Response', meta);
+    }
   };
 
   res.on('finish', onFinish);
