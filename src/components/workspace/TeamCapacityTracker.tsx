@@ -101,7 +101,7 @@ interface TeamCapacityTrackerProps {
 }
 
 export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
-  const { user } = useApiAuth();
+  const { user, session } = useApiAuth();
   const { toast } = useToast();
   
   const [settings, setSettings] = useState<CapacitySettings | null>(null);
@@ -162,7 +162,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/settings`, {
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${supabase?.auth?.getSession && (await supabase.auth.getSession())?.data?.session?.access_token}`,
+          'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -183,7 +183,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/capacity`, {
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${supabase?.auth?.getSession && (await supabase.auth.getSession())?.data?.session?.access_token}`,
+          'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -383,7 +383,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         method: editingIteration ? 'PUT' : 'POST',
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${supabase?.auth?.getSession && (await supabase.auth.getSession())?.data?.session?.access_token}`,
+          'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestData)
@@ -439,7 +439,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         method: 'POST',
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${supabase?.auth?.getSession && (await supabase.auth.getSession())?.data?.session?.access_token}`,
+          'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestData)
@@ -479,7 +479,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         method: 'DELETE',
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${supabase?.auth?.getSession && (await supabase.auth.getSession())?.data?.session?.access_token}`,
+          'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
         }
       });

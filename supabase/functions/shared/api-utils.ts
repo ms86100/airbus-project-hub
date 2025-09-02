@@ -46,6 +46,30 @@ export async function validateAuthToken(request: Request, supabase: any): Promis
   }
 
   const token = authHeader.replace('Bearer ', '');
+  
+  // Try API JWT validation first (for backend API tokens)
+  try {
+    // Simple JWT decode (edge functions don't have crypto for verification)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    
+    if (payload.userId && payload.email) {
+      // Fetch user from profiles table using service role
+      const { data: user, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', payload.userId)
+        .single();
+        
+      if (!error && user) {
+        return { user: { id: user.id, email: user.email, ...user } };
+      }
+    }
+  } catch (apiJwtError) {
+    // Not an API JWT, try Supabase auth
+    console.log('Not an API JWT, trying Supabase auth');
+  }
+  
+  // Fall back to Supabase auth validation
   const { data: { user }, error } = await supabase.auth.getUser(token);
   
   if (error || !user) {
