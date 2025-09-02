@@ -160,9 +160,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (userData.id) {
           fetchUserRole(userData.id);
         }
-        
-        // Force page refresh for clean state
-        window.location.href = '/';
       }
 
       return {};
@@ -222,14 +219,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Clean up auth state
       cleanupAuthState();
-      
-      // Force page refresh for clean state
-      window.location.href = '/auth';
     } catch (error) {
       console.error('Sign out error:', error);
       // Force cleanup even if there's an error
       cleanupAuthState();
-      window.location.href = '/auth';
     }
   };
 
