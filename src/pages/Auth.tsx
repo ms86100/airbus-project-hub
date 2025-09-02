@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const { signIn, signUp } = useApiAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +38,8 @@ const Auth = () => {
         });
       } else {
         console.log('=== LOGIN SUCCESS ===');
+        // Navigate to home page after successful login
+        navigate('/');
       }
     } catch (err) {
       console.error('=== LOGIN EXCEPTION ===', err);
