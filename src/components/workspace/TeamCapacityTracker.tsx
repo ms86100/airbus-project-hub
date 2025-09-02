@@ -103,6 +103,24 @@ interface TeamCapacityTrackerProps {
 export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const { user, session } = useApiAuth();
   const { toast } = useToast();
+
+  // Helper function to get authorization token
+  const getAuthToken = () => {
+    if (session?.access_token) {
+      return session.access_token;
+    }
+    // Fallback for localStorage token (for localhost/cloud compatibility)
+    const storedSession = localStorage.getItem('auth_session');
+    if (storedSession) {
+      try {
+        const parsed = JSON.parse(storedSession);
+        return parsed.access_token || parsed;
+      } catch {
+        return storedSession;
+      }
+    }
+    return '';
+  };
   
   const [settings, setSettings] = useState<CapacitySettings | null>(null);
   const [iterations, setIterations] = useState<CapacityIteration[]>([]);
@@ -157,12 +175,18 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   }, [projectId]);
 
   const fetchSettings = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      console.warn('No auth token available for settings request');
+      return;
+    }
+
     try {
       console.log('🔧 Fetching capacity settings...');
       const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/settings`, {
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -178,12 +202,18 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   };
 
   const fetchCapacityData = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      console.warn('No auth token available for capacity data request');
+      return;
+    }
+
     try {
       console.log('📋 Fetching capacity data...');
       const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/capacity`, {
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -214,9 +244,22 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   };
 
   const fetchTeams = async () => {
+    const token = getAuthToken();
+    if (!token) return;
+
     try {
-      // For now, using empty array until tables are properly set up
-      setTeams([]);
+      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/teams`, {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setTeams(data.data || []);
+      }
     } catch (error) {
       console.error('Error fetching teams:', error);
     }
@@ -300,33 +343,15 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      // Create a proper form event object
-      const mockEvent = {
-        preventDefault: () => {},
-        target: {} as any,
-        currentTarget: {} as any,
-        bubbles: false,
-        cancelable: false,
-        defaultPrevented: false,
-        eventPhase: 0,
-        isTrusted: false,
-        timeStamp: Date.now(),
-        type: 'submit',
-        nativeEvent: {} as any,
-        isDefaultPrevented: () => false,
-        isPropagationStopped: () => false,
-        persist: () => {},
-        stopPropagation: () => {}
-      } as React.FormEvent;
-
+      // Add all team members to the iteration
       for (const member of team.members) {
-        await handleMemberSubmit(mockEvent, {
+        await handleMemberSubmit(null, {
           iteration_id: iterationId,
           member_name: member.member_name,
           role: member.role,
           work_mode: member.work_mode,
-          leaves: 0,
-          availability_percent: member.default_availability_percent,
+          leaves: 0, // Default leaves for team members
+          availability_percent: member.default_availability_percent || 100,
           stakeholder_id: member.stakeholder_id || 'none',
           team_id: teamId
         });
@@ -367,6 +392,16 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const handleIterationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const token = getAuthToken();
+    if (!token) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in again to continue",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       const requestData = {
         type: 'iteration',
@@ -383,7 +418,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         method: editingIteration ? 'PUT' : 'POST',
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestData)
@@ -439,7 +474,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         method: 'POST',
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestData)
@@ -479,7 +514,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         method: 'DELETE',
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
         }
       });
@@ -557,6 +592,64 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const openAddMember = (iterationId: string) => {
     setMemberForm(prev => ({ ...prev, iteration_id: iterationId }));
     setShowMemberDialog(true);
+  };
+
+  const handleCreateTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const token = getAuthToken();
+    if (!token) {
+      toast({
+        title: "Authentication Error", 
+        description: "Please log in again to continue",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      const requestData = {
+        team_name: teamForm.team_name,
+        description: teamForm.description,
+        members: teamForm.members
+      };
+
+      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/teams`, {
+        method: 'POST',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MVgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create team');
+      }
+
+      toast({
+        title: "Team Created",
+        description: `Team "${teamForm.team_name}" has been created successfully.`,
+      });
+      
+      setTeamForm({
+        team_name: '',
+        description: '',
+        members: []
+      });
+      setShowTeamDialog(false);
+      await fetchTeams();
+    } catch (error) {
+      console.error('Error creating team:', error);
+      toast({
+        title: "Error",
+        description: `Failed to create team: ${error}`,
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading) {
