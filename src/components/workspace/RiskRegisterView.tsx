@@ -107,9 +107,26 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
       
       setRisks(response.data || []);
     } catch (error: any) {
+      console.error('🔥 Full fetch risks error details:', error);
+      
+      // Extract detailed error message from response
+      let errorMessage = "Failed to load risks";
+      if (error?.response?.data) {
+        const responseData = error.response.data;
+        if (responseData.error) {
+          errorMessage = responseData.error;
+        }
+        if (responseData.debug) {
+          console.error('🔍 Debug details:', responseData.debug);
+          errorMessage += ` (${responseData.debug.code || 'Unknown error'})`;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error loading risks",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -185,11 +202,29 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
       
       fetchRisks();
     } catch (error: any) {
-      console.error('Full error details:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
+      console.error('🔥 Full add risk error details:', error);
+      
+      // Extract detailed error message from response
+      let errorMessage = "Failed to create risk";
+      if (error?.response?.data) {
+        const responseData = error.response.data;
+        if (responseData.error) {
+          errorMessage = responseData.error;
+        }
+        if (responseData.debug) {
+          console.error('🔍 Debug details:', responseData.debug);
+          errorMessage += ` (${responseData.debug.code || 'Unknown error'})`;
+          if (responseData.debug.detail) {
+            errorMessage += ` - ${responseData.debug.detail}`;
+          }
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error adding risk",
-        description: `Detailed error: ${errorMessage}`,
+        description: errorMessage,
         variant: "destructive",
       });
     }

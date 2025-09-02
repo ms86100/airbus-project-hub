@@ -371,14 +371,46 @@ router.post('/projects/:id/discussions', verifyToken, verifyProjectAccess, async
   try {
     const projectId = req.projectId;
     const userId = req.user.id;
+    
+    console.log('🔍 Discussion creation request:', {
+      projectId,
+      userId,
+      body: req.body
+    });
+    
     const { meeting_title, meeting_date, attendees, summary_notes } = req.body;
     
     if (!meeting_title || !meeting_date) {
-      return sendResponse(res, createErrorResponse('Meeting title and date required', 'MISSING_FIELDS', 400));
+      console.error('❌ Missing required fields:', { meeting_title, meeting_date });
+      return sendResponse(res, createErrorResponse('Meeting title and date are required', 'MISSING_FIELDS', 400));
     }
 
     const discussionId = uuidv4();
     const now = new Date();
+    
+    // Normalize attendees (ensure it's properly formatted for JSON storage)
+    let attendeesJson = null;
+    if (attendees) {
+      if (Array.isArray(attendees)) {
+        attendeesJson = JSON.stringify(attendees);
+      } else if (typeof attendees === 'string') {
+        try {
+          // Try to parse if it's already a JSON string
+          JSON.parse(attendees);
+          attendeesJson = attendees;
+        } catch {
+          // If not valid JSON, treat as plain string and wrap in array
+          attendeesJson = JSON.stringify([attendees]);
+        }
+      } else {
+        attendeesJson = JSON.stringify(attendees);
+      }
+    }
+    
+    console.log('📝 Normalized discussion data:', {
+      discussionId, projectId, meeting_title, meeting_date, 
+      attendeesJson, summary_notes, userId
+    });
     
     const insertQuery = `
       INSERT INTO project_discussions (id, project_id, meeting_title, meeting_date, attendees, summary_notes, created_by, created_at, updated_at)
@@ -391,20 +423,39 @@ router.post('/projects/:id/discussions', verifyToken, verifyProjectAccess, async
       projectId,
       meeting_title,
       meeting_date,
-      attendees ? JSON.stringify(attendees) : null,
+      attendeesJson,
       summary_notes || null,
       userId,
       now,
       now
     ]);
     
+    console.log('✅ Discussion created successfully:', result.rows[0]);
+    
     sendResponse(res, createSuccessResponse({
       message: 'Discussion created successfully',
       discussion: result.rows[0]
     }));
   } catch (error) {
-    console.error('Create discussion error:', error);
-    sendResponse(res, createErrorResponse('Failed to create discussion', 'CREATE_ERROR', 500));
+    console.error('🔥 Create discussion error:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint,
+      table: error.table,
+      column: error.column,
+      constraint: error.constraint
+    });
+    
+    const errorMessage = error.detail || error.message || 'Unknown database error';
+    const errorCode = error.code || 'CREATE_ERROR';
+    
+    sendResponse(res, createErrorResponse(
+      `Failed to create discussion: ${errorMessage}`, 
+      errorCode, 
+      500
+    ));
   }
 });
 
@@ -659,19 +710,62 @@ router.post('/projects/:id/risks', verifyToken, verifyProjectAccess, async (req,
   try {
     const projectId = req.projectId;
     const userId = req.user.id;
-    const { 
+    
+    console.log('🔍 Risk creation request:', {
+      projectId,
+      userId,
+      body: req.body,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'authorization': req.headers.authorization ? `${req.headers.authorization.substring(0, 16)}...` : 'none'
+      }
+    });
+    
+    // Extract and normalize fields to match edge function format
+    let { 
       risk_code, title, description, category, cause, consequence, 
       likelihood, impact, owner, response_strategy, mitigation_plan, 
       contingency_plan, status, notes 
     } = req.body;
     
+    // Validate required fields
     if (!risk_code || !title) {
-      return sendResponse(res, createErrorResponse('Risk code and title required', 'MISSING_FIELDS', 400));
+      console.error('❌ Missing required fields:', { risk_code, title });
+      return sendResponse(res, createErrorResponse('Risk code and title are required', 'MISSING_FIELDS', 400));
     }
+
+    // Normalize data to match edge function format
+    // Convert empty strings to null for nullable fields
+    description = description?.trim() === '' ? null : description;
+    category = category?.trim() === '' ? null : category;
+    cause = cause?.trim() === '' ? null : cause;
+    consequence = consequence?.trim() === '' ? null : consequence;
+    owner = owner?.trim() === '' ? null : owner;
+    response_strategy = response_strategy?.trim() === '' ? null : response_strategy;
+    contingency_plan = contingency_plan?.trim() === '' ? null : contingency_plan;
+    notes = notes?.trim() === '' ? null : notes;
+    
+    // Ensure mitigation_plan is handled properly (it can be string or array)
+    if (typeof mitigation_plan === 'string' && mitigation_plan.trim() === '') {
+      mitigation_plan = null;
+    }
+    
+    // Ensure numeric fields are proper numbers
+    likelihood = likelihood === '' || likelihood === null || likelihood === undefined ? null : Number(likelihood);
+    impact = impact === '' || impact === null || impact === undefined ? null : Number(impact);
+    
+    // Ensure status has a default
+    status = status || 'open';
 
     const riskId = uuidv4();
     const now = new Date();
-    const risk_score = likelihood && impact ? likelihood * impact : null;
+    const risk_score = (likelihood && impact) ? likelihood * impact : null;
+    
+    console.log('📝 Normalized risk data:', {
+      riskId, projectId, risk_code, title, description, category, cause, consequence,
+      likelihood, impact, risk_score, owner, response_strategy, mitigation_plan,
+      contingency_plan, status, notes, userId
+    });
     
     const insertQuery = `
       INSERT INTO risk_register (
@@ -686,21 +780,43 @@ router.post('/projects/:id/risks', verifyToken, verifyProjectAccess, async (req,
     const result = await query(insertQuery, [
       riskId, projectId, risk_code, title, description, category, cause, consequence,
       likelihood, impact, risk_score, owner, response_strategy, mitigation_plan,
-      contingency_plan, status || 'open', notes, now.toISOString().split('T')[0], userId, now, now
+      contingency_plan, status, notes, now.toISOString().split('T')[0], userId, now, now
     ]);
+    
+    console.log('✅ Risk created successfully:', result.rows[0]);
     
     sendResponse(res, createSuccessResponse({
       message: 'Risk created successfully',
       risk: result.rows[0]
     }));
   } catch (error) {
-    console.error('Create risk error:', {
+    console.error('🔥 Create risk error:', {
       message: error.message,
       stack: error.stack,
       code: error.code,
-      detail: error.detail
+      detail: error.detail,
+      hint: error.hint,
+      table: error.table,
+      column: error.column,
+      constraint: error.constraint,
+      where: error.where,
+      position: error.position,
+      internalPosition: error.internalPosition,
+      internalQuery: error.internalQuery,
+      file: error.file,
+      line: error.line,
+      routine: error.routine
     });
-    sendResponse(res, createErrorResponse(`Failed to create risk: ${error.message}`, 'CREATE_ERROR', 500));
+    
+    // Return detailed error information
+    const errorMessage = error.detail || error.message || 'Unknown database error';
+    const errorCode = error.code || 'CREATE_ERROR';
+    
+    sendResponse(res, createErrorResponse(
+      `Failed to create risk: ${errorMessage}`, 
+      errorCode, 
+      500
+    ));
   }
 });
 

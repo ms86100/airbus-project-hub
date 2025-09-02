@@ -64,17 +64,29 @@ router.post('/projects/:id/capacity', verifyToken, verifyProjectAccess, async (r
   try {
     const projectId = req.projectId;
     const userId = req.user.id;
+    
+    console.log('🔍 Capacity creation request:', {
+      projectId,
+      userId,
+      body: req.body
+    });
+    
     const { type, ...data } = req.body;
     
     if (type === 'iteration') {
       const { iterationName, startDate, endDate, workingDays, committedStoryPoints } = data;
       
       if (!iterationName || !startDate || !endDate || !workingDays) {
-        return sendResponse(res, createErrorResponse('Iteration name, dates, and working days required', 'MISSING_FIELDS', 400));
+        console.error('❌ Missing iteration fields:', { iterationName, startDate, endDate, workingDays });
+        return sendResponse(res, createErrorResponse('Iteration name, dates, and working days are required', 'MISSING_FIELDS', 400));
       }
 
       const iterationId = uuidv4();
       const now = new Date();
+      
+      console.log('📝 Creating iteration:', {
+        iterationId, projectId, iterationName, startDate, endDate, workingDays, committedStoryPoints
+      });
       
       const insertQuery = `
         INSERT INTO team_capacity_iterations (id, project_id, iteration_name, start_date, end_date, working_days, committed_story_points, created_by, created_at, updated_at)
@@ -95,21 +107,26 @@ router.post('/projects/:id/capacity', verifyToken, verifyProjectAccess, async (r
         now
       ]);
       
+      console.log('✅ Iteration created successfully:', result.rows[0]);
+      
       sendResponse(res, createSuccessResponse({
         message: 'Capacity iteration created successfully',
         iteration: result.rows[0]
       }));
+      
     } else if (type === 'member') {
       const { iterationId, memberName, role, workMode, availabilityPercent, leaves, stakeholderId, teamId } = data;
       
       if (!iterationId || !memberName || !role) {
-        return sendResponse(res, createErrorResponse('Iteration ID, member name, and role required', 'MISSING_FIELDS', 400));
+        console.error('❌ Missing member fields:', { iterationId, memberName, role });
+        return sendResponse(res, createErrorResponse('Iteration ID, member name, and role are required', 'MISSING_FIELDS', 400));
       }
 
       // Calculate effective capacity
       const iterationResult = await query('SELECT working_days FROM team_capacity_iterations WHERE id = $1', [iterationId]);
       
       if (iterationResult.rows.length === 0) {
+        console.error('❌ Iteration not found:', iterationId);
         return sendResponse(res, createErrorResponse('Iteration not found', 'ITERATION_NOT_FOUND', 404));
       }
       
@@ -118,6 +135,11 @@ router.post('/projects/:id/capacity', verifyToken, verifyProjectAccess, async (r
       
       const memberId = uuidv4();
       const now = new Date();
+      
+      console.log('📝 Creating team member:', {
+        memberId, iterationId, memberName, role, workMode, 
+        availabilityPercent, leaves, effectiveCapacity, stakeholderId, teamId
+      });
       
       const insertQuery = `
         INSERT INTO team_capacity_members (id, iteration_id, stakeholder_id, team_id, member_name, role, work_mode, leaves, availability_percent, effective_capacity_days, created_by, created_at, updated_at)
@@ -141,16 +163,37 @@ router.post('/projects/:id/capacity', verifyToken, verifyProjectAccess, async (r
         now
       ]);
       
+      console.log('✅ Team member added successfully:', result.rows[0]);
+      
       sendResponse(res, createSuccessResponse({
         message: 'Team member added successfully',
         member: result.rows[0]
       }));
+      
     } else {
+      console.error('❌ Invalid type provided:', type);
       sendResponse(res, createErrorResponse('Invalid type. Must be "iteration" or "member"', 'INVALID_TYPE', 400));
     }
   } catch (error) {
-    console.error('Create capacity item error:', error);
-    sendResponse(res, createErrorResponse('Failed to create capacity item', 'CREATE_ERROR', 500));
+    console.error('🔥 Create capacity item error:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint,
+      table: error.table,
+      column: error.column,
+      constraint: error.constraint
+    });
+    
+    const errorMessage = error.detail || error.message || 'Unknown database error';
+    const errorCode = error.code || 'CREATE_ERROR';
+    
+    sendResponse(res, createErrorResponse(
+      `Failed to create capacity item: ${errorMessage}`, 
+      errorCode, 
+      500
+    ));
   }
 });
 
