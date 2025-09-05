@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApiAuth } from '@/hooks/useApiAuth';
+import { budgetApi } from '@/services/budgetApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,7 +72,6 @@ interface BudgetAnalytics {
 }
 
 export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementProps) {
-  const { session } = useApiAuth();
   const [budget, setBudget] = useState<ProjectBudget | null>(null);
   const [budgetTypes, setBudgetTypes] = useState<BudgetType[]>([]);
   const [analytics, setAnalytics] = useState<BudgetAnalytics | null>(null);
@@ -108,71 +107,26 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
     status: 'pending',
   });
 
-  // Helper function to get auth token
-  const getAuthToken = () => {
-    if (session?.access_token) {
-      return session.access_token;
-    }
-    
-    const storedSession = localStorage.getItem('supabase.auth.token');
-    if (storedSession) {
-      try {
-        const parsed = JSON.parse(storedSession);
-        return parsed.access_token;
-      } catch (e) {
-        console.warn('Failed to parse stored session');
-      }
-    }
-    
-    return null;
-  };
-
   const fetchBudgetData = async () => {
     try {
       setLoading(true);
-      const token = getAuthToken();
-      
-      if (!token) {
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to access budget data",
-          variant: "destructive",
-        });
-        return;
-      }
-
       console.log('🔄 Fetching budget data for project:', projectId);
 
-      const response = await fetch(
-        `https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/budget-service/projects/${projectId}/budget`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      const result = await response.json();
+      const result = await budgetApi.getProjectBudget(projectId);
       console.log('📊 Budget data response:', result);
 
-      if (result.success) {
-        setBudget(result.data.budget);
-        setBudgetTypes(result.data.budgetTypes);
-        setAnalytics(result.data.analytics);
-        
-        if (result.data.budget) {
-          setBudgetForm({
-            currency: result.data.budget.currency || 'INR',
-            total_budget_allocated: result.data.budget.total_budget_allocated?.toString() || '',
-            total_budget_received: result.data.budget.total_budget_received?.toString() || '',
-            start_date: result.data.budget.start_date || '',
-            end_date: result.data.budget.end_date || '',
-          });
-        }
-      } else {
-        throw new Error(result.message || 'Failed to fetch budget data');
+      setBudget(result.data.budget);
+      setBudgetTypes(result.data.budgetTypes);
+      setAnalytics(result.data.analytics);
+      
+      if (result.data.budget) {
+        setBudgetForm({
+          currency: result.data.budget.currency || 'INR',
+          total_budget_allocated: result.data.budget.total_budget_allocated?.toString() || '',
+          total_budget_received: result.data.budget.total_budget_received?.toString() || '',
+          start_date: result.data.budget.start_date || '',
+          end_date: result.data.budget.end_date || '',
+        });
       }
     } catch (error) {
       console.error('❌ Error fetching budget data:', error);
@@ -188,47 +142,21 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
   const saveBudget = async () => {
     try {
-      const token = getAuthToken();
-      if (!token) {
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to save budget",
-          variant: "destructive",
-        });
-        return;
-      }
-
       console.log('💾 Saving budget for project:', projectId, budgetForm);
 
-      const response = await fetch(
-        `https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/budget-service/projects/${projectId}/budget`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            currency: budgetForm.currency,
-            total_budget_allocated: parseFloat(budgetForm.total_budget_allocated) || 0,
-            total_budget_received: parseFloat(budgetForm.total_budget_received) || 0,
-            start_date: budgetForm.start_date || null,
-            end_date: budgetForm.end_date || null,
-          }),
-        }
-      );
+      const result = await budgetApi.createOrUpdateBudget(projectId, {
+        currency: budgetForm.currency,
+        total_budget_allocated: parseFloat(budgetForm.total_budget_allocated) || 0,
+        total_budget_received: parseFloat(budgetForm.total_budget_received) || 0,
+        start_date: budgetForm.start_date || null,
+        end_date: budgetForm.end_date || null,
+      });
 
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Budget saved successfully",
-        });
-        fetchBudgetData();
-      } else {
-        throw new Error(result.message || 'Failed to save budget');
-      }
+      toast({
+        title: "Success",
+        description: "Budget saved successfully",
+      });
+      fetchBudgetData();
     } catch (error) {
       console.error('❌ Error saving budget:', error);
       toast({
@@ -241,55 +169,29 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
   const createCategory = async () => {
     try {
-      const token = getAuthToken();
-      if (!token) {
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to create category",
-          variant: "destructive",
-        });
-        return;
-      }
-
       console.log('📂 Creating category for project:', projectId, categoryForm);
 
-      const response = await fetch(
-        `https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/budget-service/projects/${projectId}/categories`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            budget_type_code: categoryForm.budget_type_code,
-            name: categoryForm.name,
-            budget_allocated: parseFloat(categoryForm.budget_allocated) || 0,
-            budget_received: parseFloat(categoryForm.budget_received) || 0,
-            comments: categoryForm.comments,
-          }),
-        }
-      );
+      await budgetApi.createBudgetCategory(projectId, {
+        budget_type_code: categoryForm.budget_type_code,
+        name: categoryForm.name,
+        budget_allocated: parseFloat(categoryForm.budget_allocated) || 0,
+        budget_received: parseFloat(categoryForm.budget_received) || 0,
+        comments: categoryForm.comments,
+      });
 
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Budget category created successfully",
-        });
-        setIsCreateCategoryOpen(false);
-        setCategoryForm({
-          budget_type_code: '',
-          name: '',
-          budget_allocated: '',
-          budget_received: '',
-          comments: '',
-        });
-        fetchBudgetData();
-      } else {
-        throw new Error(result.message || 'Failed to create category');
-      }
+      toast({
+        title: "Success",
+        description: "Budget category created successfully",
+      });
+      setIsCreateCategoryOpen(false);
+      setCategoryForm({
+        budget_type_code: '',
+        name: '',
+        budget_allocated: '',
+        budget_received: '',
+        comments: '',
+      });
+      fetchBudgetData();
     } catch (error) {
       console.error('❌ Error creating category:', error);
       toast({
@@ -302,11 +204,10 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
   const createSpending = async () => {
     try {
-      const token = getAuthToken();
-      if (!token || !selectedCategory) {
+      if (!selectedCategory) {
         toast({
           title: "Error",
-          description: "Please select a category and ensure you're authenticated",
+          description: "Please select a category",
           variant: "destructive",
         });
         return;
@@ -314,47 +215,31 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
       console.log('💸 Creating spending for category:', selectedCategory, spendingForm);
 
-      const response = await fetch(
-        `https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/budget-service/categories/${selectedCategory}/spending`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            date: spendingForm.date,
-            vendor: spendingForm.vendor,
-            description: spendingForm.description,
-            invoice_id: spendingForm.invoice_id,
-            amount: parseFloat(spendingForm.amount) || 0,
-            payment_method: spendingForm.payment_method,
-            status: spendingForm.status,
-          }),
-        }
-      );
+      await budgetApi.createSpendingEntry(selectedCategory, {
+        date: spendingForm.date,
+        vendor: spendingForm.vendor,
+        description: spendingForm.description,
+        invoice_id: spendingForm.invoice_id,
+        amount: parseFloat(spendingForm.amount) || 0,
+        payment_method: spendingForm.payment_method,
+        status: spendingForm.status,
+      });
 
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Spending entry created successfully",
-        });
-        setIsCreateSpendingOpen(false);
-        setSpendingForm({
-          date: '',
-          vendor: '',
-          description: '',
-          invoice_id: '',
-          amount: '',
-          payment_method: '',
-          status: 'pending',
-        });
-        fetchBudgetData();
-      } else {
-        throw new Error(result.message || 'Failed to create spending');
-      }
+      toast({
+        title: "Success",
+        description: "Spending entry created successfully",
+      });
+      setIsCreateSpendingOpen(false);
+      setSpendingForm({
+        date: '',
+        vendor: '',
+        description: '',
+        invoice_id: '',
+        amount: '',
+        payment_method: '',
+        status: 'pending',
+      });
+      fetchBudgetData();
     } catch (error) {
       console.error('❌ Error creating spending:', error);
       toast({

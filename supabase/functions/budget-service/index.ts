@@ -1,17 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { validateJWT } from '../shared/api-utils.ts';
+import { validateAuthToken, corsHeaders, createSuccessResponse, createErrorResponse, handleCorsOptions } from '../shared/api-utils.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 Deno.serve(async (req) => {
   console.log('🏷️ Budget service request:', req.method, req.url);
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsOptions();
   }
 
   try {
@@ -21,12 +17,9 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Validate authentication
-    const user = await validateJWT(req, supabase);
+    const { user, error: authError } = await validateAuthToken(req, supabase);
     if (!user) {
-      return new Response(
-        JSON.stringify({ code: 401, message: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return createErrorResponse(authError || 'Unauthorized', 'UNAUTHORIZED', 401);
     }
 
     const url = new URL(req.url);
@@ -57,10 +50,7 @@ Deno.serve(async (req) => {
 
         if (budgetError) {
           console.error('❌ Error fetching budget:', budgetError);
-          return new Response(
-            JSON.stringify({ code: 500, message: 'Failed to fetch budget', error: budgetError.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return createErrorResponse('Failed to fetch budget', 'FETCH_ERROR', 500);
         }
 
         // Get budget types for reference
@@ -72,10 +62,7 @@ Deno.serve(async (req) => {
 
         if (typesError) {
           console.error('❌ Error fetching budget types:', typesError);
-          return new Response(
-            JSON.stringify({ code: 500, message: 'Failed to fetch budget types', error: typesError.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return createErrorResponse('Failed to fetch budget types', 'FETCH_ERROR', 500);
         }
 
         const result = {
@@ -84,10 +71,7 @@ Deno.serve(async (req) => {
           analytics: budget ? calculateBudgetAnalytics(budget) : null
         };
 
-        return new Response(
-          JSON.stringify({ success: true, data: result }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return createSuccessResponse(result);
       }
 
       if (req.method === 'POST') {
@@ -140,16 +124,10 @@ Deno.serve(async (req) => {
 
         if (budgetResult.error) {
           console.error('❌ Error saving budget:', budgetResult.error);
-          return new Response(
-            JSON.stringify({ code: 500, message: 'Failed to save budget', error: budgetResult.error.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return createErrorResponse('Failed to save budget', 'SAVE_ERROR', 500);
         }
 
-        return new Response(
-          JSON.stringify({ success: true, data: budgetResult.data }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return createSuccessResponse(budgetResult.data);
       }
     }
 
@@ -170,10 +148,7 @@ Deno.serve(async (req) => {
           .single();
 
         if (!projectBudget) {
-          return new Response(
-            JSON.stringify({ code: 404, message: 'Project budget not found' }),
-            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return createErrorResponse('Project budget not found', 'NOT_FOUND', 404);
         }
 
         const { data, error } = await supabase
@@ -192,16 +167,10 @@ Deno.serve(async (req) => {
 
         if (error) {
           console.error('❌ Error creating category:', error);
-          return new Response(
-            JSON.stringify({ code: 500, message: 'Failed to create category', error: error.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return createErrorResponse('Failed to create category', 'CREATE_ERROR', 500);
         }
 
-        return new Response(
-          JSON.stringify({ success: true, data }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return createSuccessResponse(data);
       }
     }
 
@@ -232,19 +201,13 @@ Deno.serve(async (req) => {
 
         if (error) {
           console.error('❌ Error creating spending:', error);
-          return new Response(
-            JSON.stringify({ code: 500, message: 'Failed to create spending', error: error.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return createErrorResponse('Failed to create spending', 'CREATE_ERROR', 500);
         }
 
         // Update category amount_spent
         await updateCategorySpentAmount(supabase, categoryId);
 
-        return new Response(
-          JSON.stringify({ success: true, data }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return createSuccessResponse(data);
       }
     }
 
@@ -260,30 +223,18 @@ Deno.serve(async (req) => {
 
         if (error) {
           console.error('❌ Error fetching budget types:', error);
-          return new Response(
-            JSON.stringify({ code: 500, message: 'Failed to fetch budget types', error: error.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return createErrorResponse('Failed to fetch budget types', 'FETCH_ERROR', 500);
         }
 
-        return new Response(
-          JSON.stringify({ success: true, data }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return createSuccessResponse(data);
       }
     }
 
-    return new Response(
-      JSON.stringify({ code: 404, message: 'Endpoint not found' }),
-      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
 
   } catch (error) {
     console.error('❌ Budget service error:', error);
-    return new Response(
-      JSON.stringify({ code: 500, message: 'Internal server error', error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return createErrorResponse('Internal server error', 'INTERNAL_ERROR', 500);
   }
 });
 
