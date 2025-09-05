@@ -175,26 +175,13 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   }, [projectId]);
 
   const fetchSettings = async () => {
-    const token = getAuthToken();
-    if (!token) {
-      console.warn('No auth token available for settings request');
-      return;
-    }
-
     try {
       console.log('🔧 Fetching capacity settings...');
-      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/settings`, {
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiClient.getCapacitySettings(projectId);
       
-      const data = await response.json();
-      if (data.success) {
-        setSettings(data.data);
-        console.log('✅ Settings loaded:', data.data);
+      if (response.success) {
+        setSettings(response.data);
+        console.log('✅ Settings loaded:', response.data);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -202,28 +189,14 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   };
 
   const fetchCapacityData = async () => {
-    const token = getAuthToken();
-    if (!token) {
-      console.warn('No auth token available for capacity data request');
-      return;
-    }
-
     try {
       console.log('📋 Fetching capacity data...');
-      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/capacity`, {
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiClient.getCapacityData(projectId);
+      console.log('📋 Capacity data response:', response);
       
-      const data = await response.json();
-      console.log('📋 Capacity data response:', data);
-      
-      if (data.success) {
-        setIterations(data.data.iterations || []);
-        console.log('📋 Setting iterations data:', data.data.iterations);
+      if (response.success) {
+        setIterations(response.data.iterations || []);
+        console.log('📋 Setting iterations data:', response.data.iterations);
       }
     } catch (error) {
       console.error('Error fetching capacity data:', error);
@@ -244,22 +217,11 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   };
 
   const fetchTeams = async () => {
-    const token = getAuthToken();
-    if (!token) return;
-
+    // Use local API endpoint for teams - for now we'll use mock data 
+    // until the teams endpoint is fully implemented
     try {
-      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/teams`, {
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        setTeams(data.data || []);
-      }
+      // Mock teams data for now
+      setTeams([]);
     } catch (error) {
       console.error('Error fetching teams:', error);
     }
@@ -392,19 +354,9 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   const handleIterationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const token = getAuthToken();
-    if (!token) {
-      toast({
-        title: "Authentication Error",
-        description: "Please log in again to continue",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     try {
       const requestData = {
-        type: 'iteration',
+        type: 'iteration' as const,
         iterationName: iterationForm.iteration_name,
         startDate: iterationForm.start_date,
         endDate: iterationForm.end_date,
@@ -414,21 +366,17 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
       console.log('🚀 Creating iteration with data:', requestData);
 
-      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/capacity`, {
-        method: editingIteration ? 'PUT' : 'POST',
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
+      let response;
+      if (editingIteration) {
+        response = await apiClient.updateCapacityIteration(projectId, editingIteration.id, requestData);
+      } else {
+        response = await apiClient.createCapacityIteration(projectId, requestData);
+      }
       
-      const data = await response.json();
-      console.log('📡 Response from capacity service:', data);
+      console.log('📡 Response from capacity service:', response);
       
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to create iteration');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create iteration');
       }
 
       toast({
@@ -450,14 +398,14 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
     }
   };
 
-  const handleMemberSubmit = async (e: React.FormEvent, memberData?: typeof memberForm) => {
-    e.preventDefault();
+  const handleMemberSubmit = async (e: React.FormEvent | null, memberData?: typeof memberForm) => {
+    if (e) e.preventDefault();
     
     const formData = memberData || memberForm;
     
     try {
       const requestData = {
-        type: 'member',
+        type: 'member' as const,
         iterationId: formData.iteration_id,
         memberName: formData.member_name,
         role: formData.role,
@@ -470,21 +418,11 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
       console.log('🚀 Adding member with data:', requestData);
 
-      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/capacity-service/projects/${projectId}/capacity`, {
-        method: 'POST',
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-          'Authorization': `Bearer ${getAuthToken()}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
+      const response = await apiClient.addCapacityMember(projectId, requestData);
+      console.log('📡 Response from capacity service:', response);
       
-      const data = await response.json();
-      console.log('📡 Response from capacity service:', data);
-      
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to create capacity item');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create capacity item');
       }
 
       if (!memberData) {

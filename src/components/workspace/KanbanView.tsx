@@ -278,9 +278,13 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     const taskId = active.id as string;
     const dropTargetId = over.id as string;
 
+    console.log('Drag end - Active:', taskId, 'Over:', dropTargetId);
+
     // Ensure we only accept valid status column IDs as drop targets
     const validStatuses = statusColumns.map(col => col.key);
     const newStatus = validStatuses.includes(dropTargetId) ? dropTargetId : null;
+
+    console.log('Valid statuses:', validStatuses, 'New status:', newStatus);
 
     if (!newStatus) {
       console.error('Invalid drop target:', dropTargetId, 'Valid targets:', validStatuses);
@@ -412,6 +416,13 @@ export function KanbanView({ projectId }: KanbanViewProps) {
         status: column.key,
       },
     });
+
+    // Debug logging for the "In Progress" column
+    React.useEffect(() => {
+      if (column.key === 'in_progress') {
+        console.log('In Progress column - isOver:', isOver, 'activeTask:', activeTask?.title);
+      }
+    }, [isOver, activeTask, column.key]);
 
     return (
       <div className="flex flex-col h-full">
