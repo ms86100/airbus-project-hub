@@ -185,7 +185,7 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
     if (iteration.id.startsWith('temp-')) {
       toast({
         title: 'Create Iteration Required',
-        description: 'Please create a proper iteration first before saving availability data.',
+        description: 'This is a preview mode. Create a proper iteration to save availability data.',
         variant: 'destructive'
       });
       return;
