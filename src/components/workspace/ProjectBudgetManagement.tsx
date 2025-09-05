@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { PlusCircle, DollarSign, TrendingUp, AlertTriangle, Receipt } from 'lucide-react';
+import { PlusCircle, DollarSign, TrendingUp, AlertTriangle, Receipt, BarChart3, PieChart, LineChart } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart as RechartsLineChart, Line } from 'recharts';
 
 interface ProjectBudgetManagementProps {
   projectId: string;
@@ -23,6 +24,7 @@ interface BudgetType {
   label: string;
   default_allocation_percent: number;
   notes?: string;
+  type_name?: string; // For compatibility with specification
 }
 
 interface BudgetCategory {
@@ -116,8 +118,17 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
       console.log('📊 Raw budget data response:', result);
 
       setBudget(result.data.budget);
-      setBudgetTypes(result.data.budgetTypes);
+      setBudgetTypes(result.data.budgetTypes || []);
       setAnalytics(result.data.analytics);
+
+      // Show error if no budget types available
+      if (!result.data.budgetTypes || result.data.budgetTypes.length === 0) {
+        toast({
+          title: "Budget Types Missing",
+          description: "No budget types available. Please create budget types in the Admin section.",
+          variant: "destructive",
+        });
+      }
       
       console.log('📊 Processed budget data:', {
         budget: result.data.budget,
@@ -142,8 +153,10 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         projectId: projectId
       });
       toast({
-        title: "Debug Error",
-        description: `Budget fetch failed: ${error.message}`,
+        title: "Budget Fetch Error",
+        description: error.message.includes('budget types') ? 
+          "No budget types available. Please create budget types in Admin section." :
+          `Budget fetch failed: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -336,10 +349,11 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="spending">Spending</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -387,7 +401,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="budget_type">Budget Type</Label>
+                    <Label htmlFor="budget_type">Budget Type *</Label>
                     <Select value={categoryForm.budget_type_code} onValueChange={(value) => 
                       setCategoryForm(prev => ({ ...prev, budget_type_code: value }))
                     }>
@@ -395,44 +409,45 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                         <SelectValue placeholder="Select budget type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {budgetTypes.map((type) => (
-                          <SelectItem key={type.code} value={type.code}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
+                        {budgetTypes.length === 0 ? (
+                          <SelectItem value="" disabled>No budget types available</SelectItem>
+                        ) : (
+                          budgetTypes.map((type) => (
+                            <SelectItem key={type.code} value={type.code}>
+                              {type.label || type.type_name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
+                    {budgetTypes.length === 0 && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        No budget types available. Contact admin to create budget types.
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="category_name">Category Name</Label>
+                    <Label htmlFor="category_name">Title *</Label>
                     <Input
                       id="category_name"
                       value={categoryForm.name}
                       onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter category name"
+                      placeholder="Enter budget title"
+                      required
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="budget_allocated">Budget Allocated</Label>
-                      <Input
-                        id="budget_allocated"
-                        type="number"
-                        value={categoryForm.budget_allocated}
-                        onChange={(e) => setCategoryForm(prev => ({ ...prev, budget_allocated: e.target.value }))}
-                        placeholder="0"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="budget_received">Budget Received</Label>
-                      <Input
-                        id="budget_received"
-                        type="number"
-                        value={categoryForm.budget_received}
-                        onChange={(e) => setCategoryForm(prev => ({ ...prev, budget_received: e.target.value }))}
-                        placeholder="0"
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="budget_allocated">Amount *</Label>
+                    <Input
+                      id="budget_allocated"
+                      type="number"
+                      value={categoryForm.budget_allocated}
+                      onChange={(e) => setCategoryForm(prev => ({ ...prev, budget_allocated: e.target.value }))}
+                      placeholder="Enter budget amount"
+                      required
+                      min="0"
+                      step="0.01"
+                    />
                   </div>
                   <div>
                     <Label htmlFor="category_comments">Comments</Label>
@@ -443,8 +458,12 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                       placeholder="Optional comments"
                     />
                   </div>
-                  <Button onClick={createCategory} className="w-full">
-                    Create Category
+                  <Button 
+                    onClick={createCategory} 
+                    className="w-full"
+                    disabled={!categoryForm.budget_type_code || !categoryForm.name || !categoryForm.budget_allocated || budgetTypes.length === 0}
+                  >
+                    Create Budget
                   </Button>
                 </div>
               </DialogContent>
@@ -482,6 +501,115 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Budget vs Actual Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Budget vs Actual
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={analytics?.category_breakdown || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="code" />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value, name) => [
+                        formatCurrency(Number(value), budget?.currency),
+                        name === 'allocated' ? 'Allocated' : name === 'received' ? 'Received' : 'Spent'
+                      ]}
+                    />
+                    <Bar dataKey="allocated" fill="hsl(var(--primary))" name="allocated" />
+                    <Bar dataKey="received" fill="hsl(var(--secondary))" name="received" />
+                    <Bar dataKey="spent" fill="hsl(var(--accent))" name="spent" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Category Breakdown Pie Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <PieChart className="h-5 w-5" />
+                  Category Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RechartsPieChart>
+                    <Pie
+                      data={analytics?.category_breakdown || []}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ code, percent }) => `${code} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="spent"
+                    >
+                      {(analytics?.category_breakdown || []).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={`hsl(${index * 45}, 70%, 50%)`} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [formatCurrency(Number(value), budget?.currency), 'Spent']} />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Spending Trends - Placeholder for future implementation */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LineChart className="h-5 w-5" />
+                Spending Trends
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <LineChart className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p>Spending trends analysis will be available with more data</p>
+                <p className="text-sm">Track spending patterns over time by category</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Budget Performance Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Budget Performance Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary">
+                    {analytics?.variance_summary.overall_variance_percent?.toFixed(1) || '0'}%
+                  </div>
+                  <p className="text-sm text-muted-foreground">Overall Variance</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-secondary">
+                    {budget?.budget_categories?.length || 0}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Active Categories</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-accent">
+                    {formatCurrency(analytics?.variance_summary.overall_variance_amount || 0, budget?.currency)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Variance Amount</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="spending" className="space-y-4">
