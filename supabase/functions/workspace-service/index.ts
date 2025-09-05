@@ -376,14 +376,25 @@ Deno.serve(async (req) => {
       const projectId = params.id;
       const rawTask = await req.json();
       const taskData: Record<string, any> = { ...rawTask };
+      
+      console.log('Creating task with raw data:', rawTask);
+      
       // Normalize camelCase -> snake_case fields commonly sent by the UI
       if (taskData.milestoneId && !taskData.milestone_id) taskData.milestone_id = taskData.milestoneId;
       if (taskData.dueDate && !taskData.due_date) taskData.due_date = taskData.dueDate;
       if (taskData.ownerId && !taskData.owner_id) taskData.owner_id = taskData.ownerId;
-      // Convert empty strings to null for nullable fields
-      ['description', 'due_date', 'owner_id', 'milestone_id'].forEach((k) => {
+      
+      // Convert empty strings to null for nullable fields, but preserve valid milestone_id
+      ['description', 'due_date', 'owner_id'].forEach((k) => {
         if (typeof taskData[k] === 'string' && taskData[k].trim() === '') taskData[k] = null;
       });
+      
+      // Handle milestone_id separately - only set to null if it's actually empty/undefined
+      if (taskData.milestone_id === '' || taskData.milestone_id === undefined) {
+        taskData.milestone_id = null;
+      }
+      
+      console.log('Processed task data:', taskData);
 
       if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
 
