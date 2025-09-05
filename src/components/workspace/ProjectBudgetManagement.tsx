@@ -127,7 +127,66 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
       setBudget(result.data.budget);
       setBudgetTypes(result.data.budgetTypes || []);
-      setAnalytics(result.data.analytics);
+      
+      // Calculate analytics manually from budget data
+      const budgetData = result.data.budget;
+      let calculatedAnalytics = null;
+      
+      if (budgetData && budgetData.budget_categories) {
+        console.log('📊 Calculating analytics from categories:', budgetData.budget_categories);
+        
+        let totalAllocated = 0;
+        let totalReceived = 0;
+        let totalSpent = 0;
+        
+        budgetData.budget_categories.forEach((category: any) => {
+          const allocated = parseFloat(String(category.budget_allocated || 0));
+          const received = parseFloat(String(category.budget_received || 0));
+          const spent = parseFloat(String(category.amount_spent || 0));
+          
+          totalAllocated += allocated;
+          totalReceived += received;
+          totalSpent += spent;
+          
+          console.log('📊 Category analytics:', {
+            name: category.name,
+            allocated,
+            received,
+            spent
+          });
+        });
+
+        const remainingTotal = totalReceived - totalSpent;
+        const overallVarianceAmount = remainingTotal;
+        const overallVariancePercent = totalReceived > 0 ? (overallVarianceAmount / totalReceived) * 100 : 0;
+
+        calculatedAnalytics = {
+          totals: {
+            allocated_total: totalAllocated,
+            received_total: totalReceived,
+            spent_total: totalSpent,
+            remaining_total: remainingTotal,
+          },
+          variance_summary: {
+            overall_variance_amount: overallVarianceAmount,
+            overall_variance_percent: Math.round(overallVariancePercent * 100) / 100,
+          },
+          category_breakdown: budgetData.budget_categories.map((category: any) => ({
+            code: category.budget_type_code,
+            name: category.name,
+            allocated: parseFloat(String(category.budget_allocated || 0)),
+            received: parseFloat(String(category.budget_received || 0)),
+            spent: parseFloat(String(category.amount_spent || 0)),
+            variance: parseFloat(String(category.budget_received || 0)) - parseFloat(String(category.amount_spent || 0)),
+            percent_spent: parseFloat(String(category.budget_received || 0)) > 0 ? 
+              Math.round((parseFloat(String(category.amount_spent || 0)) / parseFloat(String(category.budget_received || 0))) * 10000) / 100 : 0,
+          })),
+        };
+        
+        console.log('📊 Calculated analytics:', calculatedAnalytics);
+      }
+      
+      setAnalytics(calculatedAnalytics || result.data.analytics);
 
       // Show error if no budget types available
       if (!result.data.budgetTypes || result.data.budgetTypes.length === 0) {
@@ -138,10 +197,11 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         });
       }
       
-      console.log('📊 Processed budget data:', {
+      console.log('📊 Final processed budget data:', {
         budget: result.data.budget,
         budgetTypesCount: result.data.budgetTypes?.length,
-        hasAnalytics: !!result.data.analytics
+        analytics: calculatedAnalytics,
+        hasAnalytics: !!calculatedAnalytics
       });
       
       if (result.data.budget) {
