@@ -5,7 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Calendar, Clock, User, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+import { CalendarDays, Calendar, Clock, User, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Settings } from 'lucide-react';
+import { MilestoneManagementDialog } from './MilestoneManagementDialog';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, addWeeks, addMonths, addYears, subWeeks, subMonths, subYears, isWithinInterval, parseISO, differenceInDays, addDays } from 'date-fns';
 
 interface Task {
@@ -320,6 +321,17 @@ export function RoadmapView() {
         
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-3">
+          {/* Milestone Management */}
+          <MilestoneManagementDialog 
+            projectId={id!} 
+            onMilestoneChange={fetchData}
+            triggerButton={
+              <Button variant="outline" size="sm">
+                <Settings className="h-4 w-4 mr-2" />
+                Manage Milestones
+              </Button>
+            }
+          />
 
           {/* Zoom Controls */}
           <div className="flex items-center gap-1 bg-surface-alt rounded-lg p-1">

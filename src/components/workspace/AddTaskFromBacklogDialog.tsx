@@ -22,6 +22,7 @@ interface BacklogItem {
   priority: string;
   owner_id: string;
   target_date: string;
+  status: string;
 }
 
 export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }: AddTaskFromBacklogDialogProps) {
@@ -41,7 +42,9 @@ export function AddTaskFromBacklogDialog({ milestoneId, projectId, onTaskAdded }
     try {
       const response = await apiClient.getBacklog(projectId);
       if (response.success && response.data?.items) {
-        setBacklogItems(response.data.items);
+        // Filter out items that have been moved to tasks (status: 'done')
+        const availableItems = response.data.items.filter((item: BacklogItem) => item.status !== 'done');
+        setBacklogItems(availableItems);
       }
     } catch (error) {
       console.error('Error fetching backlog items:', error);

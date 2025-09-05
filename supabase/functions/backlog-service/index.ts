@@ -112,6 +112,9 @@ Deno.serve(async (req) => {
 
       if (statusFilter) {
         query = query.eq('status', statusFilter);
+      } else {
+        // Default: only show items that are not done (exclude moved items)
+        query = query.neq('status', 'done');
       }
 
       const { data: items, error } = await query;
