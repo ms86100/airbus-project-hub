@@ -74,10 +74,8 @@ class ApiClient {
     const doFetch = async (authToken?: string) => {
       const actualEndpoint = this.getLocalEndpoint(endpoint);
       
-      // Determine the correct base URL for capacity-service
-      const baseUrl = endpoint.startsWith('/capacity-service/') 
-        ? 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1'
-        : this.baseUrl;
+      // Always use the configured base URL - no special handling for capacity-service
+      const baseUrl = this.baseUrl;
       
       console.log(`🌐 API BASE URL: ${baseUrl}`);
       console.log(`🌐 IS LOCAL: ${this.isLocalBackend}`);
@@ -968,36 +966,38 @@ class ApiClient {
 
   // Team Capacity API methods
   async getIterations(projectId: string): Promise<ApiResponse<any[]>> {
-    if (this.isLocalBackend) {
-      const res = await this.makeRequest<any>(`/capacity-service/projects/${projectId}/capacity`, { method: 'GET' });
-      if (!res.success) return res as any;
-      // Local backend returns an object; prefer 'iterations' array if present
-      const data = Array.isArray((res as any).data?.iterations)
-        ? (res as any).data.iterations
-        : ((res as any).data || []);
-      return { success: true, data } as ApiResponse<any[]>;
-    }
-    return this.makeRequest(`/capacity-service/projects/${projectId}/iterations`, { method: 'GET' });
+    const ep = this.resolveEndpoint(
+      `/capacity-service/projects/${projectId}/iterations`,
+      `/capacity-service/projects/${projectId}/capacity`
+    );
+    const res = await this.makeRequest<any>(ep, { method: 'GET' });
+    if (!res.success) return res as any;
+    
+    // Local backend returns an object; prefer 'iterations' array if present
+    const data = Array.isArray((res as any).data?.iterations)
+      ? (res as any).data.iterations
+      : ((res as any).data || []);
+    return { success: true, data } as ApiResponse<any[]>;
   }
 
   async createIteration(projectId: string, iterationData: any): Promise<ApiResponse<any>> {
-    if (this.isLocalBackend) {
-      const payload = {
-        type: 'iteration',
-        name: iterationData.name,
-        start_date: iterationData.start_date,
-        end_date: iterationData.end_date,
-        team_id: iterationData.team_id,
-        weeks_count: iterationData.weeks_count,
-      };
-      return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-    }
-    return this.makeRequest(`/capacity-service/projects/${projectId}/iterations`, {
+    const payload = {
+      type: 'iteration',
+      name: iterationData.name,
+      start_date: iterationData.start_date,
+      end_date: iterationData.end_date,
+      team_id: iterationData.team_id,
+      weeks_count: iterationData.weeks_count,
+    };
+    
+    const ep = this.resolveEndpoint(
+      `/capacity-service/projects/${projectId}/iterations`,
+      `/capacity-service/projects/${projectId}/capacity`
+    );
+    
+    return this.makeRequest(ep, {
       method: 'POST',
-      body: JSON.stringify(iterationData),
+      body: JSON.stringify(payload),
     });
   }
 

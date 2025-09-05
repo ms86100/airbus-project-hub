@@ -80,9 +80,10 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
 
   const handleTeamCreated = (teamId: string) => {
     setNewlyCreatedTeamId(teamId);
-    fetchTeams();
+    fetchTeams(); // Refresh teams list immediately
     setTeamDialogOpen(false);
     setIterationDialogOpen(true);
+    // Don't pre-select the team, let user choose from all teams
     toast({ title: 'Success', description: 'Team created. Create an iteration to start capacity planning.' });
   };
 
@@ -275,7 +276,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
         onOpenChange={setIterationDialogOpen}
         projectId={projectId}
         teams={teams}
-        preSelectedTeamId={newlyCreatedTeamId}
+        preSelectedTeamId={null} // Don't pre-select any team
         onIterationCreated={handleIterationCreated}
         onClose={() => setNewlyCreatedTeamId(null)}
       />

@@ -61,6 +61,7 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
   const [calculatedWeeks, setCalculatedWeeks] = useState(0);
 
   useEffect(() => {
+    // Don't auto-select team, let user choose from dropdown
     if (preSelectedTeamId) {
       setIterationForm(prev => ({ ...prev, team_id: preSelectedTeamId }));
     }
