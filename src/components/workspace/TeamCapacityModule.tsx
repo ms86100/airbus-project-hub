@@ -25,7 +25,7 @@ interface Team {
 interface Iteration {
   id: string;
   name: string;
-  type: 'iteration' | 'sprint' | 'cycle';
+  type: 'iteration' | 'sprint' | 'cycle' | 'capacity_tracker';
   project_id: string;
   team_id: string;
   team_name?: string;
@@ -230,18 +230,25 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             size="sm"
                             variant="secondary"
                             onClick={() => {
-                              // Find an iteration for this team to show availability
+                              // Navigate directly to availability matrix for this team
                               const teamIteration = iterations.find(it => it.team_id === team.id);
                               if (teamIteration) {
                                 setSelectedIteration(teamIteration);
                               } else {
-                                // If no iteration exists, open dialog to create one first
-                                setNewlyCreatedTeamId(team.id);
-                                setIterationDialogOpen(true);
-                                toast({ 
-                                  title: 'Create Iteration Required', 
-                                  description: 'Please create an iteration first to manage team availability.' 
-                                });
+                                // Create a temporary iteration object for the availability matrix
+                                const tempIteration = {
+                                  id: `temp-${team.id}`,
+                                  name: `${team.team_name} Availability`,
+                                  type: 'capacity_tracker' as const,
+                                  project_id: projectId,
+                                  team_id: team.id,
+                                  team_name: team.team_name,
+                                  start_date: new Date().toISOString().split('T')[0],
+                                  end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                  weeks_count: 3,
+                                  created_at: new Date().toISOString()
+                                };
+                                setSelectedIteration(tempIteration);
                               }
                             }}
                           >

@@ -205,13 +205,12 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
                     {startDate ? format(startDate, "PPP") : "Pick start date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-50" align="start">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={startDate}
                     onSelect={handleStartDateChange}
                     initialFocus
-                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -232,13 +231,12 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
                     {endDate ? format(endDate, "PPP") : "Pick end date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-50" align="start">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={endDate}
                     onSelect={handleEndDateChange}
                     initialFocus
-                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
