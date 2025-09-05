@@ -26,6 +26,7 @@ import { DiscussionLog } from '@/components/workspace/DiscussionLog';
 import { TaskBacklog } from '@/components/workspace/TaskBacklog';
 import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
+import { ProjectBudgetManagement } from '@/components/workspace/ProjectBudgetManagement';
 import { useModulePermissions, ModuleName } from '@/hooks/useModulePermissions';
 
 interface Project {
@@ -81,6 +82,7 @@ const ProjectOverview = () => {
   // Define module tabs with their permissions
   const moduleTabsConfig = [
     { value: 'overview', label: 'Overview', module: 'overview' as ModuleName },
+    { value: 'budget', label: 'Budget', module: 'budget' as ModuleName },
     { value: 'tasks', label: 'Tasks & Milestones', module: 'tasks_milestones' as ModuleName },
     { value: 'roadmap', label: 'Roadmap', module: 'roadmap' as ModuleName },
     { value: 'kanban', label: 'Kanban', module: 'kanban' as ModuleName },
@@ -415,6 +417,14 @@ const ProjectOverview = () => {
                 <TabsContent value="retrospectives" className="p-0">
                   <div className="h-[700px] w-full overflow-y-auto">
                     <RetrospectiveView projectId={id!} />
+                  </div>
+                </TabsContent>
+              )}
+
+              {canRead('budget') && (
+                <TabsContent value="budget" className="p-0">
+                  <div className="h-[700px] w-full overflow-y-auto">
+                    <ProjectBudgetManagement projectId={id!} />
                   </div>
                 </TabsContent>
               )}
