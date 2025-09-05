@@ -214,13 +214,6 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            variant="outline"
-                            onClick={() => handleEditTeam(team)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
                             variant="secondary"
                             onClick={() => {
                               // Find or create a default iteration for this team to show availability
@@ -239,7 +232,27 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             }}
                           >
                             <Users className="h-3 w-3 mr-1" />
-                            View Team Members
+                            View Availability
+                          </Button>
+                          {!iterations.find(it => it.team_id === team.id) && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => {
+                                setNewlyCreatedTeamId(team.id);
+                                setIterationDialogOpen(true);
+                              }}
+                            >
+                              <Calendar className="h-3 w-3 mr-1" />
+                              Create Iteration
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditTeam(team)}
+                          >
+                            Edit
                           </Button>
                           <Button
                             size="sm"
@@ -247,17 +260,6 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             onClick={() => handleDeleteTeam(team)}
                           >
                             Delete
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => {
-                              setNewlyCreatedTeamId(team.id);
-                              setIterationDialogOpen(true);
-                            }}
-                          >
-                            <Calendar className="h-3 w-3 mr-1" />
-                            Create Iteration
                           </Button>
                         </div>
                       </CardContent>
