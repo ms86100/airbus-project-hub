@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
-    
+    const bsIndex = pathParts.indexOf('budget-service');
+    console.log('🧭 Parsed path:', { pathname: url.pathname, pathParts, bsIndex });
     // Route: /budget-service/projects/{projectId}/budget
     if (pathParts.length >= 4 && pathParts[0] === 'budget-service' && pathParts[1] === 'projects' && pathParts[3] === 'budget') {
       const projectId = pathParts[2];
@@ -248,8 +249,9 @@ Deno.serve(async (req) => {
     }
 
     // Route: DELETE /budget-service/categories/{categoryId}
-    if (pathParts.length >= 3 && pathParts[0] === 'budget-service' && pathParts[1] === 'categories') {
-      const categoryId = pathParts[2];
+    if (((pathParts.length >= 3 && pathParts[0] === 'budget-service' && pathParts[1] === 'categories')
+        || (bsIndex !== -1 && pathParts[bsIndex + 1] === 'categories'))){
+      const categoryId = (bsIndex !== -1 && pathParts[bsIndex + 2]) || pathParts[2];
       if (req.method === 'DELETE') {
         console.log('🗑️ Deleting budget category:', categoryId);
 
@@ -279,8 +281,9 @@ Deno.serve(async (req) => {
     }
 
     // Route: DELETE /budget-service/spending/{spendingId}
-    if (pathParts.length >= 3 && pathParts[0] === 'budget-service' && pathParts[1] === 'spending') {
-      const spendingId = pathParts[2];
+    if (((pathParts.length >= 3 && pathParts[0] === 'budget-service' && pathParts[1] === 'spending')
+        || (bsIndex !== -1 && pathParts[bsIndex + 1] === 'spending'))){
+      const spendingId = (bsIndex !== -1 && pathParts[bsIndex + 2]) || pathParts[2];
       if (req.method === 'DELETE') {
         console.log('🗑️ Deleting spending entry:', spendingId);
 
@@ -313,7 +316,7 @@ Deno.serve(async (req) => {
         return createSuccessResponse({ success: true });
       }
     }
-
+    console.error('🛑 Endpoint not found for request', { method: req.method, url: url.toString(), pathParts });
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
 
   } catch (error) {
