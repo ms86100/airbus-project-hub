@@ -40,6 +40,14 @@ const sidebarItems: Array<{
     module: 'overview' as ModuleName
   },
   { 
+    id: 'budget', 
+    title: 'Budget', 
+    icon: DollarSign, 
+    path: 'budget',
+    description: 'Manage project budget and expenses',
+    module: 'budget' as ModuleName
+  },
+  { 
     id: 'tasks', 
     title: 'Tasks & Milestones', 
     icon: Calendar, 
@@ -110,14 +118,6 @@ const sidebarItems: Array<{
     path: 'retrospective',
     description: 'Sprint retrospectives and team feedback',
     module: 'retrospectives' as ModuleName
-  },
-  { 
-    id: 'budget', 
-    title: 'Budget Management', 
-    icon: DollarSign, 
-    path: 'budget',
-    description: 'Manage project budget and expenses',
-    module: 'budget' as ModuleName
   },
 ];
 
