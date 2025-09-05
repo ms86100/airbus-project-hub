@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/services/api';
-import { format, addWeeks, differenceInWeeks } from 'date-fns';
+import { format, addWeeks, differenceInWeeks, differenceInBusinessDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface Team {
@@ -44,7 +44,7 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
     name: '',
     type: 'capacity_tracker' as const,
     team_id: '',
-    weeks_count: 4,
+    working_days: 0,
   });
 
   const handleClose = () => {
@@ -52,7 +52,7 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
       name: '',
       type: 'capacity_tracker',
       team_id: '',
-      weeks_count: 4,
+      working_days: 0,
     });
     setStartDate(undefined);
     setEndDate(undefined);
@@ -61,25 +61,17 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
 
   const handleStartDateChange = (date: Date | undefined) => {
     setStartDate(date);
-    if (date && form.weeks_count) {
-      const calculatedEndDate = addWeeks(date, form.weeks_count);
-      setEndDate(calculatedEndDate);
-    }
-  };
-
-  const handleWeeksChange = (weeks: number) => {
-    setForm({ ...form, weeks_count: weeks });
-    if (startDate) {
-      const calculatedEndDate = addWeeks(startDate, weeks);
-      setEndDate(calculatedEndDate);
+    if (date && endDate) {
+      const workingDays = differenceInBusinessDays(endDate, date);
+      setForm({ ...form, working_days: Math.max(1, workingDays) });
     }
   };
 
   const handleEndDateChange = (date: Date | undefined) => {
     setEndDate(date);
     if (startDate && date) {
-      const weeks = differenceInWeeks(date, startDate);
-      setForm({ ...form, weeks_count: Math.max(1, weeks) });
+      const workingDays = differenceInBusinessDays(date, startDate);
+      setForm({ ...form, working_days: Math.max(1, workingDays) });
     }
   };
 
@@ -102,7 +94,7 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
         team_id: form.team_id,
         start_date: format(startDate, 'yyyy-MM-dd'),
         end_date: format(endDate, 'yyyy-MM-dd'),
-        weeks_count: form.weeks_count,
+        weeks_count: Math.ceil(form.working_days / 5),
       };
 
       console.log('Creating capacity tracker:', iterationData);
@@ -197,7 +189,7 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
             </Card>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Start Date *</Label>
               <Popover>
@@ -213,31 +205,20 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
                     {startDate ? format(startDate, "PPP") : "Pick start date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-50" align="start">
                   <Calendar
                     mode="single"
                     selected={startDate}
                     onSelect={handleStartDateChange}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
             </div>
 
             <div>
-              <Label htmlFor="weeks-count">Duration (Weeks)</Label>
-              <Input
-                id="weeks-count"
-                type="number"
-                min="1"
-                max="52"
-                value={form.weeks_count}
-                onChange={(e) => handleWeeksChange(parseInt(e.target.value) || 1)}
-              />
-            </div>
-
-            <div>
-              <Label>End Date</Label>
+              <Label>End Date *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -251,17 +232,29 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
                     {endDate ? format(endDate, "PPP") : "Pick end date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-50" align="start">
                   <Calendar
                     mode="single"
                     selected={endDate}
                     onSelect={handleEndDateChange}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
             </div>
           </div>
+
+          {startDate && endDate && (
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="text-sm">
+                <p><strong>Duration:</strong> {form.working_days} working days ({Math.ceil(form.working_days / 5)} weeks)</p>
+                <p className="text-muted-foreground mt-1">
+                  Based on a 5-day working week (excludes weekends)
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="p-4 bg-muted rounded-lg">
             <h4 className="font-medium mb-2">What is a Team Capacity Tracker?</h4>

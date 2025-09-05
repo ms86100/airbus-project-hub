@@ -230,7 +230,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             size="sm"
                             variant="secondary"
                             onClick={() => {
-                              // Find or create a default iteration for this team to show availability
+                              // Find an iteration for this team to show availability
                               const teamIteration = iterations.find(it => it.team_id === team.id);
                               if (teamIteration) {
                                 setSelectedIteration(teamIteration);
@@ -240,7 +240,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                 setIterationDialogOpen(true);
                                 toast({ 
                                   title: 'Create Iteration Required', 
-                                  description: 'Please create an iteration first to manage team member availability.' 
+                                  description: 'Please create an iteration first to manage team availability.' 
                                 });
                               }
                             }}
