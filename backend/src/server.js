@@ -36,6 +36,7 @@ const workspaceRoutes = asMiddleware(require('./routes/workspace'));
 const wizardRoutes = asMiddleware(require('./routes/wizard'));
 const departmentRoutes = asMiddleware(require('./routes/department'));
 const budgetRoutes = asMiddleware(require('./routes/budget'));
+const teamsRoutes = asMiddleware(require('./routes/teams'));
 
 const app = express();
 
@@ -139,6 +140,7 @@ app.use('/workspace-service', workspaceRoutes);
 app.use('/wizard-service', wizardRoutes);
 app.use('/department-service', departmentRoutes);
 app.use('/budget-service', budgetRoutes);
+app.use('/', teamsRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

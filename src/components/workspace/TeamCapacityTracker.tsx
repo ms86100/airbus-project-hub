@@ -1010,7 +1010,9 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                   {/* Analytics Summary */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <Card className="p-4">
-                      <div className="text-2xl font-bold">{viewingIteration.totalEffectiveCapacity.toFixed(1)}</div>
+                      <div className="text-2xl font-bold">
+                        {viewingIteration?.totalEffectiveCapacity ? viewingIteration.totalEffectiveCapacity.toFixed(1) : '0.0'}
+                      </div>
                       <p className="text-sm text-muted-foreground">Total Capacity Days</p>
                     </Card>
                     <Card className="p-4">

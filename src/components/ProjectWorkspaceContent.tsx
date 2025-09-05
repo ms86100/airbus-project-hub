@@ -6,7 +6,7 @@ import { StatusManagementView } from '@/components/workspace/StatusManagementVie
 import { RiskRegisterView } from '@/components/workspace/RiskRegisterView';
 import { DiscussionLog } from '@/components/workspace/DiscussionLog';
 import { TaskBacklog } from '@/components/workspace/TaskBacklog';
-import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
+import RevampedTeamCapacity from '@/components/workspace/RevampedTeamCapacity';
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
 import { ProjectBudgetManagement } from '@/components/workspace/ProjectBudgetManagement';
 import { ModuleAccessWrapper } from '@/components/ModuleAccessWrapper';
@@ -75,7 +75,7 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
         };
       case 'capacity':
         return { 
-          component: <TeamCapacityTracker projectId={projectId} />, 
+          component: <RevampedTeamCapacity projectId={projectId} />, 
           moduleName: 'team_capacity' as ModuleName, 
           requiredAccess: 'read' 
         };

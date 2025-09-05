@@ -856,6 +856,54 @@ class ApiClient {
     });
   }
 
+  // ========================
+  // Team Management
+  // ========================
+
+  async getTeams(projectId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/projects/${projectId}/teams`, { method: 'GET' });
+  }
+
+  async createTeam(projectId: string, teamData: any): Promise<ApiResponse> {
+    return this.makeRequest(`/projects/${projectId}/teams`, {
+      method: 'POST',
+      body: JSON.stringify(teamData),
+    });
+  }
+
+  async updateTeam(teamId: string, teamData: any): Promise<ApiResponse> {
+    return this.makeRequest(`/teams/${teamId}`, {
+      method: 'PUT',
+      body: JSON.stringify(teamData),
+    });
+  }
+
+  async deleteTeam(teamId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/teams/${teamId}`, { method: 'DELETE' });
+  }
+
+  async getTeamMembers(teamId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/teams/${teamId}/members`, { method: 'GET' });
+  }
+
+  async createTeamMember(teamId: string, memberData: any): Promise<ApiResponse> {
+    return this.makeRequest(`/teams/${teamId}/members`, {
+      method: 'POST',
+      body: JSON.stringify(memberData),
+    });
+  }
+
+  async updateTeamMember(memberId: string, memberData: any): Promise<ApiResponse> {
+    return this.makeRequest(`/team-members/${memberId}`, {
+      method: 'PUT',
+      body: JSON.stringify(memberData),
+    });
+  }
+
+  async deleteTeamMember(memberId: string): Promise<ApiResponse> {
+    return this.makeRequest(`/team-members/${memberId}`, { method: 'DELETE' });
+  }
+
   // Department service methods
   async getDepartments(): Promise<ApiResponse<{ departments: any[] }>> {
     return this.makeRequest('/department-service/departments', { method: 'GET' });
