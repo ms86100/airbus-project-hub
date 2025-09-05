@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, LayoutGrid, Users, Settings, ArrowLeft, AlertTriangle, MessageCircle, BarChart3, RotateCcw, Shield, Activity } from 'lucide-react';
+import { Calendar, LayoutGrid, Users, Settings, ArrowLeft, AlertTriangle, MessageCircle, BarChart3, RotateCcw, Shield, Activity, DollarSign } from 'lucide-react';
 import { AccessControlDialog } from '@/components/access-control/AccessControlDialog';
 import { AuditLogView } from '@/components/audit/AuditLogView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -110,6 +110,14 @@ const sidebarItems: Array<{
     path: 'retrospective',
     description: 'Sprint retrospectives and team feedback',
     module: 'retrospectives' as ModuleName
+  },
+  { 
+    id: 'budget', 
+    title: 'Budget Management', 
+    icon: DollarSign, 
+    path: 'budget',
+    description: 'Manage project budget and expenses',
+    module: 'budget' as ModuleName
   },
 ];
 

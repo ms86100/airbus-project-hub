@@ -12,7 +12,8 @@ export type ModuleName =
   | 'discussions'
   | 'task_backlog'
   | 'team_capacity'
-  | 'retrospectives';
+  | 'retrospectives'
+  | 'budget';
 
 export type AccessLevel = 'read' | 'write';
 
@@ -73,6 +74,7 @@ export function useModulePermissions(projectId: string) {
           task_backlog: 'write',
           team_capacity: 'write',
           retrospectives: 'write',
+          budget: 'write',
         };
         setPermissions(fullPermissions);
         setLoading(false);

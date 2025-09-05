@@ -8,6 +8,7 @@ import { DiscussionLog } from '@/components/workspace/DiscussionLog';
 import { TaskBacklog } from '@/components/workspace/TaskBacklog';
 import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
+import { ProjectBudgetManagement } from '@/components/workspace/ProjectBudgetManagement';
 import { ModuleAccessWrapper } from '@/components/ModuleAccessWrapper';
 import { ModuleName } from '@/hooks/useModulePermissions';
 
@@ -82,6 +83,12 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
         return { 
           component: <RetrospectiveView projectId={projectId} />, 
           moduleName: 'retrospectives' as ModuleName, 
+          requiredAccess: 'read' 
+        };
+      case 'budget':
+        return { 
+          component: <ProjectBudgetManagement projectId={projectId} />, 
+          moduleName: 'budget' as ModuleName, 
           requiredAccess: 'read' 
         };
       default:

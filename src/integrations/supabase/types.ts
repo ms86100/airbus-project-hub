@@ -64,6 +64,240 @@ export type Database = {
           },
         ]
       }
+      budget_alert_rules: {
+        Row: {
+          condition_type: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean | null
+          message: string
+          project_budget_id: string
+          severity: string
+          threshold_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          condition_type: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          message: string
+          project_budget_id: string
+          severity?: string
+          threshold_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          condition_type?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          project_budget_id?: string
+          severity?: string
+          threshold_value?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      budget_categories: {
+        Row: {
+          amount_spent: number
+          budget_allocated: number
+          budget_received: number
+          budget_type_code: string
+          comments: string | null
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          project_budget_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_spent?: number
+          budget_allocated?: number
+          budget_received?: number
+          budget_type_code: string
+          comments?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          project_budget_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_spent?: number
+          budget_allocated?: number
+          budget_received?: number
+          budget_type_code?: string
+          comments?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          project_budget_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      budget_comments: {
+        Row: {
+          author: string
+          created_at: string
+          id: string
+          project_budget_id: string
+          text: string
+        }
+        Insert: {
+          author: string
+          created_at?: string
+          id?: string
+          project_budget_id: string
+          text: string
+        }
+        Update: {
+          author?: string
+          created_at?: string
+          id?: string
+          project_budget_id?: string
+          text?: string
+        }
+        Relationships: []
+      }
+      budget_receipts: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          date: string
+          id: string
+          is_restricted: boolean | null
+          notes: string | null
+          project_budget_id: string
+          received_by: string | null
+          restricted_to_category: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by: string
+          date: string
+          id?: string
+          is_restricted?: boolean | null
+          notes?: string | null
+          project_budget_id: string
+          received_by?: string | null
+          restricted_to_category?: string | null
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          date?: string
+          id?: string
+          is_restricted?: boolean | null
+          notes?: string | null
+          project_budget_id?: string
+          received_by?: string | null
+          restricted_to_category?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      budget_spending: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          budget_category_id: string
+          created_at: string
+          created_by: string
+          date: string
+          description: string
+          id: string
+          invoice_id: string | null
+          payment_method: string | null
+          status: string
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          amount: number
+          approved_by?: string | null
+          budget_category_id: string
+          created_at?: string
+          created_by: string
+          date: string
+          description: string
+          id?: string
+          invoice_id?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          budget_category_id?: string
+          created_at?: string
+          created_by?: string
+          date?: string
+          description?: string
+          id?: string
+          invoice_id?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: []
+      }
+      budget_type_config: {
+        Row: {
+          code: string
+          created_at: string
+          default_allocation_percent: number
+          dropdown_display_order: number
+          enabled: boolean
+          id: string
+          label: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_allocation_percent?: number
+          dropdown_display_order?: number
+          enabled?: boolean
+          id?: string
+          label: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_allocation_percent?: number
+          dropdown_display_order?: number
+          enabled?: boolean
+          id?: string
+          label?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           created_at: string
@@ -330,6 +564,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      project_budgets: {
+        Row: {
+          created_at: string
+          created_by: string
+          currency: string
+          department_id: string | null
+          end_date: string | null
+          id: string
+          project_id: string
+          start_date: string | null
+          total_budget_allocated: number
+          total_budget_received: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          currency?: string
+          department_id?: string | null
+          end_date?: string | null
+          id?: string
+          project_id: string
+          start_date?: string | null
+          total_budget_allocated?: number
+          total_budget_received?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          currency?: string
+          department_id?: string | null
+          end_date?: string | null
+          id?: string
+          project_id?: string
+          start_date?: string | null
+          total_budget_allocated?: number
+          total_budget_received?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       project_discussions: {
         Row: {
