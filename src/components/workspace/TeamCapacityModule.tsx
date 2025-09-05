@@ -221,6 +221,28 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                           </Button>
                           <Button
                             size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              // Find or create a default iteration for this team to show availability
+                              const teamIteration = iterations.find(it => it.team_id === team.id);
+                              if (teamIteration) {
+                                setSelectedIteration(teamIteration);
+                              } else {
+                                // If no iteration exists, open dialog to create one first
+                                setNewlyCreatedTeamId(team.id);
+                                setIterationDialogOpen(true);
+                                toast({ 
+                                  title: 'Create Iteration Required', 
+                                  description: 'Please create an iteration first to manage team member availability.' 
+                                });
+                              }
+                            }}
+                          >
+                            <Users className="h-3 w-3 mr-1" />
+                            View Team Members
+                          </Button>
+                          <Button
+                            size="sm"
                             variant="destructive"
                             onClick={() => handleDeleteTeam(team)}
                           >
