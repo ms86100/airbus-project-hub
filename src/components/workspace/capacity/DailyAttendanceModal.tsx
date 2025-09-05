@@ -168,7 +168,7 @@ export const DailyAttendanceModal: React.FC<DailyAttendanceModalProps> = ({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Daily Attendance - {memberName}</DialogTitle>
           {week && (

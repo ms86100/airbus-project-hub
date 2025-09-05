@@ -91,8 +91,9 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
       const membersResponse = await apiClient.getTeamMembers(iteration.team_id);
       console.log('👥 Team members response:', membersResponse);
       
-      if (membersResponse.success) {
-        setTeamMembers(membersResponse.data || []);
+      if (membersResponse.success && membersResponse.data) {
+        console.log('👥 Setting team members:', membersResponse.data);
+        setTeamMembers(membersResponse.data);
       } else {
         console.error('❌ Failed to fetch team members:', membersResponse.error);
         toast({ 
@@ -100,6 +101,7 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
           description: `Failed to fetch team members: ${membersResponse.error}`, 
           variant: 'destructive' 
         });
+        setTeamMembers([]); // Set empty array to prevent undefined issues
       }
 
       // Generate weeks from iteration data if not available from backend
@@ -307,11 +309,14 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
                     <TableRow key={member.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{member.display_name}</div>
+                          <div className="font-medium">{member.display_name || 'Unknown Member'}</div>
                           {member.role && (
                             <Badge variant="outline" className="text-xs mt-1">
                               {member.role}
                             </Badge>
+                          )}
+                          {member.email && (
+                            <div className="text-xs text-muted-foreground mt-1">{member.email}</div>
                           )}
                         </div>
                       </TableCell>
