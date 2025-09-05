@@ -236,26 +236,24 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             variant="secondary"
                             onClick={() => {
                               console.log('🔍 View Availability clicked for team:', team.team_name);
-                              const teamIteration = iterations.find(it => it.team_id === team.id);
-                              if (teamIteration) {
-                                console.log('✅ Found existing iteration:', teamIteration);
-                                setSelectedIteration(teamIteration);
-                              } else {
-                                // Create a temporary iteration object for the availability matrix
-                                const tempIteration = {
-                                  id: `temp-${team.id}`,
-                                  name: `${team.team_name} Availability`,
-                                  type: 'capacity_tracker' as const,
-                                  project_id: projectId,
-                                  team_id: team.id,
-                                  team_name: team.team_name,
-                                  start_date: new Date().toISOString().split('T')[0],
-                                  end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                  weeks_count: 3,
-                                  created_at: new Date().toISOString()
-                                };
-                                setSelectedIteration(tempIteration);
-                              }
+                              
+                              // ALWAYS create a temporary iteration for availability matrix view
+                              // This ensures consistent behavior regardless of existing iterations
+                              const tempIteration = {
+                                id: `temp-${team.id}`,
+                                name: `${team.team_name} Availability`,
+                                type: 'capacity_tracker' as const,
+                                project_id: projectId,
+                                team_id: team.id,
+                                team_name: team.team_name,
+                                start_date: new Date().toISOString().split('T')[0],
+                                end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                weeks_count: 3,
+                                created_at: new Date().toISOString()
+                              };
+                              
+                              console.log('✅ Setting temp iteration for availability matrix:', tempIteration);
+                              setSelectedIteration(tempIteration);
                             }}
                           >
                             <Users className="h-3 w-3 mr-1" />
