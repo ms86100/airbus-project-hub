@@ -215,6 +215,60 @@ router.post('/categories/:categoryId/spending', verifyToken, async (req, res) =>
   }
 });
 
+// Delete budget category
+router.delete('/categories/:categoryId', verifyToken, async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    console.log('🗑️ Deleting budget category:', categoryId);
+
+    // Delete dependent spending entries first to avoid FK issues
+    await query('DELETE FROM budget_spending WHERE budget_category_id = $1', [categoryId]);
+
+    const result = await query('DELETE FROM budget_categories WHERE id = $1 RETURNING id', [categoryId]);
+    if (result.rowCount === 0) {
+      return sendResponse(res, createErrorResponse('Category not found', 'NOT_FOUND', 404));
+    }
+
+    console.log('✅ Budget category deleted');
+    sendResponse(res, createSuccessResponse({ success: true }));
+  } catch (error) {
+    console.error('❌ Category delete error:', error);
+    const msg = process.env.NODE_ENV === 'production' ? 'Failed to delete category' : `Failed to delete category: ${error.message}`;
+    sendResponse(res, createErrorResponse(msg, 'DELETE_ERROR', 500));
+  }
+});
+
+// Delete spending entry
+router.delete('/spending/:spendingId', verifyToken, async (req, res) => {
+  try {
+    const { spendingId } = req.params;
+    console.log('🗑️ Deleting spending entry:', spendingId);
+
+    // Fetch category to recalc amount_spent after delete
+    const spend = await query('SELECT budget_category_id FROM budget_spending WHERE id = $1', [spendingId]);
+    const categoryId = spend.rows[0]?.budget_category_id || null;
+
+    const result = await query('DELETE FROM budget_spending WHERE id = $1 RETURNING id', [spendingId]);
+    if (result.rowCount === 0) {
+      return sendResponse(res, createErrorResponse('Spending entry not found', 'NOT_FOUND', 404));
+    }
+
+    // Recalculate category amount_spent (sum of paid entries)
+    if (categoryId) {
+      const sum = await query('SELECT COALESCE(SUM(amount), 0) AS total FROM budget_spending WHERE budget_category_id = $1 AND status = $2', [categoryId, 'paid']);
+      const total = sum.rows[0]?.total || 0;
+      await query('UPDATE budget_categories SET amount_spent = $2 WHERE id = $1', [categoryId, total]);
+    }
+
+    console.log('✅ Spending entry deleted');
+    sendResponse(res, createSuccessResponse({ success: true }));
+  } catch (error) {
+    console.error('❌ Spending delete error:', error);
+    const msg = process.env.NODE_ENV === 'production' ? 'Failed to delete spending entry' : `Failed to delete spending entry: ${error.message}`;
+    sendResponse(res, createErrorResponse(msg, 'DELETE_ERROR', 500));
+  }
+});
+
 // Get budget types
 router.get('/budget-types', verifyToken, async (req, res) => {
   try {
