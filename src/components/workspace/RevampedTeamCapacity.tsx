@@ -16,7 +16,7 @@ import WeeklyAvailabilityManager from './WeeklyAvailabilityManager';
 
 interface Team {
   id: string;
-  name: string;
+  team_name: string;
   description?: string;
   member_count?: number;
 }
@@ -240,7 +240,7 @@ const RevampedTeamCapacity: React.FC<RevampedTeamCapacityProps> = ({ projectId }
 
   const getSelectedTeamName = (teamId: string) => {
     const team = teams.find(t => t.id === teamId);
-    return team ? team.name : 'Select Team';
+    return team ? team.team_name : 'Select Team';
   };
 
   return (
@@ -423,7 +423,7 @@ const RevampedTeamCapacity: React.FC<RevampedTeamCapacityProps> = ({ projectId }
                         <SelectContent>
                           {teams.map((team) => (
                             <SelectItem key={team.id} value={team.id}>
-                              {team.name}
+                              {team.team_name}
                             </SelectItem>
                           ))}
                         </SelectContent>

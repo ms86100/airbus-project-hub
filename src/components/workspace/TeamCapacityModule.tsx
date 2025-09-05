@@ -12,7 +12,7 @@ import { AvailabilityMatrix } from './capacity/AvailabilityMatrix';
 
 interface Team {
   id: string;
-  name: string;
+  team_name: string;
   description?: string;
   project_id: string;
   created_at: string;
@@ -163,7 +163,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                     <Card key={team.id} className="hover:bg-muted/50 transition-colors">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-semibold">{team.name}</h3>
+                          <h3 className="font-semibold">{team.team_name}</h3>
                           <Badge variant="outline">{team.member_count || 0} members</Badge>
                         </div>
                         {team.description && (

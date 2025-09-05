@@ -11,7 +11,7 @@ import { apiClient } from '@/services/api';
 
 interface Team {
   id: string;
-  name: string;
+  team_name: string;
   description?: string;
 }
 
@@ -124,7 +124,7 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
         throw new Error(response.error || 'Failed to create iteration');
       }
 
-      const teamName = teams.find(t => t.id === iterationForm.team_id)?.name || '';
+      const teamName = teams.find(t => t.id === iterationForm.team_id)?.team_name || '';
       const iteration = { ...response.data, team_name: teamName };
       
       onIterationCreated(iteration);
@@ -223,7 +223,7 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
               <SelectContent className="bg-background border-border z-50">
                 {teams.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
-                    {team.name}
+                    {team.team_name}
                   </SelectItem>
                 ))}
               </SelectContent>

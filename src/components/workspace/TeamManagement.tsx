@@ -14,7 +14,7 @@ import { apiClient } from '@/services/api';
 
 interface Team {
   id: string;
-  name: string;
+  team_name: string;
   description?: string;
   created_at: string;
   project_id: string;
@@ -243,7 +243,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ projectId }) => {
   const openTeamDialog = (team?: Team) => {
     if (team) {
       setEditingTeam(team);
-      setTeamForm({ name: team.name, description: team.description || '' });
+      setTeamForm({ name: team.team_name, description: team.description || '' });
     } else {
       setEditingTeam(null);
       setTeamForm({ name: '', description: '' });
@@ -346,7 +346,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ projectId }) => {
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold">{team.name}</h3>
+                    <h3 className="font-semibold">{team.team_name}</h3>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -390,9 +390,9 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ projectId }) => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                {selectedTeam.name} Members
+                {selectedTeam.team_name} Members
               </CardTitle>
-              <p className="text-sm text-muted-foreground">Manage team members for {selectedTeam.name}</p>
+              <p className="text-sm text-muted-foreground">Manage team members for {selectedTeam.team_name}</p>
             </div>
             <Dialog open={memberDialogOpen} onOpenChange={setMemberDialogOpen}>
               <DialogTrigger asChild>
