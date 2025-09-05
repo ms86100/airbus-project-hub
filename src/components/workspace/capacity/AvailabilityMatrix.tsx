@@ -172,7 +172,7 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
       
       if (response.success) {
         toast({ title: 'Success', description: 'Availability updated successfully.' });
-        fetchData(); // Refresh data
+        // Optionally refresh data in the future when we expose GET endpoint
       } else {
         throw new Error(response.error || 'Failed to save availability');
       }

@@ -1599,6 +1599,60 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_availability: {
+        Row: {
+          availability_percent: number
+          calculated_days_present: number
+          calculated_days_total: number
+          created_at: string
+          created_by: string
+          id: string
+          iteration_week_id: string
+          notes: string | null
+          team_member_id: string
+          updated_at: string
+        }
+        Insert: {
+          availability_percent?: number
+          calculated_days_present?: number
+          calculated_days_total?: number
+          created_at?: string
+          created_by: string
+          id?: string
+          iteration_week_id: string
+          notes?: string | null
+          team_member_id: string
+          updated_at?: string
+        }
+        Update: {
+          availability_percent?: number
+          calculated_days_present?: number
+          calculated_days_total?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          iteration_week_id?: string
+          notes?: string | null
+          team_member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_availability_iteration_week_id_fkey"
+            columns: ["iteration_week_id"]
+            isOneToOne: false
+            referencedRelation: "iteration_weeks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_availability_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weekly_member_availability: {
         Row: {
           availability_percent: number

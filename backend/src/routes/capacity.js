@@ -362,4 +362,85 @@ router.get('/stats', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+// POST /capacity-service/iterations/:iterationId/availability
+router.post('/iterations/:iterationId/availability', verifyToken, async (req, res) => {
+  try {
+    const { iterationId } = req.params;
+    const userId = req.user.id;
+    const availability = Array.isArray(req.body?.availability) ? req.body.availability : [];
+
+    if (availability.length === 0) {
+      return sendResponse(res, createErrorResponse('No availability data provided', 'INVALID_PAYLOAD', 400));
+    }
+
+    // Ensure storage table exists (local backend convenience)
+    await query(`
+      CREATE TABLE IF NOT EXISTS public.team_member_weekly_availability (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        iteration_id UUID NOT NULL REFERENCES public.team_capacity_iterations(id) ON DELETE CASCADE,
+        week_index INT NOT NULL,
+        team_member_id UUID NOT NULL REFERENCES public.team_members(id) ON DELETE CASCADE,
+        availability_percent INT NOT NULL DEFAULT 100,
+        days_present INT NOT NULL DEFAULT 0,
+        days_total INT NOT NULL DEFAULT 5,
+        created_by UUID NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE(iteration_id, week_index, team_member_id)
+      );
+    `);
+
+    // Verify access by resolving project_id from iteration
+    const iterRes = await query('SELECT project_id FROM public.team_capacity_iterations WHERE id = $1', [iterationId]);
+    if (iterRes.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Iteration not found', 'ITERATION_NOT_FOUND', 404));
+    }
+    const projectId = iterRes.rows[0].project_id;
+
+    const accessRes = await query(`
+      SELECT EXISTS (
+        SELECT 1 FROM projects p
+        WHERE p.id = $1 AND (
+          p.created_by = $2 OR
+          EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = $2 AND ur.role = 'admin') OR
+          EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = $1 AND pm.user_id = $2) OR
+          EXISTS (SELECT 1 FROM module_permissions mp WHERE mp.project_id = $1 AND mp.user_id = $2)
+        )
+      ) AS has_access
+    `, [projectId, userId]);
+
+    if (!accessRes.rows[0]?.has_access) {
+      return sendResponse(res, createErrorResponse('Project access denied', 'FORBIDDEN', 403));
+    }
+
+    let upserts = 0;
+    for (const item of availability) {
+      const weekId = String(item.iteration_week_id || '');
+      const match = /week-(\d+)/.exec(weekId);
+      const weekIndex = match ? parseInt(match[1], 10) : 1;
+      const percent = Math.max(0, Math.min(100, parseInt(item.availability_percent ?? 0)));
+      const daysPresent = Number.isFinite(item.calculated_days_present) ? item.calculated_days_present : Math.round((percent / 100) * 5);
+      const daysTotal = Number.isFinite(item.calculated_days_total) ? item.calculated_days_total : 5;
+
+      await query(`
+        INSERT INTO public.team_member_weekly_availability 
+          (iteration_id, week_index, team_member_id, availability_percent, days_present, days_total, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (iteration_id, week_index, team_member_id)
+        DO UPDATE SET 
+          availability_percent = EXCLUDED.availability_percent,
+          days_present = EXCLUDED.days_present,
+          days_total = EXCLUDED.days_total,
+          updated_at = now()
+      `, [iterationId, weekIndex, item.team_member_id, percent, daysPresent, daysTotal, userId]);
+      upserts++;
+    }
+
+    return sendResponse(res, createSuccessResponse({ message: 'Availability saved', updated: upserts }));
+  } catch (error) {
+    console.error('Save weekly availability error:', error);
+    return sendResponse(res, createErrorResponse('Failed to save weekly availability', 'SAVE_ERROR', 500));
+  }
+});
+
 module.exports = router;

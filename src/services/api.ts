@@ -1017,11 +1017,11 @@ class ApiClient {
   }
 
   async saveWeeklyAvailability(iterationId: string, availabilityData: any[]): Promise<ApiResponse<any>> {
-    if (this.isLocalBackend) {
-      // Not supported on local backend
-      return { success: false, error: 'Not supported on local backend' } as ApiResponse<any>;
-    }
-    return this.makeRequest(`/capacity-service/iterations/${iterationId}/availability`, {
+    const ep = this.resolveEndpoint(
+      `/capacity-service/iterations/${iterationId}/availability`,
+      `/capacity-service/iterations/${iterationId}/availability`
+    );
+    return this.makeRequest(ep, {
       method: 'POST',
       body: JSON.stringify({ availability: availabilityData }),
     });
