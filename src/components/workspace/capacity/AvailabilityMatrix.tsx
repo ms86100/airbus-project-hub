@@ -168,6 +168,16 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
   };
 
   const saveAvailability = async () => {
+    // Check if this is a temporary iteration
+    if (iteration.id.startsWith('temp-')) {
+      toast({
+        title: 'Create Iteration Required',
+        description: 'Please create a proper iteration first before saving availability data.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -176,7 +186,10 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
       
       if (response.success) {
         toast({ title: 'Success', description: 'Availability updated successfully.' });
-        // Optionally refresh data in the future when we expose GET endpoint
+        // Redirect to analytics/main view after successful save
+        setTimeout(() => {
+          onUpdate();
+        }, 1500);
       } else {
         throw new Error(response.error || 'Failed to save availability');
       }

@@ -235,20 +235,15 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                               if (teamIteration) {
                                 setSelectedIteration(teamIteration);
                               } else {
-                                // Create a temporary iteration object for the availability matrix
-                                const tempIteration = {
-                                  id: `temp-${team.id}`,
-                                  name: `${team.team_name} Availability`,
-                                  type: 'capacity_tracker' as const,
-                                  project_id: projectId,
-                                  team_id: team.id,
-                                  team_name: team.team_name,
-                                  start_date: new Date().toISOString().split('T')[0],
-                                  end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                  weeks_count: 3,
-                                  created_at: new Date().toISOString()
-                                };
-                                setSelectedIteration(tempIteration);
+                                // Show a message that an iteration is needed for real availability tracking
+                                toast({
+                                  title: 'Create Iteration Required',
+                                  description: 'To save and track availability data, please create an iteration for this team first.',
+                                  variant: 'destructive'
+                                });
+                                // Open iteration creation dialog with this team pre-selected
+                                setNewlyCreatedTeamId(team.id);
+                                setIterationDialogOpen(true);
                               }
                             }}
                           >
