@@ -245,7 +245,9 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
                     {team.team_name}
                   </SelectItem>
                 )) : (
-                  <SelectItem value="" disabled>Loading teams...</SelectItem>
+                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                    Loading teams...
+                  </div>
                 )}
               </SelectContent>
             </Select>
