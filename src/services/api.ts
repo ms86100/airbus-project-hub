@@ -987,6 +987,8 @@ class ApiClient {
   }
 
   async createIteration(projectId: string, iterationData: any): Promise<ApiResponse<any>> {
+    console.log('🔄 Creating iteration with data:', iterationData);
+    
     // The backend expects these EXACT field names (see capacity.js line 77)
     const payload = {
       type: 'iteration',
@@ -995,13 +997,11 @@ class ApiClient {
       endDate: iterationData.end_date,          // backend expects 'endDate' not 'end_date'
       workingDays: iterationData.weeks_count * 5,   // Convert weeks to working days (5 days per week)
       committedStoryPoints: 0,
-      teamId: iterationData.team_id
+      teamId: iterationData.team_id  // backend expects 'teamId' not 'team_id'
     };
+
+    console.log('🔄 Sending payload to backend:', payload);
     
-    console.log('🔄 Creating iteration with CORRECT payload:', payload);
-    console.log('🔄 Using base URL:', this.baseUrl);
-    
-    // Force local endpoint for iterations
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
       method: 'POST',
       body: JSON.stringify(payload),

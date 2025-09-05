@@ -108,7 +108,7 @@ router.post('/projects/:id/capacity', verifyToken, verifyProjectAccess, async (r
         now
       ]);
       
-      console.log('✅ Iteration created successfully:', result.rows[0]);
+      console.log('✅ Iteration created successfully with team_id:', result.rows[0].team_id);
       
       sendResponse(res, createSuccessResponse({
         message: 'Capacity iteration created successfully',

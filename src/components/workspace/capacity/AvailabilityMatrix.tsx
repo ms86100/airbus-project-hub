@@ -66,6 +66,19 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('🔍 Fetching data for iteration:', iteration);
+    
+    // Validate that we have required iteration data
+    if (!iteration.team_id) {
+      console.error('❌ No team_id found in iteration:', iteration);
+      toast({
+        title: 'Error',
+        description: 'Invalid iteration data - no team assigned.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     fetchData();
   }, [iteration.id]);
 
