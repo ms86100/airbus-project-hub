@@ -10,6 +10,8 @@ import { apiClient } from '@/services/api';
 import { TeamCreationDialog } from './capacity/TeamCreationDialog';
 import { IterationCreationDialog } from './capacity/IterationCreationDialog';
 import { AvailabilityMatrix } from './capacity/AvailabilityMatrix';
+import { TeamCapacityAnalytics } from './capacity/TeamCapacityAnalytics';
+import { TeamCapacityTrackerDialog } from './capacity/TeamCapacityTrackerDialog';
 
 interface Team {
   id: string;
@@ -44,6 +46,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   const [selectedIteration, setSelectedIteration] = useState<Iteration | null>(null);
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [iterationDialogOpen, setIterationDialogOpen] = useState(false);
+  const [trackerDialogOpen, setTrackerDialogOpen] = useState(false);
   const [newlyCreatedTeamId, setNewlyCreatedTeamId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -167,6 +170,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
         <TabsList>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="iterations">Iterations</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="teams" className="space-y-6">
@@ -181,10 +185,20 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                   Create and manage project teams
                 </p>
               </div>
-              <Button onClick={() => setTeamDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Team
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => setTeamDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Team
+                </Button>
+                <Button 
+                  variant="secondary"
+                  onClick={() => setTrackerDialogOpen(true)}
+                  disabled={teams.length === 0}
+                >
+                  <Target className="h-4 w-4 mr-2" />
+                  Create Team Capacity Tracker
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {teams.length === 0 ? (
@@ -341,6 +355,14 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <TeamCapacityAnalytics
+            projectId={projectId}
+            teams={teams}
+            iterations={iterations}
+          />
+        </TabsContent>
       </Tabs>
 
       <TeamCreationDialog
@@ -358,6 +380,17 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
         preSelectedTeamId={newlyCreatedTeamId}
         onIterationCreated={handleIterationCreated}
         onClose={() => setNewlyCreatedTeamId(null)}
+      />
+
+      <TeamCapacityTrackerDialog
+        open={trackerDialogOpen}
+        onOpenChange={setTrackerDialogOpen}
+        projectId={projectId}
+        teams={teams}
+        onTrackerCreated={(iteration) => {
+          handleIterationCreated(iteration);
+          setTrackerDialogOpen(false);
+        }}
       />
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

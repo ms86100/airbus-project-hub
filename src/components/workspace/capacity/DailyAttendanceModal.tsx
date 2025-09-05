@@ -120,12 +120,15 @@ export const DailyAttendanceModal: React.FC<DailyAttendanceModalProps> = ({
       const dateStr = currentDate.toISOString().split('T')[0];
       const dayOfWeek = DAYS_OF_WEEK[currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1];
       
-      days.push({
-        date: dateStr,
-        dayOfWeek,
-        displayDate: currentDate.toLocaleDateString(),
-        status: attendance[dateStr] || 'P'
-      });
+      // Only include working days (Monday to Friday)
+      if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+        days.push({
+          date: dateStr,
+          dayOfWeek,
+          displayDate: currentDate.toLocaleDateString(),
+          status: attendance[dateStr] || 'P'
+        });
+      }
       
       currentDate.setDate(currentDate.getDate() + 1);
     }

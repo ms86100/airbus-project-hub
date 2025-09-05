@@ -86,14 +86,18 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
         return;
       }
       
-      // Fetch team members
+      // Fetch team members for the specific team
       console.log('🔍 Fetching team members for team_id:', iteration.team_id);
       const membersResponse = await apiClient.getTeamMembers(iteration.team_id);
       console.log('👥 Team members response:', membersResponse);
       
       if (membersResponse.success && membersResponse.data) {
-        console.log('👥 Setting team members:', membersResponse.data);
-        setTeamMembers(membersResponse.data);
+        // Filter members to only show those assigned to this team
+        const teamMembers = membersResponse.data.filter(member => 
+          member.team_id === iteration.team_id || !member.team_id
+        );
+        console.log('👥 Setting filtered team members:', teamMembers);
+        setTeamMembers(teamMembers);
       } else {
         console.error('❌ Failed to fetch team members:', membersResponse.error);
         toast({ 
