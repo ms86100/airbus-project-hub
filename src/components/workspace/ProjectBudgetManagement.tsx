@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { PlusCircle, DollarSign, TrendingUp, AlertTriangle, Receipt, BarChart3, PieChart, LineChart } from 'lucide-react';
+import { PlusCircle, DollarSign, TrendingUp, AlertTriangle, Receipt, BarChart3, PieChart, LineChart, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart as RechartsLineChart, Line } from 'recharts';
 
@@ -276,6 +276,8 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
     }
   };
 
+  const createSpendingEntry = createSpending;
+
   useEffect(() => {
     fetchBudgetData();
   }, [projectId]);
@@ -351,12 +353,11 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="categories">Budget</TabsTrigger>
           <TabsTrigger value="spending">Spending</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -472,36 +473,51 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
             </Dialog>
           </div>
 
-          <div className="grid gap-4">
-            {budget?.budget_categories?.map((category) => (
-              <Card key={category.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg">{category.name}</CardTitle>
-                    <Badge variant="outline">{category.budget_type_code}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Allocated:</span>
-                      <div className="font-medium">{formatCurrency(category.budget_allocated, budget.currency)}</div>
+          <div className="space-y-4">
+            {budget?.budget_categories && budget.budget_categories.length > 0 ? (
+              budget.budget_categories.map((category) => (
+                <Card key={category.id} className="border-l-4 border-l-primary">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="font-semibold">{category.name}</h4>
+                        <p className="text-sm text-muted-foreground mb-2">{category.budget_type_code}</p>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Allocated:</span>
+                            <div className="font-medium">₹{(parseFloat(String(category.budget_allocated || 0))).toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Spent:</span>
+                            <div className="font-medium">₹{(parseFloat(String(category.amount_spent || 0))).toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Remaining:</span>
+                            <div className="font-medium">₹{(parseFloat(String(category.budget_allocated || 0)) - parseFloat(String(category.amount_spent || 0))).toLocaleString()}</div>
+                          </div>
+                        </div>
+                        {category.comments && (
+                          <p className="text-sm text-muted-foreground mt-2">{category.comments}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Received:</span>
-                      <div className="font-medium">{formatCurrency(category.budget_received, budget.currency)}</div>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Spent:</span>
-                      <div className="font-medium">{formatCurrency(category.amount_spent, budget.currency)}</div>
-                    </div>
-                  </div>
-                  {category.comments && (
-                    <p className="text-sm text-muted-foreground mt-2">{category.comments}</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No budget categories found.</p>
+                <p className="text-sm text-muted-foreground">Create your first budget category to get started.</p>
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -651,23 +667,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="spending_category">Category *</Label>
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {budget?.budget_categories
-                          ?.filter(category => !spendingForm.budget_type_code || category.budget_type_code === spendingForm.budget_type_code)
-                          ?.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name} ({category.budget_type_code})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="spending_date">Date</Label>
@@ -744,106 +743,39 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
           <div className="space-y-4">
             {budget?.budget_categories?.map((category) => (
               category.budget_spending?.map((spending: any) => (
-                <Card key={spending.id}>
-                  <CardContent className="pt-6">
+                <Card key={spending.id} className="border-l-4 border-l-secondary">
+                  <CardContent className="p-4">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">{spending.description}</h4>
-                        <p className="text-sm text-muted-foreground">{category.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {spending.vendor} • {spending.date}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">
-                          {formatCurrency(spending.amount, budget.currency)}
+                      <div className="flex-1">
+                        <h4 className="font-semibold">{spending.description}</h4>
+                        <p className="text-sm text-muted-foreground">₹{parseFloat(spending.amount).toLocaleString()}</p>
+                        <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
+                          <span>Vendor: {spending.vendor || 'Not specified'}</span>
+                          <span>Date: {new Date(spending.date).toLocaleDateString()}</span>
+                          <span>Status: {spending.status}</span>
                         </div>
-                        <Badge variant={spending.status === 'paid' ? 'default' : 'secondary'}>
-                          {spending.status}
-                        </Badge>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               ))
-            ))}
+            )) || (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No spending entries found.</p>
+                <p className="text-sm text-muted-foreground">Create your first spending entry to get started.</p>
+              </div>
+            )}
           </div>
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Budget Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="currency">Currency</Label>
-                  <Select value={budgetForm.currency} onValueChange={(value) => 
-                    setBudgetForm(prev => ({ ...prev, currency: value }))
-                  }>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="INR">INR (₹)</SelectItem>
-                      <SelectItem value="USD">USD ($)</SelectItem>
-                      <SelectItem value="EUR">EUR (€)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="total_allocated">Total Budget Allocated</Label>
-                  <Input
-                    id="total_allocated"
-                    type="number"
-                    value={budgetForm.total_budget_allocated}
-                    onChange={(e) => setBudgetForm(prev => ({ ...prev, total_budget_allocated: e.target.value }))}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="total_received">Total Budget Received</Label>
-                  <Input
-                    id="total_received"
-                    type="number"
-                    value={budgetForm.total_budget_received}
-                    onChange={(e) => setBudgetForm(prev => ({ ...prev, total_budget_received: e.target.value }))}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="start_date">Start Date</Label>
-                  <Input
-                    id="start_date"
-                    type="date"
-                    value={budgetForm.start_date}
-                    onChange={(e) => setBudgetForm(prev => ({ ...prev, start_date: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="end_date">End Date</Label>
-                  <Input
-                    id="end_date"
-                    type="date"
-                    value={budgetForm.end_date}
-                    onChange={(e) => setBudgetForm(prev => ({ ...prev, end_date: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <Button onClick={saveBudget} className="w-full">
-                Save Budget Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );
