@@ -153,11 +153,25 @@ class BudgetApiService {
     });
   }
 
+  // Delete budget category
+  async deleteBudgetCategory(categoryId: string) {
+    return this.makeRequest(`/budget-service/categories/${categoryId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Spending entries
   async createSpendingEntry(categoryId: string, spendingData: any) {
     return this.makeRequest(`/budget-service/categories/${categoryId}/spending`, {
       method: 'POST',
       body: JSON.stringify(spendingData),
+    });
+  }
+
+  // Delete spending entry
+  async deleteSpendingEntry(spendingId: string) {
+    return this.makeRequest(`/budget-service/spending/${spendingId}`, {
+      method: 'DELETE',
     });
   }
 

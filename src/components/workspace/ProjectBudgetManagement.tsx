@@ -318,18 +318,18 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
     if (!itemToDelete) return;
 
     try {
+      console.log('Deleting:', itemToDelete);
+      
       if (itemToDelete.type === 'category') {
-        // Add delete category API call here when available
-        console.log('Deleting category:', itemToDelete.id);
+        await budgetApi.deleteBudgetCategory(itemToDelete.id);
         toast({
           title: "Success",
           description: "Budget category deleted successfully",
         });
       } else {
-        // Add delete spending API call here when available
-        console.log('Deleting spending:', itemToDelete.id);
+        await budgetApi.deleteSpendingEntry(itemToDelete.id);
         toast({
-          title: "Success",
+          title: "Success", 
           description: "Spending entry deleted successfully",
         });
       }
@@ -340,11 +340,16 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
       
       // Refresh data without changing tabs
       await fetchBudgetData();
-    } catch (error) {
-      console.error('Delete error:', error);
+    } catch (error: any) {
+      console.error('❌ DETAILED Delete error:', {
+        error: error,
+        message: error.message,
+        stack: error.stack,
+        itemToDelete: itemToDelete
+      });
       toast({
-        title: "Error",
-        description: `Failed to delete ${itemToDelete.type}`,
+        title: "Delete Error",
+        description: `Failed to delete ${itemToDelete.type}: ${error.message}`,
         variant: "destructive",
       });
       setDeleteConfirmOpen(false);
@@ -442,41 +447,12 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         </Card>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+      <Tabs defaultValue="categories" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="categories">Budget</TabsTrigger>
           <TabsTrigger value="spending">Spending</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Budget Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {analytics?.category_breakdown.map((category) => (
-                  <div key={category.code} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{category.name}</span>
-                      <div className="flex gap-2 items-center">
-                        <Badge variant={category.percent_spent > 80 ? "destructive" : "secondary"}>
-                          {category.percent_spent.toFixed(1)}%
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {formatCurrency(category.spent, budget?.currency)} / {formatCurrency(category.received, budget?.currency)}
-                        </span>
-                      </div>
-                    </div>
-                    <Progress value={category.percent_spent} className="h-2" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="categories" className="space-y-4">
           <div className="flex justify-between items-center">
