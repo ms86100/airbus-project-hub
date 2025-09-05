@@ -20,6 +20,15 @@ class BudgetApiService {
 
   private async getAuthHeaders(): Promise<HeadersInit> {
     console.log('🔐 Getting auth headers...');
+    
+    // Check if supabase client is available (not null when using local backend)
+    if (!supabase) {
+      console.log('🔐 No Supabase client available (local backend mode)');
+      return {
+        'Content-Type': 'application/json',
+      };
+    }
+    
     const session = await supabase.auth.getSession();
     const token = session.data.session?.access_token;
     
