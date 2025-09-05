@@ -669,7 +669,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="spending_category">Category *</Label>
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
