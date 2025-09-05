@@ -990,12 +990,11 @@ class ApiClient {
       weeks_count: iterationData.weeks_count,
     };
     
-    const ep = this.resolveEndpoint(
-      `/capacity-service/projects/${projectId}/iterations`,
-      `/capacity-service/projects/${projectId}/capacity`
-    );
+    console.log('🔄 Creating iteration with payload:', payload);
+    console.log('🔄 Using base URL:', this.baseUrl);
     
-    return this.makeRequest(ep, {
+    // Force local endpoint for iterations
+    return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });

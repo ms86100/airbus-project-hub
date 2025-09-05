@@ -121,8 +121,12 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
 
       const response = await apiClient.createIteration(projectId, iterationData);
       
+      console.log('🔄 Full iteration response:', response);
+      
       if (!response.success) {
-        throw new Error(response.error || 'Failed to create iteration');
+        // Show the REAL server error
+        console.error('❌ Server error response:', response);
+        throw new Error(response.error || JSON.stringify(response));
       }
 
       const teamName = teams.find(t => t.id === iterationForm.team_id)?.team_name || '';
@@ -131,19 +135,20 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
       onIterationCreated(iteration);
       handleClose();
     } catch (error) {
-      console.error('Error creating iteration:', error);
-      // Show actual error message for debugging
-      let errorMessage = 'Failed to create iteration';
+      console.error('❌ Full error object:', error);
+      
+      // Show REAL error - no custom messages
+      let errorMessage = 'Unknown error occurred';
       if (error instanceof Error) {
-        errorMessage = `Failed to create iteration: ${error.message}`;
+        errorMessage = error.message;
       } else if (typeof error === 'string') {
-        errorMessage = `Failed to create iteration: ${error}`;
-      } else if (error && typeof error === 'object' && 'error' in (error as any)) {
-        // @ts-ignore
-        errorMessage = `Failed to create iteration: ${(error as any).error}`;
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        errorMessage = JSON.stringify(error);
       }
+      
       toast({ 
-        title: 'Error', 
+        title: 'Server Error', 
         description: errorMessage, 
         variant: 'destructive' 
       });
