@@ -22,7 +22,7 @@ interface Iteration {
 
 interface TeamMember {
   id: string;
-  display_name: string;
+  member_name: string;
   role?: string;
   email?: string;
 }
@@ -309,7 +309,7 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
                     <TableRow key={member.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{member.display_name || 'Unknown Member'}</div>
+                          <div className="font-medium">{member.member_name || 'Unknown Member'}</div>
                           {member.role && (
                             <Badge variant="outline" className="text-xs mt-1">
                               {member.role}
@@ -364,7 +364,7 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
       {selectedMemberWeek && (
         <DailyAttendanceModal
           memberId={selectedMemberWeek.memberId}
-          memberName={teamMembers.find(m => m.id === selectedMemberWeek.memberId)?.display_name || ''}
+          memberName={teamMembers.find(m => m.id === selectedMemberWeek.memberId)?.member_name || ''}
           weekId={selectedMemberWeek.weekId}
           week={weeks.find(w => w.id === selectedMemberWeek.weekId)}
           availabilityId={selectedMemberWeek.availabilityId}
