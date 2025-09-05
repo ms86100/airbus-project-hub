@@ -5,7 +5,7 @@ class BudgetApiService {
   private getBaseUrl(): string {
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const baseUrl = isLocalhost 
-      ? 'http://localhost:3001/api' 
+      ? 'http://localhost:3001' 
       : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
     
     console.log('🌐 Budget API Base URL:', {
@@ -24,8 +24,19 @@ class BudgetApiService {
     // Check if supabase client is available (not null when using local backend)
     if (!supabase) {
       console.log('🔐 No Supabase client available (local backend mode)');
+      let token: string | null = null;
+      try {
+        const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
+        if (storedAuth) {
+          const session = JSON.parse(storedAuth);
+          token = session?.access_token || session?.token || session?.accessToken || null;
+        }
+      } catch (e) {
+        console.warn('Failed to parse local session for token');
+      }
       return {
         'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       };
     }
     

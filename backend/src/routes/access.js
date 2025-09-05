@@ -189,4 +189,28 @@ router.get('/permissions', verifyToken, async (req, res) => {
   }
 });
 
+// POST /access-service/log-access
+router.post('/log-access', verifyToken, async (req, res) => {
+  try {
+    const { userId, projectId, module, accessType, accessLevel } = req.body;
+    const id = uuidv4();
+    const now = new Date();
+
+    try {
+      await query(
+        `INSERT INTO module_access_audit (id, user_id, project_id, module, access_type, access_level, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [id, userId || req.user.id, projectId || req.body.project_id, module, accessType, accessLevel || null, now]
+      );
+    } catch (dbErr) {
+      console.warn('Log access insert failed, continuing:', dbErr.message);
+    }
+
+    sendResponse(res, createSuccessResponse({ message: 'Access logged' }));
+  } catch (error) {
+    console.error('Log access error:', error);
+    sendResponse(res, createErrorResponse('Failed to log access', 'LOG_ERROR', 500));
+  }
+});
+
 module.exports = router;
