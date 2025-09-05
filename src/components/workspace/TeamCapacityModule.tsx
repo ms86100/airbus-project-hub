@@ -237,8 +237,10 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             onClick={() => {
                               console.log('🔍 View Availability clicked for team:', team.team_name);
                               
-                              // ALWAYS create a temporary iteration for availability matrix view
-                              // This ensures consistent behavior regardless of existing iterations
+                              // Check if team has existing iteration
+                              const teamIteration = iterations.find(it => it.team_id === team.id);
+                              
+                              // ALWAYS create a temporary iteration for consistent UI behavior
                               const tempIteration = {
                                 id: `temp-${team.id}`,
                                 name: `${team.team_name} Availability`,
@@ -250,8 +252,9 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                 end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                                 weeks_count: 3,
                                 created_at: new Date().toISOString(),
-                                // Add flag to indicate if real iteration exists for this team
-                                hasRealIteration: iterations.some(it => it.team_id === team.id)
+                                // Store the real iteration ID for API calls if it exists
+                                hasRealIteration: !!teamIteration,
+                                realIterationId: teamIteration?.id
                               };
                               
                               console.log('✅ Setting temp iteration for availability matrix:', tempIteration);

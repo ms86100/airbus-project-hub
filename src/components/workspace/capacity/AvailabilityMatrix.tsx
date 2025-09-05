@@ -19,6 +19,7 @@ interface Iteration {
   end_date: string;
   weeks_count: number;
   hasRealIteration?: boolean;
+  realIterationId?: string;
 }
 
 interface TeamMember {
@@ -196,7 +197,11 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
       setLoading(true);
       
       const availabilityList = Object.values(availability);
-      const response = await apiClient.saveWeeklyAvailability(iteration.id, availabilityList);
+      // Use real iteration ID for API calls when available
+      const iterationIdForApi = iteration.realIterationId || iteration.id;
+      console.log('🔧 Using iteration ID for API call:', iterationIdForApi);
+      
+      const response = await apiClient.saveWeeklyAvailability(iterationIdForApi, availabilityList);
       
       if (response.success) {
         toast({ title: 'Success', description: 'Availability updated successfully.' });
