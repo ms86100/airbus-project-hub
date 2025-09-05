@@ -58,7 +58,12 @@ class ApiClient {
   private getLocalEndpoint(endpoint: string): string {
     if (!this.isLocalBackend) return endpoint;
     
-    // For local backend, the Express server already uses the same service prefixes
+    // Force capacity-service calls to go to Supabase even when using local backend
+    if (endpoint.startsWith('/capacity-service/')) {
+      return endpoint;
+    }
+    
+    // For other local backend endpoints, the Express server already uses the same service prefixes
     // as Supabase Edge Functions, so no mapping is needed!
     return endpoint;
   }
@@ -71,7 +76,13 @@ class ApiClient {
 
     const doFetch = async (authToken?: string) => {
       const actualEndpoint = this.getLocalEndpoint(endpoint);
-      console.log(`🌐 API BASE URL: ${this.baseUrl}`);
+      
+      // Determine the correct base URL for capacity-service
+      const baseUrl = endpoint.startsWith('/capacity-service/') 
+        ? 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1'
+        : this.baseUrl;
+      
+      console.log(`🌐 API BASE URL: ${baseUrl}`);
       console.log(`🌐 IS LOCAL: ${this.isLocalBackend}`);
       console.log(`🌐 ENDPOINT: ${endpoint} -> ${actualEndpoint}`);
       
@@ -82,7 +93,7 @@ class ApiClient {
         ...options.headers,
       } as Record<string, string>;
 
-      const response = await fetch(`${this.baseUrl}${actualEndpoint}`, {
+      const response = await fetch(`${baseUrl}${actualEndpoint}`, {
         ...options,
         headers,
       });
