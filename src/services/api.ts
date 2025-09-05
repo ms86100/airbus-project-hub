@@ -712,7 +712,7 @@ class ApiClient {
     return this.makeRequest(`/retro-service/projects/${projectId}/retrospectives`, { method: 'GET' });
   }
 
-  async createRetrospective(projectId: string, retroData: { framework: string; iterationId?: string }): Promise<ApiResponse<{ message: string; retrospective: any }>> {
+  async createRetrospective(projectId: string, retroData: { framework: string; iterationName?: string }): Promise<ApiResponse<{ message: string; retrospective: any }>> {
     return this.makeRequest(`/retro-service/projects/${projectId}/retrospectives`, {
       method: 'POST',
       body: JSON.stringify(retroData),

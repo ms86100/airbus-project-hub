@@ -17,7 +17,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 interface CreateRetrospectiveBody {
   framework?: string;
-  iterationId?: string;
+  iterationName?: string;
   columns?: { title: string; subtitle?: string }[];
 }
 
@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
         .from('retrospectives')
         .insert({
           project_id: projectId,
-          iteration_id: body.iterationId || null,
+          iteration_id: body.iterationName || null,
           framework,
           status: 'active',
           created_by: user.id,

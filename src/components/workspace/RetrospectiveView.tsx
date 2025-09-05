@@ -22,12 +22,6 @@ interface RetrospectiveViewProps {
   projectId: string;
 }
 
-interface TeamCapacityIteration {
-  id: string;
-  iteration_name: string;
-  start_date: string;
-  end_date: string;
-}
 
 interface Retrospective {
   id: string;
@@ -169,7 +163,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
   const [retrospectives, setRetrospectives] = useState<Retrospective[]>([]);
   const [selectedRetrospective, setSelectedRetrospective] = useState<Retrospective | null>(null);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
-  const [iterations, setIterations] = useState<TeamCapacityIteration[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'list' | 'board' | 'analytics' | 'enhanced-analytics'>('list');
 
@@ -180,7 +174,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
 
   // Form states
   const [createForm, setCreateForm] = useState({
-    iteration_id: '',
+    iteration_name: '',
     framework: 'classic'
   });
 
@@ -188,7 +182,6 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     if (user) {
       fetchRetrospectives();
       fetchStakeholders();
-      fetchIterations();
     }
   }, [user, projectId]);
 
@@ -228,26 +221,15 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     }
   };
 
-  const fetchIterations = async () => {
-    try {
-      const response = await apiClient.getCapacityIterations(projectId);
-      if (response.success) {
-        const iterationsList = Array.isArray(response.data) ? response.data : [];
-        setIterations(iterationsList);
-      }
-    } catch (error) {
-      console.error('Error fetching iterations:', error);
-    }
-  };
 
   const handleCreateRetrospective = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    if (!createForm.iteration_id) {
+    if (!createForm.iteration_name.trim()) {
       toast({
         title: 'Error',
-        description: 'Please select an iteration',
+        description: 'Please enter an iteration name',
         variant: 'destructive'
       });
       return;
@@ -256,7 +238,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
     try {
       const response = await apiClient.createRetrospective(projectId, {
         framework: createForm.framework,
-        iterationId: createForm.iteration_id
+        iterationName: createForm.iteration_name
       });
 
       if (response.success) {
@@ -266,7 +248,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
         });
 
                         setShowCreateDialog(false);
-                        setCreateForm({ iteration_id: '', framework: 'classic' });
+                        setCreateForm({ iteration_name: '', framework: 'classic' });
                         fetchRetrospectives();
       } else {
         throw new Error(response.error || 'Failed to create retrospective');
@@ -378,18 +360,15 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
               </DialogHeader>
               <form onSubmit={handleCreateRetrospective} className="space-y-4">
                 <div>
-                  <Label htmlFor="iteration">Iteration *</Label>
-                  <SimpleSelect
-                    value={createForm.iteration_id}
-                    onValueChange={(value) => setCreateForm(prev => ({ ...prev, iteration_id: value }))}
-                    placeholder="Select an iteration"
-                  >
-                    {iterations.map((iteration) => (
-                      <SimpleSelectItem key={iteration.id} value={iteration.id}>
-                        {iteration.iteration_name} ({iteration.start_date} - {iteration.end_date})
-                      </SimpleSelectItem>
-                    ))}
-                  </SimpleSelect>
+                  <Label htmlFor="iteration">Iteration Name *</Label>
+                  <Input
+                    id="iteration"
+                    type="text"
+                    value={createForm.iteration_name}
+                    onChange={(e) => setCreateForm(prev => ({ ...prev, iteration_name: e.target.value }))}
+                    placeholder="Enter iteration name (e.g., Sprint 1, Q1 2024, etc.)"
+                    required
+                  />
                 </div>
                 <div>
                   <Label htmlFor="framework">Framework</Label>
@@ -419,58 +398,53 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
 
       {retrospectives.length > 0 ? (
         <div className="grid gap-4">
-          {retrospectives.map((retro) => {
-            const iteration = iterations.find(i => i.id === retro.iteration_id);
-            return (
-              <Card key={retro.id} className="p-6 hover:shadow-md transition-shadow cursor-pointer">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">{FRAMEWORK_TEMPLATES[retro.framework]?.name || retro.framework} Retrospective</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{FRAMEWORK_TEMPLATES[retro.framework]?.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                      {iteration && (
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {iteration.iteration_name}
-                        </span>
-                      )}
-                      <span>Created {new Date(retro.created_at || '').toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="capitalize">{retro.status}</Badge>
-                    <Button 
-                      onClick={() => {
-                        setSelectedRetrospective(retro);
-                        setView('board');
-                      }}
-                    >
-                      Open Board
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem 
-                          onClick={() => confirmDelete(retro)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+          {retrospectives.map((retro) => (
+            <Card key={retro.id} className="p-6 hover:shadow-md transition-shadow cursor-pointer">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">{FRAMEWORK_TEMPLATES[retro.framework]?.name || retro.framework} Retrospective</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{FRAMEWORK_TEMPLATES[retro.framework]?.description}</p>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {retro.iteration_id || 'No iteration specified'}
+                    </span>
+                    <span>Created {new Date(retro.created_at || '').toLocaleDateString()}</span>
                   </div>
                 </div>
-                <p className="text-muted-foreground">
-                  Interactive {retro.framework} retrospective board with voting and action items.
-                </p>
-              </Card>
-            );
-          })}
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="capitalize">{retro.status}</Badge>
+                  <Button 
+                    onClick={() => {
+                      setSelectedRetrospective(retro);
+                      setView('board');
+                    }}
+                  >
+                    Open Board
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={() => confirmDelete(retro)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+              <p className="text-muted-foreground">
+                Interactive {retro.framework} retrospective board with voting and action items.
+              </p>
+            </Card>
+          ))}
         </div>
       ) : (
         <Card>
