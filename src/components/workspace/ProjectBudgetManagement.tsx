@@ -675,19 +675,12 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                       </SelectTrigger>
                       <SelectContent className="bg-background border z-50">
                         {(() => {
-                          console.log('🔍 DEBUG - Budget data for spending:', { 
-                            budget, 
-                            hasBudget: !!budget,
-                            categories: budget?.budget_categories,
-                            categoriesLength: budget?.budget_categories?.length 
-                          });
-                          
                           const availableCategories = budget?.budget_categories || [];
-
+                          
                           if (availableCategories.length === 0) {
                             return (
                               <SelectItem value="" disabled>
-                                No budget categories available. Please create budget categories first.
+                                No budget categories found. Go to Budget tab to create categories first.
                               </SelectItem>
                             );
                           }
