@@ -34,10 +34,16 @@ class BudgetApiService {
       } catch (e) {
         console.warn('Failed to parse local session for token');
       }
-      return {
+      
+      const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      return headers;
     }
     
     const session = await supabase.auth.getSession();
@@ -50,17 +56,27 @@ class BudgetApiService {
       expiresAt: session.data.session?.expires_at
     });
     
-    const headers = {
+    const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
     };
     
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    if (import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      headers['apikey'] = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    }
+    
     console.log('🔐 Request headers:', {
-      hasAuth: !!headers.Authorization,
-      hasApiKey: !!headers.apikey,
-      authLength: headers.Authorization.length
+      hasAuth: !!headers['Authorization'],
+      hasApiKey: !!headers['apikey'],
+      authLength: headers['Authorization'] ? String(headers['Authorization']).length : 0
     });
+    
+    if (!headers['Authorization']) {
+      console.warn('⚠️ No authorization token available!');
+    }
     
     return headers;
   }

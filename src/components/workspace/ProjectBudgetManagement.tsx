@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { budgetApi } from '@/services/budgetApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { PlusCircle, DollarSign, TrendingUp, AlertTriangle, Receipt, BarChart3, PieChart, LineChart, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -85,6 +86,8 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [editingSpending, setEditingSpending] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{type: 'category' | 'spending', id: string, name: string} | null>(null);
 
   // Form states
   const [budgetForm, setBudgetForm] = useState({
@@ -150,7 +153,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
           end_date: result.data.budget.end_date || '',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ DETAILED Budget fetch error:', {
         error: error,
         message: error.message,
@@ -269,6 +272,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         status: 'pending',
         budget_type_code: '',
       });
+      setSelectedCategory('');
       fetchBudgetData();
     } catch (error) {
       console.error('❌ Error creating spending:', error);
@@ -279,8 +283,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
       });
     }
   };
-
-  const createSpendingEntry = createSpending;
 
   const handleEditCategory = (category: any) => {
     setEditingCategory(category);
@@ -294,24 +296,59 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
     setIsEditCategoryOpen(true);
   };
 
-  const handleDeleteCategory = async (categoryId: string) => {
-    if (!window.confirm('Are you sure you want to delete this budget category?')) {
-      return;
-    }
-    
+  const handleDeleteCategory = (category: any) => {
+    setItemToDelete({
+      type: 'category',
+      id: category.id,
+      name: category.name
+    });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteSpending = (spending: any) => {
+    setItemToDelete({
+      type: 'spending',
+      id: spending.id,
+      name: spending.description
+    });
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
     try {
-      // Add delete API call here when available
-      toast({
-        title: "Success",
-        description: "Budget category deleted successfully",
-      });
-      fetchBudgetData();
+      if (itemToDelete.type === 'category') {
+        // Add delete category API call here when available
+        console.log('Deleting category:', itemToDelete.id);
+        toast({
+          title: "Success",
+          description: "Budget category deleted successfully",
+        });
+      } else {
+        // Add delete spending API call here when available
+        console.log('Deleting spending:', itemToDelete.id);
+        toast({
+          title: "Success",
+          description: "Spending entry deleted successfully",
+        });
+      }
+      
+      // Close dialog and reset state
+      setDeleteConfirmOpen(false);
+      setItemToDelete(null);
+      
+      // Refresh data without changing tabs
+      await fetchBudgetData();
     } catch (error) {
+      console.error('Delete error:', error);
       toast({
         title: "Error",
-        description: "Failed to delete budget category",
+        description: `Failed to delete ${itemToDelete.type}`,
         variant: "destructive",
       });
+      setDeleteConfirmOpen(false);
+      setItemToDelete(null);
     }
   };
 
@@ -329,27 +366,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
     });
     setSelectedCategory(spending.budget_category_id || '');
     setIsEditSpendingOpen(true);
-  };
-
-  const handleDeleteSpending = async (spendingId: string) => {
-    if (!window.confirm('Are you sure you want to delete this spending entry?')) {
-      return;
-    }
-    
-    try {
-      // Add delete API call here when available
-      toast({
-        title: "Success",
-        description: "Spending entry deleted successfully",
-      });
-      fetchBudgetData();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete spending entry",
-        variant: "destructive",
-      });
-    }
   };
 
   useEffect(() => {
@@ -585,7 +601,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleDeleteCategory(category.id)}
+                          onClick={() => handleDeleteCategory(category)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -601,256 +617,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
               </div>
             )}
           </div>
-        </TabsContent>
-
-        {/* Edit Category Dialog */}
-        <Dialog open={isEditCategoryOpen} onOpenChange={setIsEditCategoryOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Budget Category</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit_category_name">Category Name</Label>
-                <Input
-                  id="edit_category_name"
-                  value={categoryForm.name}
-                  onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Enter category name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit_budget_type">Budget Type</Label>
-                <Select value={categoryForm.budget_type_code} onValueChange={(value) => setCategoryForm(prev => ({ ...prev, budget_type_code: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select budget type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {budgetTypes.map((type) => (
-                      <SelectItem key={type.code} value={type.code}>
-                        {type.label || type.type_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit_budget_allocated">Budget Allocated</Label>
-                <Input
-                  id="edit_budget_allocated"
-                  type="number"
-                  value={categoryForm.budget_allocated}
-                  onChange={(e) => setCategoryForm(prev => ({ ...prev, budget_allocated: e.target.value }))}
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit_comments">Comments</Label>
-                <Textarea
-                  id="edit_comments"
-                  value={categoryForm.comments}
-                  onChange={(e) => setCategoryForm(prev => ({ ...prev, comments: e.target.value }))}
-                  placeholder="Optional comments"
-                />
-              </div>
-              <Button onClick={() => {
-                // Add update logic here
-                setIsEditCategoryOpen(false);
-                toast({
-                  title: "Success",
-                  description: "Budget category updated successfully",
-                });
-                fetchBudgetData();
-              }} className="w-full">
-                Update Category
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Spending Dialog */}
-        <Dialog open={isEditSpendingOpen} onOpenChange={setIsEditSpendingOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Spending Entry</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit_spending_budget_type">Budget Type *</Label>
-                <Select value={spendingForm.budget_type_code || ''} onValueChange={(value) => {
-                  setSpendingForm(prev => ({ ...prev, budget_type_code: value }));
-                  setSelectedCategory('');
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select budget type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {budgetTypes.map((type) => (
-                      <SelectItem key={type.code} value={type.code}>
-                        {type.label || type.type_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit_spending_category">Category *</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {budget?.budget_categories
-                      ?.filter(category => !spendingForm.budget_type_code || category.budget_type_code === spendingForm.budget_type_code)
-                      ?.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit_spending_description">Description</Label>
-                <Input
-                  id="edit_spending_description"
-                  value={spendingForm.description}
-                  onChange={(e) => setSpendingForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter description"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit_spending_amount">Amount</Label>
-                <Input
-                  id="edit_spending_amount"
-                  type="number"
-                  value={spendingForm.amount}
-                  onChange={(e) => setSpendingForm(prev => ({ ...prev, amount: e.target.value }))}
-                  placeholder="0.00"
-                />
-              </div>
-              <Button onClick={() => {
-                // Add update logic here
-                setIsEditSpendingOpen(false);
-                toast({
-                  title: "Success",
-                  description: "Spending entry updated successfully",
-                });
-                fetchBudgetData();
-              }} className="w-full">
-                Update Spending Entry
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Budget vs Actual Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Budget vs Actual
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={analytics?.category_breakdown || []}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="code" />
-                    <YAxis />
-                    <Tooltip 
-                      formatter={(value, name) => [
-                        formatCurrency(Number(value), budget?.currency),
-                        name === 'allocated' ? 'Allocated' : name === 'received' ? 'Received' : 'Spent'
-                      ]}
-                    />
-                    <Bar dataKey="allocated" fill="hsl(var(--primary))" name="allocated" />
-                    <Bar dataKey="received" fill="hsl(var(--secondary))" name="received" />
-                    <Bar dataKey="spent" fill="hsl(var(--accent))" name="spent" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Category Breakdown Pie Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PieChart className="h-5 w-5" />
-                  Category Breakdown
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RechartsPieChart>
-                    <Pie
-                      data={analytics?.category_breakdown || []}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ code, percent }) => `${code} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="spent"
-                    >
-                      {(analytics?.category_breakdown || []).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={`hsl(${index * 45}, 70%, 50%)`} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [formatCurrency(Number(value), budget?.currency), 'Spent']} />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Spending Trends - Placeholder for future implementation */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <LineChart className="h-5 w-5" />
-                Spending Trends
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <LineChart className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p>Spending trends analysis will be available with more data</p>
-                <p className="text-sm">Track spending patterns over time by category</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Budget Performance Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Budget Performance Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary">
-                    {analytics?.variance_summary.overall_variance_percent?.toFixed(1) || '0'}%
-                  </div>
-                  <p className="text-sm text-muted-foreground">Overall Variance</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-secondary">
-                    {budget?.budget_categories?.length || 0}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Active Categories</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-accent">
-                    {formatCurrency(analytics?.variance_summary.overall_variance_amount || 0, budget?.currency)}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Variance Amount</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="spending" className="space-y-4">
@@ -1003,7 +769,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleDeleteSpending(spending.id)}
+                          onClick={() => handleDeleteSpending(spending)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1020,6 +786,251 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
             )}
           </div>
         </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold">Budget Analytics</h3>
+            
+            {/* Budget vs Actual Spending Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Budget vs Actual Spending</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {budget?.budget_categories && budget.budget_categories.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={budget.budget_categories.map(category => ({
+                      name: category.name,
+                      budget: parseFloat(String(category.budget_allocated || 0)),
+                      spent: parseFloat(String(category.amount_spent || 0))
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="budget" fill="#8884d8" name="Budget Allocated" />
+                      <Bar dataKey="spent" fill="#82ca9d" name="Amount Spent" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-40 text-muted-foreground">
+                    No budget data available for analysis
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Category Breakdown Pie Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Spending Distribution by Category</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {budget?.budget_categories && budget.budget_categories.some(cat => parseFloat(String(cat.amount_spent || 0)) > 0) ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <RechartsPieChart>
+                      <Pie
+                        data={budget.budget_categories
+                          .filter(category => parseFloat(String(category.amount_spent || 0)) > 0)
+                          .map(category => ({
+                            name: category.name,
+                            value: parseFloat(String(category.amount_spent || 0))
+                          }))}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {budget.budget_categories.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={`hsl(${index * 45}, 70%, 60%)`} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-40 text-muted-foreground">
+                    No spending data available for analysis
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Edit Category Dialog */}
+        <Dialog open={isEditCategoryOpen} onOpenChange={setIsEditCategoryOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Budget Category</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit_category_name">Category Name</Label>
+                <Input
+                  id="edit_category_name"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter category name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_budget_type">Budget Type</Label>
+                <Select value={categoryForm.budget_type_code} onValueChange={(value) => setCategoryForm(prev => ({ ...prev, budget_type_code: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select budget type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {budgetTypes.map((type) => (
+                      <SelectItem key={type.code} value={type.code}>
+                        {type.label || type.type_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit_budget_allocated">Budget Allocated</Label>
+                <Input
+                  id="edit_budget_allocated"
+                  type="number"
+                  value={categoryForm.budget_allocated}
+                  onChange={(e) => setCategoryForm(prev => ({ ...prev, budget_allocated: e.target.value }))}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_comments">Comments</Label>
+                <Textarea
+                  id="edit_comments"
+                  value={categoryForm.comments}
+                  onChange={(e) => setCategoryForm(prev => ({ ...prev, comments: e.target.value }))}
+                  placeholder="Optional comments"
+                />
+              </div>
+              <Button onClick={() => {
+                // Add update logic here
+                setIsEditCategoryOpen(false);
+                toast({
+                  title: "Success",
+                  description: "Budget category updated successfully",
+                });
+                fetchBudgetData();
+              }} className="w-full">
+                Update Category
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Spending Dialog */}
+        <Dialog open={isEditSpendingOpen} onOpenChange={setIsEditSpendingOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Spending Entry</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit_spending_budget_type">Budget Type *</Label>
+                <Select value={spendingForm.budget_type_code || ''} onValueChange={(value) => {
+                  setSpendingForm(prev => ({ ...prev, budget_type_code: value }));
+                  setSelectedCategory('');
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select budget type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {budgetTypes.map((type) => (
+                      <SelectItem key={type.code} value={type.code}>
+                        {type.label || type.type_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit_spending_category">Category *</Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {budget?.budget_categories
+                      ?.filter(category => !spendingForm.budget_type_code || category.budget_type_code === spendingForm.budget_type_code)
+                      ?.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit_spending_description">Description</Label>
+                <Input
+                  id="edit_spending_description"
+                  value={spendingForm.description}
+                  onChange={(e) => setSpendingForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter description"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_spending_amount">Amount</Label>
+                <Input
+                  id="edit_spending_amount"
+                  type="number"
+                  value={spendingForm.amount}
+                  onChange={(e) => setSpendingForm(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="0.00"
+                />
+              </div>
+              <Button onClick={() => {
+                // Add update logic here
+                setIsEditSpendingOpen(false);
+                toast({
+                  title: "Success",
+                  description: "Spending entry updated successfully",
+                });
+                fetchBudgetData();
+              }} className="w-full">
+                Update Spending Entry
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this {itemToDelete?.type === 'category' ? 'budget category' : 'spending entry'}?
+                <br />
+                <strong>"{itemToDelete?.name}"</strong>
+                <br />
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setDeleteConfirmOpen(false);
+                setItemToDelete(null);
+              }}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
       </Tabs>
     </div>
