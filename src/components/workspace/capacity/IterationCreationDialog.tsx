@@ -131,9 +131,19 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
       handleClose();
     } catch (error) {
       console.error('Error creating iteration:', error);
+      // Show actual error message for debugging
+      let errorMessage = 'Failed to create iteration';
+      if (error instanceof Error) {
+        errorMessage = `Failed to create iteration: ${error.message}`;
+      } else if (typeof error === 'string') {
+        errorMessage = `Failed to create iteration: ${error}`;
+      } else if (error && typeof error === 'object' && 'error' in (error as any)) {
+        // @ts-ignore
+        errorMessage = `Failed to create iteration: ${(error as any).error}`;
+      }
       toast({ 
         title: 'Error', 
-        description: 'Failed to create iteration. Check team selection and dates.', 
+        description: errorMessage, 
         variant: 'destructive' 
       });
     } finally {

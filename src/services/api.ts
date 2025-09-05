@@ -969,7 +969,7 @@ class ApiClient {
   // Team Capacity API methods
   async getIterations(projectId: string): Promise<ApiResponse<any[]>> {
     if (this.isLocalBackend) {
-      const res = await this.makeRequest<any>(`/projects/${projectId}/capacity`, { method: 'GET' });
+      const res = await this.makeRequest<any>(`/capacity-service/projects/${projectId}/capacity`, { method: 'GET' });
       if (!res.success) return res as any;
       // Local backend returns an object; prefer 'iterations' array if present
       const data = Array.isArray((res as any).data?.iterations)
@@ -990,7 +990,7 @@ class ApiClient {
         team_id: iterationData.team_id,
         weeks_count: iterationData.weeks_count,
       };
-      return this.makeRequest(`/projects/${projectId}/capacity`, {
+      return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
