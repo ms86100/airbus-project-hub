@@ -635,14 +635,33 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {budget?.budget_categories
-                          ?.filter(category => !spendingForm.budget_type_code || category.budget_type_code === spendingForm.budget_type_code)
-                          ?.map((category) => (
+                      <SelectContent className="bg-background border z-50">
+                        {(() => {
+                          const availableCategories = budget?.budget_categories
+                            ?.filter(category => !spendingForm.budget_type_code || category.budget_type_code === spendingForm.budget_type_code);
+                          
+                          console.log('🔍 Category filtering debug:', {
+                            selectedBudgetType: spendingForm.budget_type_code,
+                            allCategories: budget?.budget_categories,
+                            filteredCategories: availableCategories
+                          });
+
+                          if (!availableCategories || availableCategories.length === 0) {
+                            return (
+                              <SelectItem value="" disabled>
+                                {!spendingForm.budget_type_code 
+                                  ? "Please select a budget type first" 
+                                  : "No categories available for this budget type"}
+                              </SelectItem>
+                            );
+                          }
+
+                          return availableCategories.map((category) => (
                             <SelectItem key={category.id} value={category.id}>
                               {category.name}
                             </SelectItem>
-                          ))}
+                          ));
+                        })()}
                       </SelectContent>
                     </Select>
                   </div>
