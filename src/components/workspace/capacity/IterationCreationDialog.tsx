@@ -132,8 +132,21 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
         throw new Error(serverError);
       }
 
-      const teamName = teams.find(t => t.id === iterationForm.team_id)?.team_name || '';
-      const iteration = { ...response.data, team_name: teamName };
+      console.log('✅ Iteration created successfully:', response.data);
+      
+      // Map backend response to frontend format
+      const iteration = {
+        id: response.data.iteration.id,
+        name: response.data.iteration.iteration_name,
+        type: 'iteration' as 'iteration' | 'sprint' | 'cycle',
+        project_id: response.data.iteration.project_id,
+        team_id: response.data.iteration.team_id,
+        team_name: teams.find(t => t.id === iterationForm.team_id)?.team_name || '',
+        start_date: response.data.iteration.start_date,
+        end_date: response.data.iteration.end_date,
+        weeks_count: calculatedWeeks,
+        created_at: response.data.iteration.created_at
+      };
       
       onIterationCreated(iteration);
       handleClose();

@@ -73,28 +73,43 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
     try {
       setLoading(true);
       
+      console.log('🔍 Fetching data for iteration:', iteration);
+      
+      // Validate iteration has team_id
+      if (!iteration || !iteration.team_id) {
+        console.error('❌ No team_id found in iteration:', iteration);
+        toast({ 
+          title: 'Error', 
+          description: 'Invalid iteration data - no team assigned.', 
+          variant: 'destructive' 
+        });
+        return;
+      }
+      
       // Fetch team members
+      console.log('🔍 Fetching team members for team_id:', iteration.team_id);
       const membersResponse = await apiClient.getTeamMembers(iteration.team_id);
+      console.log('👥 Team members response:', membersResponse);
+      
       if (membersResponse.success) {
         setTeamMembers(membersResponse.data || []);
+      } else {
+        console.error('❌ Failed to fetch team members:', membersResponse.error);
+        toast({ 
+          title: 'Error', 
+          description: `Failed to fetch team members: ${membersResponse.error}`, 
+          variant: 'destructive' 
+        });
       }
 
-      // Fetch iteration weeks and availability
-      const iterationResponse = await apiClient.getIterationDetails(iteration.id);
-      if (iterationResponse.success) {
-        const data = iterationResponse.data;
-        setWeeks(data.weeks || []);
-        
-        // Convert availability array to lookup object
-        const availabilityMap: Record<string, WeeklyAvailability> = {};
-        (data.availability || []).forEach((avail: WeeklyAvailability) => {
-          const key = `${avail.team_member_id}-${avail.iteration_week_id}`;
-          availabilityMap[key] = avail;
-        });
-        setAvailability(availabilityMap);
+      // Generate weeks from iteration data if not available from backend
+      if (iteration.weeks_count && iteration.start_date) {
+        const generatedWeeks = generateWeeksFromIteration(iteration);
+        setWeeks(generatedWeeks);
       }
+
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('❌ Error fetching data:', error);
       toast({ 
         title: 'Error', 
         description: 'Failed to load iteration data. Try again.', 
@@ -103,6 +118,28 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const generateWeeksFromIteration = (iteration: Iteration): Week[] => {
+    const weeks: Week[] = [];
+    const startDate = new Date(iteration.start_date);
+    
+    for (let i = 0; i < iteration.weeks_count; i++) {
+      const weekStart = new Date(startDate);
+      weekStart.setDate(weekStart.getDate() + (i * 7));
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      weeks.push({
+        id: `week-${i + 1}`,
+        week_index: i + 1,
+        week_start: weekStart.toISOString().split('T')[0],
+        week_end: weekEnd.toISOString().split('T')[0]
+      });
+    }
+    
+    return weeks;
   };
 
   const getAvailabilityKey = (memberId: string, weekId: string) => `${memberId}-${weekId}`;

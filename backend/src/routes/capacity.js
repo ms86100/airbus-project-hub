@@ -89,14 +89,15 @@ router.post('/projects/:id/capacity', verifyToken, verifyProjectAccess, async (r
       });
       
       const insertQuery = `
-        INSERT INTO team_capacity_iterations (id, project_id, iteration_name, start_date, end_date, working_days, committed_story_points, created_by, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        INSERT INTO team_capacity_iterations (id, project_id, team_id, iteration_name, start_date, end_date, working_days, committed_story_points, created_by, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
       `;
       
       const result = await query(insertQuery, [
         iterationId,
         projectId,
+        data.teamId || null,  // Add the team_id to the database
         iterationName,
         startDate,
         endDate,

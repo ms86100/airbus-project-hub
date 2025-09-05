@@ -95,10 +95,11 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   };
 
   const handleIterationCreated = (iteration: Iteration) => {
+    console.log('🎯 Iteration created:', iteration);
     fetchIterations();
     setIterationDialogOpen(false);
     setSelectedIteration(iteration);
-    toast({ title: 'Success', description: `Iteration created with ${iteration.weeks_count} weeks.` });
+    // Don't show the toast yet, wait for matrix to load
   };
 
   const handleEditTeam = (team: Team) => {
