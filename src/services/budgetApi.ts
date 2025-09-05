@@ -11,28 +11,21 @@ class BudgetApiService {
   }
 
   private async getAuthHeaders(): Promise<HeadersInit> {
-    console.log('🔐 Getting auth headers...');
-    
-    // Check if supabase client is available (not null when using local backend)
+    // Check if supabase client is available
     if (!supabase) {
-      console.log('🔐 No Supabase client available (local backend mode)');
-      let token: string | null = null;
-      try {
-        const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
-        if (storedAuth) {
-          const session = JSON.parse(storedAuth);
-          token = session?.access_token || session?.token || session?.accessToken || null;
-        }
-      } catch (e) {
-        console.warn('Failed to parse local session for token');
-      }
-      
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
       };
       
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      try {
+        const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
+        if (storedAuth) {
+          const session = JSON.parse(storedAuth);
+          const token = session?.access_token || session?.token || session?.accessToken;
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (e) {
+        console.warn('Failed to parse local session for token');
       }
       
       return headers;
@@ -41,31 +34,13 @@ class BudgetApiService {
     const session = await supabase.auth.getSession();
     const token = session.data.session?.access_token;
     
-    console.log('🔐 Auth session status:', {
-      hasSession: !!session.data.session,
-      hasToken: !!token,
-      userId: session.data.session?.user?.id,
-      expiresAt: session.data.session?.expires_at
-    });
-    
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q'
     };
     
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    headers['apikey'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q';
-    
-    console.log('🔐 Request headers:', {
-      hasAuth: !!headers['Authorization'],
-      hasApiKey: !!headers['apikey'],
-      authLength: headers['Authorization'] ? String(headers['Authorization']).length : 0
-    });
-    
-    if (!headers['Authorization']) {
-      console.warn('⚠️ No authorization token available!');
     }
     
     return headers;
@@ -76,13 +51,6 @@ class BudgetApiService {
     const headers = await this.getAuthHeaders();
     const fullUrl = `${baseUrl}${endpoint}`;
     
-    console.log('🔗 Budget API Request:', {
-      method: options.method || 'GET',
-      url: fullUrl,
-      headers: headers,
-      body: options.body
-    });
-    
     try {
       const response = await fetch(fullUrl, {
         ...options,
@@ -92,32 +60,16 @@ class BudgetApiService {
         },
       });
 
-      console.log('📡 Budget API Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: fullUrl,
-        ok: response.ok
-      });
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Budget API Error Response:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText,
-          url: fullUrl
-        });
         throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
 
-      const result = await response.json();
-      console.log('✅ Budget API Success:', result);
-      return result;
+      return await response.json();
     } catch (error) {
-      console.error('❌ Budget API Network Error:', {
+      console.error('❌ Budget API Error:', {
         error: error.message,
-        url: fullUrl,
-        stack: error.stack
+        url: fullUrl
       });
       throw error;
     }
