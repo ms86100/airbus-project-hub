@@ -941,6 +941,40 @@ class ApiClient {
       body: JSON.stringify({ milestone_id: milestoneId }),
     });
   }
+
+  // New Team Capacity API methods
+  async getIterations(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/iterations`, { method: 'GET' });
+  }
+
+  async createIteration(projectId: string, iterationData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/workspace-service/projects/${projectId}/iterations`, {
+      method: 'POST',
+      body: JSON.stringify(iterationData),
+    });
+  }
+
+  async getIterationDetails(iterationId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/workspace-service/iterations/${iterationId}`, { method: 'GET' });
+  }
+
+  async saveWeeklyAvailability(iterationId: string, availabilityData: any[]): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/workspace-service/iterations/${iterationId}/availability`, {
+      method: 'POST',
+      body: JSON.stringify({ availability: availabilityData }),
+    });
+  }
+
+  async getDailyAttendance(availabilityId: string): Promise<ApiResponse<any[]>> {
+    return this.makeRequest(`/workspace-service/availability/${availabilityId}/daily`, { method: 'GET' });
+  }
+
+  async saveDailyAttendance(memberId: string, weekId: string, attendanceData: any[]): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/workspace-service/members/${memberId}/weeks/${weekId}/attendance`, {
+      method: 'POST',
+      body: JSON.stringify({ attendance: attendanceData }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();
