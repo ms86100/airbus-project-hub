@@ -389,8 +389,9 @@ Deno.serve(async (req) => {
         if (typeof taskData[k] === 'string' && taskData[k].trim() === '') taskData[k] = null;
       });
       
-      // Handle milestone_id separately - only set to null if it's actually empty/undefined
-      if (taskData.milestone_id === '' || taskData.milestone_id === undefined) {
+      // Handle milestone_id separately - only set to null if it's actually empty/undefined or null
+      // Keep valid milestone_id values intact
+      if (!taskData.milestone_id || taskData.milestone_id === '' || taskData.milestone_id === 'null' || taskData.milestone_id === 'undefined') {
         taskData.milestone_id = null;
       }
       
