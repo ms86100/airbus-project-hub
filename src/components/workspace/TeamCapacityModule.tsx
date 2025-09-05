@@ -143,11 +143,16 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   };
 
   if (selectedIteration) {
+    console.log('🎯 Rendering AvailabilityMatrix with iteration:', selectedIteration);
     return (
       <AvailabilityMatrix
         iteration={selectedIteration}
-        onBack={() => setSelectedIteration(null)}
+        onBack={() => {
+          console.log('🔙 Back button clicked, clearing selectedIteration');
+          setSelectedIteration(null);
+        }}
         onUpdate={() => {
+          console.log('🔄 Update triggered, refreshing and going back');
           fetchIterations();
           setSelectedIteration(null);
         }}
@@ -230,9 +235,10 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             size="sm"
                             variant="secondary"
                             onClick={() => {
-                              // Navigate directly to availability matrix for this team
+                              console.log('🔍 View Availability clicked for team:', team.team_name);
                               const teamIteration = iterations.find(it => it.team_id === team.id);
                               if (teamIteration) {
+                                console.log('✅ Found existing iteration:', teamIteration);
                                 setSelectedIteration(teamIteration);
                               } else {
                                 // Create a temporary iteration object for the availability matrix
