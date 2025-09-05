@@ -56,13 +56,17 @@ router.get('/projects/:projectId/budget', verifyProjectAccess, async (req, res) 
     console.log('✅ Budget data fetched successfully');
     
     // Build nested structure expected by UI
+    const categoriesWithSpending = categories.map(c => ({
+      ...c,
+      budget_spending: spendingEntries.filter(se => se.budget_category_id === c.id)
+    }));
+    
     let budgetWithNested = budget;
     if (budget) {
-      const categoriesWithSpending = categories.map(c => ({
-        ...c,
-        budget_spending: spendingEntries.filter(se => se.budget_category_id === c.id)
-      }));
       budgetWithNested = { ...budget, budget_categories: categoriesWithSpending };
+    } else {
+      // If no main budget exists, create a structure with categories
+      budgetWithNested = { budget_categories: categoriesWithSpending };
     }
     
     sendResponse(res, createSuccessResponse({
