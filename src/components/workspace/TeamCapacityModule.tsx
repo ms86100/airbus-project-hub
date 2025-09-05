@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/services/api';
 import { TeamCreationDialog } from './capacity/TeamCreationDialog';
 import { IterationCreationDialog } from './capacity/IterationCreationDialog';
-import { AvailabilityMatrix } from './capacity/AvailabilityMatrix';
+import { TeamCapacityTracker } from './TeamCapacityTracker';
 import { TeamCapacityAnalytics } from './capacity/TeamCapacityAnalytics';
 import { TeamCapacityTrackerDialog } from './capacity/TeamCapacityTrackerDialog';
 
@@ -144,14 +144,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
 
   if (selectedIteration) {
     return (
-      <AvailabilityMatrix
-        iteration={selectedIteration}
-        onBack={() => setSelectedIteration(null)}
-        onUpdate={() => {
-          fetchIterations();
-          setSelectedIteration(null);
-        }}
-      />
+      <TeamCapacityTracker projectId={projectId} />
     );
   }
 
@@ -397,6 +390,8 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
         onTrackerCreated={(iteration) => {
           handleIterationCreated(iteration);
           setTrackerDialogOpen(false);
+          // Navigate to the detailed capacity tracker
+          setSelectedIteration(iteration);
         }}
       />
 
