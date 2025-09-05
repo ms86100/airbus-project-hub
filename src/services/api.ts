@@ -22,10 +22,10 @@ class ApiClient {
       this.isLocalBackend = true;
       console.log('✅ Using LOCAL backend:', this.baseUrl);
     } else {
-      // Supabase edge functions (fallback) - use service prefixes
-      this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
-      this.isLocalBackend = false;
-      console.log('☁️ Using SUPABASE backend:', this.baseUrl);
+      // Force local backend for now - do not use Supabase
+      this.baseUrl = 'http://localhost:3001';
+      this.isLocalBackend = true;
+      console.log('🔧 FORCING LOCAL backend:', this.baseUrl);
     }
   }
 

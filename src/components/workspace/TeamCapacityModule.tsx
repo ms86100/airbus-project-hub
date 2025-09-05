@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Users, Calendar, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/services/api';
@@ -105,13 +106,19 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
     toast({ title: 'Info', description: 'Team editing feature coming soon' });
   };
 
-  const handleDeleteTeam = async (team: Team) => {
-    if (!confirm(`Are you sure you want to delete team "${team.team_name}"?`)) {
-      return;
-    }
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
+
+  const handleDeleteTeam = (team: Team) => {
+    setTeamToDelete(team);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteTeam = async () => {
+    if (!teamToDelete) return;
     
     try {
-      const response = await apiClient.deleteTeam(team.id);
+      const response = await apiClient.deleteTeam(teamToDelete.id);
       if (response.success) {
         await fetchTeams(); // Refresh teams list
         toast({ title: 'Success', description: 'Team deleted successfully' });
@@ -121,6 +128,9 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
     } catch (error) {
       console.error('Error deleting team:', error);
       toast({ title: 'Error', description: 'Failed to delete team', variant: 'destructive' });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setTeamToDelete(null);
     }
   };
 
@@ -324,6 +334,23 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
         onIterationCreated={handleIterationCreated}
         onClose={() => setNewlyCreatedTeamId(null)}
       />
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Team</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete team "{teamToDelete?.team_name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteTeam} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
