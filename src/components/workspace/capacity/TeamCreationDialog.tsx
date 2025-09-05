@@ -148,7 +148,7 @@ export const TeamCreationDialog: React.FC<TeamCreationDialogProps> = ({
                 <CardTitle className="text-lg">Add Team Members</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="member-name">Name *</Label>
                     <Input
@@ -167,16 +167,16 @@ export const TeamCreationDialog: React.FC<TeamCreationDialogProps> = ({
                       placeholder="e.g., Developer, Designer"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="member-email">Email</Label>
-                    <Input
-                      id="member-email"
-                      type="email"
-                      value={memberForm.email}
-                      onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
-                      placeholder="email@example.com"
-                    />
-                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="member-email">Email</Label>
+                  <Input
+                    id="member-email"
+                    type="email"
+                    value={memberForm.email}
+                    onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
+                    placeholder="email@example.com"
+                  />
                 </div>
                 <Button 
                   type="button" 
