@@ -74,10 +74,10 @@ class ApiClient {
     const doFetch = async (authToken?: string) => {
       const actualEndpoint = this.getLocalEndpoint(endpoint);
       
-      // Always use the configured base URL - no special handling for capacity-service
-      const baseUrl = this.baseUrl;
+      // FORCE localhost for ALL requests - NO SUPABASE
+      const baseUrl = 'http://localhost:3001';
       
-      console.log(`🌐 API BASE URL: ${baseUrl}`);
+      console.log(`🌐 FORCED API BASE URL: ${baseUrl}`);
       console.log(`🌐 IS LOCAL: ${this.isLocalBackend}`);
       console.log(`🌐 ENDPOINT: ${endpoint} -> ${actualEndpoint}`);
       
@@ -118,6 +118,12 @@ class ApiClient {
       }
 
       console.log(`📡 Response from ${endpoint}:`, result);
+      
+      // Return the RAW response - don't sanitize errors
+      if (!result || !result.success) {
+        console.error(`❌ RAW SERVER ERROR:`, result);
+      }
+      
       return result ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' };
     } catch (error) {
       console.error('API request failed:', error);
@@ -981,16 +987,18 @@ class ApiClient {
   }
 
   async createIteration(projectId: string, iterationData: any): Promise<ApiResponse<any>> {
+    // The backend expects these EXACT field names (see capacity.js line 77)
     const payload = {
       type: 'iteration',
-      name: iterationData.name,
-      start_date: iterationData.start_date,
-      end_date: iterationData.end_date,
-      team_id: iterationData.team_id,
-      weeks_count: iterationData.weeks_count,
+      iterationName: iterationData.name,        // backend expects 'iterationName' not 'name'
+      startDate: iterationData.start_date,      // backend expects 'startDate' not 'start_date' 
+      endDate: iterationData.end_date,          // backend expects 'endDate' not 'end_date'
+      workingDays: iterationData.weeks_count * 5,   // Convert weeks to working days (5 days per week)
+      committedStoryPoints: 0,
+      teamId: iterationData.team_id
     };
     
-    console.log('🔄 Creating iteration with payload:', payload);
+    console.log('🔄 Creating iteration with CORRECT payload:', payload);
     console.log('🔄 Using base URL:', this.baseUrl);
     
     // Force local endpoint for iterations

@@ -124,9 +124,12 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
       console.log('🔄 Full iteration response:', response);
       
       if (!response.success) {
-        // Show the REAL server error
-        console.error('❌ Server error response:', response);
-        throw new Error(response.error || JSON.stringify(response));
+        // Log the COMPLETE server response
+        console.error('❌ COMPLETE Server error response:', JSON.stringify(response, null, 2));
+        
+        // Throw the EXACT server error message
+        const serverError = response.error || JSON.stringify(response);
+        throw new Error(serverError);
       }
 
       const teamName = teams.find(t => t.id === iterationForm.team_id)?.team_name || '';
