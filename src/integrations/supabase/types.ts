@@ -943,7 +943,7 @@ export type Database = {
           department_id: string | null
           framework: string
           id: string
-          iteration_id: string
+          iteration_id: string | null
           project_id: string
           status: string
           updated_at: string
@@ -954,7 +954,7 @@ export type Database = {
           department_id?: string | null
           framework?: string
           id?: string
-          iteration_id: string
+          iteration_id?: string | null
           project_id: string
           status?: string
           updated_at?: string
@@ -965,7 +965,7 @@ export type Database = {
           department_id?: string | null
           framework?: string
           id?: string
-          iteration_id?: string
+          iteration_id?: string | null
           project_id?: string
           status?: string
           updated_at?: string
