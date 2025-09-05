@@ -56,16 +56,13 @@ class ApiClient {
   }
 
   private getLocalEndpoint(endpoint: string): string {
-    if (!this.isLocalBackend) return endpoint;
-    
-    // Force capacity-service calls to go to Supabase even when using local backend
-    if (endpoint.startsWith('/capacity-service/')) {
-      return endpoint;
-    }
-    
-    // For other local backend endpoints, the Express server already uses the same service prefixes
-    // as Supabase Edge Functions, so no mapping is needed!
+    // No path mapping needed; we choose the correct endpoint earlier
     return endpoint;
+  }
+
+  // Helper: choose correct endpoint based on environment
+  private resolveEndpoint(serviceEndpoint: string, localEndpoint: string): string {
+    return this.isLocalBackend ? localEndpoint : serviceEndpoint;
   }
 
   private async makeRequest<T>(
@@ -873,11 +870,19 @@ class ApiClient {
   // ========================
 
   async getTeams(projectId: string): Promise<ApiResponse> {
-    return this.makeRequest(`/capacity-service/projects/${projectId}/teams`, { method: 'GET' });
+    const ep = this.resolveEndpoint(
+      `/capacity-service/projects/${projectId}/teams`,
+      `/projects/${projectId}/teams`
+    );
+    return this.makeRequest(ep, { method: 'GET' });
   }
 
   async createTeam(projectId: string, teamData: any): Promise<ApiResponse> {
-    return this.makeRequest(`/capacity-service/projects/${projectId}/teams`, {
+    const ep = this.resolveEndpoint(
+      `/capacity-service/projects/${projectId}/teams`,
+      `/projects/${projectId}/teams`
+    );
+    return this.makeRequest(ep, {
       method: 'POST',
       body: JSON.stringify(teamData),
     });
@@ -895,11 +900,19 @@ class ApiClient {
   }
 
   async getTeamMembers(teamId: string): Promise<ApiResponse> {
-    return this.makeRequest(`/capacity-service/teams/${teamId}/members`, { method: 'GET' });
+    const ep = this.resolveEndpoint(
+      `/capacity-service/teams/${teamId}/members`,
+      `/teams/${teamId}/members`
+    );
+    return this.makeRequest(ep, { method: 'GET' });
   }
 
   async createTeamMember(teamId: string, memberData: any): Promise<ApiResponse> {
-    return this.makeRequest(`/teams/${teamId}/members`, {
+    const ep = this.resolveEndpoint(
+      `/capacity-service/teams/${teamId}/members`,
+      `/teams/${teamId}/members`
+    );
+    return this.makeRequest(ep, {
       method: 'POST',
       body: JSON.stringify(memberData),
     });
@@ -955,10 +968,33 @@ class ApiClient {
 
   // Team Capacity API methods
   async getIterations(projectId: string): Promise<ApiResponse<any[]>> {
+    if (this.isLocalBackend) {
+      const res = await this.makeRequest<any>(`/projects/${projectId}/capacity`, { method: 'GET' });
+      if (!res.success) return res as any;
+      // Local backend returns an object; prefer 'iterations' array if present
+      const data = Array.isArray((res as any).data?.iterations)
+        ? (res as any).data.iterations
+        : ((res as any).data || []);
+      return { success: true, data } as ApiResponse<any[]>;
+    }
     return this.makeRequest(`/capacity-service/projects/${projectId}/iterations`, { method: 'GET' });
   }
 
   async createIteration(projectId: string, iterationData: any): Promise<ApiResponse<any>> {
+    if (this.isLocalBackend) {
+      const payload = {
+        type: 'iteration',
+        name: iterationData.name,
+        start_date: iterationData.start_date,
+        end_date: iterationData.end_date,
+        team_id: iterationData.team_id,
+        weeks_count: iterationData.weeks_count,
+      };
+      return this.makeRequest(`/projects/${projectId}/capacity`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    }
     return this.makeRequest(`/capacity-service/projects/${projectId}/iterations`, {
       method: 'POST',
       body: JSON.stringify(iterationData),
@@ -966,10 +1002,18 @@ class ApiClient {
   }
 
   async getIterationDetails(iterationId: string): Promise<ApiResponse<any>> {
+    if (this.isLocalBackend) {
+      // Not supported on local backend; return basic structure
+      return { success: true, data: null } as ApiResponse<any>;
+    }
     return this.makeRequest(`/capacity-service/iterations/${iterationId}`, { method: 'GET' });
   }
 
   async saveWeeklyAvailability(iterationId: string, availabilityData: any[]): Promise<ApiResponse<any>> {
+    if (this.isLocalBackend) {
+      // Not supported on local backend
+      return { success: false, error: 'Not supported on local backend' } as ApiResponse<any>;
+    }
     return this.makeRequest(`/capacity-service/iterations/${iterationId}/availability`, {
       method: 'POST',
       body: JSON.stringify({ availability: availabilityData }),
@@ -977,10 +1021,16 @@ class ApiClient {
   }
 
   async getDailyAttendance(availabilityId: string): Promise<ApiResponse<any[]>> {
+    if (this.isLocalBackend) {
+      return { success: false, error: 'Not supported on local backend' } as ApiResponse<any[]>;
+    }
     return this.makeRequest(`/capacity-service/availability/${availabilityId}/daily`, { method: 'GET' });
   }
 
   async saveDailyAttendance(memberId: string, weekId: string, attendanceData: any[]): Promise<ApiResponse<any>> {
+    if (this.isLocalBackend) {
+      return { success: false, error: 'Not supported on local backend' } as ApiResponse<any>;
+    }
     return this.makeRequest(`/capacity-service/members/${memberId}/weeks/${weekId}/attendance`, {
       method: 'POST',
       body: JSON.stringify({ attendance: attendanceData }),
