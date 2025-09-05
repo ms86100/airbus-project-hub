@@ -103,9 +103,16 @@ export const DailyAttendanceModal: React.FC<DailyAttendanceModalProps> = ({
   };
 
   const calculatePercentFromAttendance = () => {
-    const totalDays = Object.keys(attendance).length;
-    const presentDays = Object.values(attendance).filter(status => status === 'P').length;
-    return totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
+    // Only count working days (exclude weekends)
+    const workingDayEntries = Object.entries(attendance).filter(([date, _]) => {
+      const dayOfWeek = new Date(date).getDay();
+      return dayOfWeek !== 0 && dayOfWeek !== 6; // Exclude Sunday (0) and Saturday (6)
+    });
+    
+    const totalWorkingDays = workingDayEntries.length;
+    const presentWorkingDays = workingDayEntries.filter(([_, status]) => status === 'P').length;
+    
+    return totalWorkingDays > 0 ? Math.round((presentWorkingDays / totalWorkingDays) * 100) : 100;
   };
 
   const getDaysData = () => {
@@ -219,7 +226,13 @@ export const DailyAttendanceModal: React.FC<DailyAttendanceModalProps> = ({
               <div className="text-sm text-muted-foreground mb-1">Calculated Availability</div>
               <div className="text-2xl font-bold">{calculatedPercent}%</div>
               <div className="text-sm text-muted-foreground">
-                {Object.values(attendance).filter(s => s === 'P').length} of {Object.keys(attendance).length} days present
+                {Object.entries(attendance).filter(([date, status]) => {
+                  const dayOfWeek = new Date(date).getDay();
+                  return status === 'P' && dayOfWeek !== 0 && dayOfWeek !== 6; // Only count present working days
+                }).length} of {Object.entries(attendance).filter(([date, _]) => {
+                  const dayOfWeek = new Date(date).getDay();
+                  return dayOfWeek !== 0 && dayOfWeek !== 6; // Only count working days
+                }).length} working days present
               </div>
             </div>
 
