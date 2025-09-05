@@ -78,7 +78,7 @@ router.post('/projects/:projectId/teams', verifyToken, async (req, res) => {
 
     const teamId = uuidv4();
     const insertQuery = `
-      INSERT INTO teams (id, project_id, name, description, created_by)
+      INSERT INTO teams (id, project_id, team_name, description, created_by)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
@@ -88,7 +88,25 @@ router.post('/projects/:projectId/teams', verifyToken, async (req, res) => {
     sendResponse(res, createSuccessResponse(result.rows[0]));
   } catch (error) {
     console.error('Error creating team:', error);
-    sendResponse(res, createErrorResponse('Failed to create team', 'DATABASE_ERROR'), 500);
+    
+    // Provide more specific error details
+    let errorMessage = 'Failed to create team';
+    let errorCode = 'DATABASE_ERROR';
+    
+    if (error.code === '23505') { // Unique constraint violation
+      errorMessage = 'Team name already exists in this project';
+      errorCode = 'DUPLICATE_TEAM_NAME';
+    } else if (error.code === '23503') { // Foreign key constraint violation
+      errorMessage = 'Invalid project ID or user reference';
+      errorCode = 'INVALID_REFERENCE';
+    } else if (error.code === '23502') { // Not null constraint violation
+      errorMessage = 'Missing required fields for team creation';
+      errorCode = 'MISSING_REQUIRED_FIELDS';
+    } else if (error.message) {
+      errorMessage = `Failed to create team: ${error.message}`;
+    }
+    
+    sendResponse(res, createErrorResponse(errorMessage, errorCode), 500);
   }
 });
 
@@ -122,7 +140,7 @@ router.put('/teams/:teamId', verifyToken, async (req, res) => {
 
     const updateQuery = `
       UPDATE teams 
-      SET name = $1, description = $2, updated_at = now()
+      SET team_name = $1, description = $2, updated_at = now()
       WHERE id = $3
       RETURNING *
     `;

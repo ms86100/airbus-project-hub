@@ -86,9 +86,20 @@ export const TeamCreationDialog: React.FC<TeamCreationDialogProps> = ({
       handleClose();
     } catch (error) {
       console.error('Error creating team:', error);
+      
+      // Show actual error message for debugging
+      let errorMessage = 'Failed to create team';
+      if (error instanceof Error) {
+        errorMessage = `Failed to create team: ${error.message}`;
+      } else if (typeof error === 'string') {
+        errorMessage = `Failed to create team: ${error}`;
+      } else if (error && typeof error === 'object' && 'error' in error) {
+        errorMessage = `Failed to create team: ${error.error}`;
+      }
+      
       toast({ 
         title: 'Error', 
-        description: 'Failed to create team. Check team selection and try again.', 
+        description: errorMessage, 
         variant: 'destructive' 
       });
     } finally {
