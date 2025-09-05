@@ -17,10 +17,14 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Validate authentication
+    console.log('🔐 Validating auth for budget service...');
     const { user, error: authError } = await validateAuthToken(req, supabase);
+    console.log('🔐 Auth validation result:', { user: !!user, error: authError });
     if (!user) {
+      console.error('❌ Auth failed:', authError);
       return createErrorResponse(authError || 'Unauthorized', 'UNAUTHORIZED', 401);
     }
+    console.log('✅ User authenticated:', user.id);
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
@@ -28,6 +32,7 @@ Deno.serve(async (req) => {
     // Route: /budget-service/projects/{projectId}/budget
     if (pathParts.length >= 4 && pathParts[0] === 'budget-service' && pathParts[1] === 'projects' && pathParts[3] === 'budget') {
       const projectId = pathParts[2];
+      console.log('🏷️ Budget route matched, projectId:', projectId);
       
       if (req.method === 'GET') {
         // Get project budget with categories, spending, receipts
@@ -49,8 +54,14 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (budgetError) {
-          console.error('❌ Error fetching budget:', budgetError);
-          return createErrorResponse('Failed to fetch budget', 'FETCH_ERROR', 500);
+          console.error('❌ Detailed budget error:', {
+            error: budgetError,
+            code: budgetError.code,
+            message: budgetError.message,
+            details: budgetError.details,
+            hint: budgetError.hint
+          });
+          return createErrorResponse(`Budget fetch error: ${budgetError.message}`, 'FETCH_ERROR', 500);
         }
 
         // Get budget types for reference
@@ -61,8 +72,14 @@ Deno.serve(async (req) => {
           .order('dropdown_display_order');
 
         if (typesError) {
-          console.error('❌ Error fetching budget types:', typesError);
-          return createErrorResponse('Failed to fetch budget types', 'FETCH_ERROR', 500);
+          console.error('❌ Detailed budget types error:', {
+            error: typesError,
+            code: typesError.code,
+            message: typesError.message,
+            details: typesError.details,
+            hint: typesError.hint
+          });
+          return createErrorResponse(`Budget types fetch error: ${typesError.message}`, 'FETCH_ERROR', 500);
         }
 
         const result = {

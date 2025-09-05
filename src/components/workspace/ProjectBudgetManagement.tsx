@@ -110,14 +110,20 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
   const fetchBudgetData = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching budget data for project:', projectId);
+      console.log('🔍 Starting budget data fetch for project:', projectId);
 
       const result = await budgetApi.getProjectBudget(projectId);
-      console.log('📊 Budget data response:', result);
+      console.log('📊 Raw budget data response:', result);
 
       setBudget(result.data.budget);
       setBudgetTypes(result.data.budgetTypes);
       setAnalytics(result.data.analytics);
+      
+      console.log('📊 Processed budget data:', {
+        budget: result.data.budget,
+        budgetTypesCount: result.data.budgetTypes?.length,
+        hasAnalytics: !!result.data.analytics
+      });
       
       if (result.data.budget) {
         setBudgetForm({
@@ -129,10 +135,15 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         });
       }
     } catch (error) {
-      console.error('❌ Error fetching budget data:', error);
+      console.error('❌ DETAILED Budget fetch error:', {
+        error: error,
+        message: error.message,
+        stack: error.stack,
+        projectId: projectId
+      });
       toast({
-        title: "Error",
-        description: "Failed to fetch budget data",
+        title: "Debug Error",
+        description: `Budget fetch failed: ${error.message}`,
         variant: "destructive",
       });
     } finally {
