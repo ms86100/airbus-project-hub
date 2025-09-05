@@ -675,12 +675,14 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                       </SelectTrigger>
                       <SelectContent className="bg-background border z-50">
                         {(() => {
-                          const availableCategories = budget?.budget_categories || [];
-                          
-                          console.log('🔍 Available budget categories for spending:', {
-                            totalCategories: availableCategories.length,
-                            categories: availableCategories.map(c => ({ id: c.id, name: c.name, type: c.budget_type_code }))
+                          console.log('🔍 DEBUG - Budget data for spending:', { 
+                            budget, 
+                            hasBudget: !!budget,
+                            categories: budget?.budget_categories,
+                            categoriesLength: budget?.budget_categories?.length 
                           });
+                          
+                          const availableCategories = budget?.budget_categories || [];
 
                           if (availableCategories.length === 0) {
                             return (
