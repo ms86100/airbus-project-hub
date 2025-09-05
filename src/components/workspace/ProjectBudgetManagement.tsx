@@ -156,15 +156,18 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
           });
         });
 
-        // Also consider main budget totals if they exist and are higher
+        // Also consider main budget totals if they exist
         const mainBudgetAllocated = parseFloat(String(budgetData.total_budget_allocated || 0));
         const mainBudgetReceived = parseFloat(String(budgetData.total_budget_received || 0));
         
-        // Use the higher of category totals or main budget totals for allocated and received
+        // Use the sum of category totals or main budget totals, whichever is higher
+        // This handles cases where main budget is set but categories haven't been allocated yet
         const finalAllocatedTotal = Math.max(totalAllocated, mainBudgetAllocated);
         const finalReceivedTotal = Math.max(totalReceived, mainBudgetReceived);
         
-        const remainingTotal = finalReceivedTotal - totalSpent;
+        // Calculate remaining from the higher of allocated or received minus spent
+        const budgetBase = Math.max(finalAllocatedTotal, finalReceivedTotal);
+        const remainingTotal = budgetBase - totalSpent;
 
         calculatedAnalytics = {
           totals: {
@@ -835,71 +838,287 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
         <TabsContent value="analytics" className="space-y-6">
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold">Budget Analytics</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Budget Analytics</h3>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  // Add dummy data for testing
+                  console.log('Adding dummy data for testing...');
+                  toast({
+                    title: "Test Data",
+                    description: "This would add test budget and spending data in a real implementation",
+                  });
+                }}
+              >
+                Add Test Data
+              </Button>
+            </div>
+            
+            {/* Enhanced Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Budget Utilization</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {analytics?.totals.received_total > 0 ? 
+                      Math.round((analytics.totals.spent_total / analytics.totals.received_total) * 100) : 0}%
+                  </div>
+                  <Progress 
+                    value={analytics?.totals.received_total > 0 ? 
+                      (analytics.totals.spent_total / analytics.totals.received_total) * 100 : 0} 
+                    className="mt-2" 
+                  />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Categories</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {budget?.budget_categories?.length || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Active budget items</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Avg. Spending</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(
+                      budget?.budget_categories?.length > 0 ? 
+                        (analytics?.totals.spent_total || 0) / budget.budget_categories.length : 0, 
+                      budget?.currency
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Per category</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Budget Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    <Badge variant={
+                      (analytics?.totals.remaining_total || 0) >= 0 ? "default" : "destructive"
+                    }>
+                      {(analytics?.totals.remaining_total || 0) >= 0 ? "On Track" : "Over Budget"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {(analytics?.totals.remaining_total || 0) >= 0 ? "Within limits" : "Exceeds budget"}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
             
             {/* Budget vs Actual Spending Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Budget vs Actual Spending</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Budget vs Actual Spending
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {budget?.budget_categories && budget.budget_categories.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={budget.budget_categories.map(category => ({
-                      name: category.name,
+                      name: category.name.length > 15 ? category.name.substring(0, 15) + '...' : category.name,
+                      fullName: category.name,
                       budget: parseFloat(String(category.budget_allocated || 0)),
+                      received: parseFloat(String(category.budget_received || 0)),
                       spent: parseFloat(String(category.amount_spent || 0))
                     }))}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="budget" fill="#8884d8" name="Budget Allocated" />
-                      <Bar dataKey="spent" fill="#82ca9d" name="Amount Spent" />
+                      <YAxis tickFormatter={(value) => `₹${value.toLocaleString()}`} />
+                      <Tooltip 
+                        formatter={(value, name) => [`₹${value.toLocaleString()}`, name]}
+                        labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
+                      />
+                      <Bar dataKey="budget" fill="hsl(var(--primary))" name="Budget Allocated" />
+                      <Bar dataKey="received" fill="hsl(var(--secondary))" name="Budget Received" />
+                      <Bar dataKey="spent" fill="hsl(var(--accent))" name="Amount Spent" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-40 text-muted-foreground">
-                    No budget data available for analysis
+                  <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                    <BarChart3 className="h-12 w-12 mb-2 opacity-50" />
+                    <p>No budget data available for analysis</p>
+                    <p className="text-sm">Create budget categories to see analytics</p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Category Breakdown Pie Chart */}
+            {/* Enhanced Spending Distribution Pie Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Spending Distribution by Category</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <PieChart className="h-5 w-5" />
+                  Spending Distribution by Category
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                {budget?.budget_categories && budget.budget_categories.some(cat => parseFloat(String(cat.amount_spent || 0)) > 0) ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <RechartsPieChart>
-                      <Pie
-                        data={budget.budget_categories
-                          .filter(category => parseFloat(String(category.amount_spent || 0)) > 0)
-                          .map(category => ({
-                            name: category.name,
-                            value: parseFloat(String(category.amount_spent || 0))
-                          }))}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {budget.budget_categories.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={`hsl(${index * 45}, 70%, 60%)`} />
+                {(() => {
+                  const categoriesWithSpending = budget?.budget_categories?.filter(cat => 
+                    parseFloat(String(cat.amount_spent || 0)) > 0
+                  ) || [];
+                  
+                  if (categoriesWithSpending.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                        <PieChart className="h-12 w-12 mb-2 opacity-50" />
+                        <p>No spending data available for analysis</p>
+                        <p className="text-sm">Add spending entries to see distribution</p>
+                      </div>
+                    );
+                  }
+
+                  const pieData = categoriesWithSpending.map(category => ({
+                    name: category.name,
+                    value: parseFloat(String(category.amount_spent || 0)),
+                    percentage: analytics?.totals.spent_total > 0 ? 
+                      (parseFloat(String(category.amount_spent || 0)) / analytics.totals.spent_total * 100).toFixed(1) : 0
+                  }));
+
+                  const COLORS = [
+                    'hsl(var(--primary))',
+                    'hsl(var(--secondary))', 
+                    'hsl(var(--accent))',
+                    'hsl(var(--muted))',
+                    '#8884d8',
+                    '#82ca9d',
+                    '#ffc658',
+                    '#ff7300',
+                    '#00ff00',
+                    '#ff00ff'
+                  ];
+
+                  return (
+                    <div className="flex flex-col lg:flex-row gap-4">
+                      <div className="flex-1">
+                        <ResponsiveContainer width="100%" height={300}>
+                          <RechartsPieChart>
+                            <Pie
+                              data={pieData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percentage }) => `${name} (${percentage}%)`}
+                              outerRadius={100}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {pieData.map((entry, index) => (
+                                <Cell 
+                                  key={`cell-${index}`} 
+                                  fill={COLORS[index % COLORS.length]} 
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount Spent']}
+                            />
+                          </RechartsPieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      
+                      {/* Legend */}
+                      <div className="lg:w-64 space-y-2">
+                        <h4 className="font-semibold text-sm">Category Breakdown</h4>
+                        {pieData.map((category, index) => (
+                          <div key={category.name} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                              />
+                              <span className="truncate">{category.name}</span>
+                            </div>
+                            <span className="font-medium">
+                              ₹{category.value.toLocaleString()}
+                            </span>
+                          </div>
                         ))}
-                      </Pie>
-                      <Tooltip />
-                    </RechartsPieChart>
-                  </ResponsiveContainer>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* Category Performance Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <LineChart className="h-5 w-5" />
+                  Category Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {budget?.budget_categories && budget.budget_categories.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-2">Category</th>
+                          <th className="text-right p-2">Allocated</th>
+                          <th className="text-right p-2">Received</th>
+                          <th className="text-right p-2">Spent</th>
+                          <th className="text-right p-2">Remaining</th>
+                          <th className="text-right p-2">Usage %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {budget.budget_categories.map((category, index) => {
+                          const allocated = parseFloat(String(category.budget_allocated || 0));
+                          const received = parseFloat(String(category.budget_received || 0));
+                          const spent = parseFloat(String(category.amount_spent || 0));
+                          const remaining = Math.max(allocated, received) - spent;
+                          const usagePercent = Math.max(allocated, received) > 0 ? 
+                            (spent / Math.max(allocated, received)) * 100 : 0;
+                          
+                          return (
+                            <tr key={category.id} className={index % 2 === 0 ? "bg-muted/50" : ""}>
+                              <td className="p-2 font-medium">{category.name}</td>
+                              <td className="p-2 text-right">₹{allocated.toLocaleString()}</td>
+                              <td className="p-2 text-right">₹{received.toLocaleString()}</td>
+                              <td className="p-2 text-right">₹{spent.toLocaleString()}</td>
+                              <td className="p-2 text-right">
+                                <span className={remaining >= 0 ? "text-green-600" : "text-red-600"}>
+                                  ₹{remaining.toLocaleString()}
+                                </span>
+                              </td>
+                              <td className="p-2 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <span className={usagePercent > 90 ? "text-red-600" : usagePercent > 70 ? "text-yellow-600" : "text-green-600"}>
+                                    {usagePercent.toFixed(1)}%
+                                  </span>
+                                  <Progress value={Math.min(usagePercent, 100)} className="w-16 h-2" />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
-                  <div className="flex items-center justify-center h-40 text-muted-foreground">
-                    No spending data available for analysis
+                  <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                    <LineChart className="h-8 w-8 mb-2 opacity-50" />
+                    <p>No categories available for performance analysis</p>
                   </div>
                 )}
               </CardContent>
