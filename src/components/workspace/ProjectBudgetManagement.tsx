@@ -794,40 +794,49 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
           <div className="space-y-4">
             {budget?.budget_categories?.map((category) => (
-              category.budget_spending?.map((spending: any) => (
-                <Card key={spending.id} className="border-l-4 border-l-secondary">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="font-semibold">{spending.description}</h4>
-                        <p className="text-sm text-muted-foreground">₹{parseFloat(spending.amount).toLocaleString()}</p>
-                        <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-                          <span>Vendor: {spending.vendor || 'Not specified'}</span>
-                          <span>Date: {new Date(spending.date).toLocaleDateString()}</span>
-                          <span>Status: {spending.status}</span>
+              category.budget_spending && category.budget_spending.length > 0 ? 
+                category.budget_spending.map((spending: any) => (
+                  <Card key={spending.id} className="border-l-4 border-l-secondary">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              {category.name}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {category.budget_type_code}
+                            </Badge>
+                          </div>
+                          <h4 className="font-semibold">{spending.description}</h4>
+                          <p className="text-sm text-muted-foreground">₹{parseFloat(spending.amount).toLocaleString()}</p>
+                          <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
+                            <span>Vendor: {spending.vendor || 'Not specified'}</span>
+                            <span>Date: {new Date(spending.date).toLocaleDateString()}</span>
+                            <span>Status: {spending.status}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditSpending(spending)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDeleteSpending(spending)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex gap-2 ml-4">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditSpending(spending)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDeleteSpending(spending)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )) || (
+                    </CardContent>
+                  </Card>
+                )) : null
+            )).filter(Boolean).flat() || (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">No spending entries found.</p>
                 <p className="text-sm text-muted-foreground">Create your first spending entry to get started.</p>
