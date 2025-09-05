@@ -1378,6 +1378,7 @@ export type Database = {
           role: string
           stakeholder_id: string | null
           team_id: string | null
+          team_member_id: string | null
           updated_at: string
           work_mode: string
         }
@@ -1394,6 +1395,7 @@ export type Database = {
           role: string
           stakeholder_id?: string | null
           team_id?: string | null
+          team_member_id?: string | null
           updated_at?: string
           work_mode: string
         }
@@ -1410,6 +1412,7 @@ export type Database = {
           role?: string
           stakeholder_id?: string | null
           team_id?: string | null
+          team_member_id?: string | null
           updated_at?: string
           work_mode?: string
         }
@@ -1494,6 +1497,56 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          created_by: string
+          default_availability_percent: number | null
+          email: string | null
+          id: string
+          member_name: string
+          role: string | null
+          skills: string[] | null
+          team_id: string
+          updated_at: string
+          work_mode: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          default_availability_percent?: number | null
+          email?: string | null
+          id?: string
+          member_name: string
+          role?: string | null
+          skills?: string[] | null
+          team_id: string
+          updated_at?: string
+          work_mode?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          default_availability_percent?: number | null
+          email?: string | null
+          id?: string
+          member_name?: string
+          role?: string | null
+          skills?: string[] | null
+          team_id?: string
+          updated_at?: string
+          work_mode?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       teams: {
         Row: {
