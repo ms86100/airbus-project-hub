@@ -12,10 +12,38 @@ router.get('/projects/:id/retrospectives', verifyToken, verifyProjectAccess, asy
     const projectId = req.projectId;
     
     const retrospectivesQuery = `
-      SELECT r.*, pr.full_name as created_by_name
+      SELECT 
+        r.*,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', rc.id,
+              'title', rc.title,
+              'subtitle', rc.subtitle,
+              'column_order', rc.column_order,
+              'created_at', rc.created_at,
+              'updated_at', rc.updated_at,
+              'cards', COALESCE((
+                SELECT json_agg(json_build_object(
+                  'id', c.id,
+                  'text', c.text,
+                  'votes', c.votes,
+                  'card_order', c.card_order,
+                  'created_at', c.created_at,
+                  'updated_at', c.updated_at,
+                  'created_by', c.created_by
+                ) ORDER BY c.card_order)
+                FROM retrospective_cards c
+                WHERE c.column_id = rc.id
+              ), '[]'::json)
+            )
+            ORDER BY rc.column_order
+          ) FILTER (WHERE rc.id IS NOT NULL), '[]'::json
+        ) AS columns
       FROM retrospectives r
-      LEFT JOIN profiles pr ON r.created_by = pr.id
+      LEFT JOIN retrospective_columns rc ON rc.retrospective_id = r.id
       WHERE r.project_id = $1
+      GROUP BY r.id
       ORDER BY r.created_at DESC
     `;
     
@@ -33,7 +61,7 @@ router.post('/projects/:id/retrospectives', verifyToken, verifyProjectAccess, as
   try {
     const projectId = req.projectId;
     const userId = req.user.id;
-    const { framework, iterationId, columns } = req.body;
+    const { framework, iterationName, iterationId, columns } = req.body;
     
     const client = await require('../config/database').getClient();
     
@@ -51,7 +79,7 @@ router.post('/projects/:id/retrospectives', verifyToken, verifyProjectAccess, as
       `, [
         retrospectiveId,
         projectId,
-        iterationId || retrospectiveId, // Use retro ID if no iteration provided
+        iterationName || iterationId || retrospectiveId, // store provided iteration text or fallback
         framework || 'Classic',
         'active',
         userId,
