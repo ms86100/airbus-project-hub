@@ -142,8 +142,6 @@ export function RoadmapView() {
   };
 
   const timelineData = useMemo(() => {
-    console.log('Calculating timeline data for tasks:', tasks);
-    console.log('Available milestones:', milestones);
     
     // If no tasks, use current date range
     if (tasks.length === 0) {
@@ -286,11 +284,8 @@ export function RoadmapView() {
 
   const groupedTasksData = useMemo(() => {
     console.log('Grouping tasks. Milestones:', milestones);
-    console.log('Filtered tasks:', filteredTasks);
-    
     const grouped = milestones.map(milestone => {
       const milestoneTasks = filteredTasks.filter(task => task.milestone_id === milestone.id);
-      console.log(`Milestone ${milestone.name} (${milestone.id}) has ${milestoneTasks.length} tasks:`, milestoneTasks);
       return {
         milestone,
         tasks: milestoneTasks
@@ -299,7 +294,6 @@ export function RoadmapView() {
     
     // Add tasks without milestones
     const tasksWithoutMilestone = filteredTasks.filter(task => !task.milestone_id);
-    console.log('Tasks without milestone:', tasksWithoutMilestone);
     
     if (tasksWithoutMilestone.length > 0) {
       grouped.push({
@@ -309,7 +303,6 @@ export function RoadmapView() {
     }
     
     const finalGrouped = grouped.filter(group => group.tasks.length > 0);
-    console.log('Final grouped data:', finalGrouped);
     return finalGrouped;
   }, [milestones, filteredTasks]);
 
