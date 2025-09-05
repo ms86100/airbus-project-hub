@@ -853,82 +853,16 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  // Add dummy data for testing
-                  console.log('Adding dummy data for testing...');
+                  console.log('Current budget data for debugging:', budget);
+                  console.log('Analytics data:', analytics);
                   toast({
-                    title: "Test Data",
-                    description: "This would add test budget and spending data in a real implementation",
+                    title: "Debug Info",
+                    description: "Check console for budget and analytics data",
                   });
                 }}
               >
-                Add Test Data
+                Debug Data
               </Button>
-            </div>
-            
-            {/* Enhanced Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Budget Utilization</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {analytics?.totals.received_total > 0 ? 
-                      Math.round((analytics.totals.spent_total / analytics.totals.received_total) * 100) : 0}%
-                  </div>
-                  <Progress 
-                    value={analytics?.totals.received_total > 0 ? 
-                      (analytics.totals.spent_total / analytics.totals.received_total) * 100 : 0} 
-                    className="mt-2" 
-                  />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Categories</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {budget?.budget_categories?.length || 0}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Active budget items</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Avg. Spending</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(
-                      budget?.budget_categories?.length > 0 ? 
-                        (analytics?.totals.spent_total || 0) / budget.budget_categories.length : 0, 
-                      budget?.currency
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Per category</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Budget Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    <Badge variant={
-                      (analytics?.totals.remaining_total || 0) >= 0 ? "default" : "destructive"
-                    }>
-                      {(analytics?.totals.remaining_total || 0) >= 0 ? "On Track" : "Over Budget"}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {(analytics?.totals.remaining_total || 0) >= 0 ? "Within limits" : "Exceeds budget"}
-                  </p>
-                </CardContent>
-              </Card>
             </div>
             
             {/* Budget vs Actual Spending Chart */}
@@ -942,13 +876,20 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
               <CardContent>
                 {budget?.budget_categories && budget.budget_categories.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={budget.budget_categories.map(category => ({
-                      name: category.name.length > 15 ? category.name.substring(0, 15) + '...' : category.name,
-                      fullName: category.name,
-                      budget: parseFloat(String(category.budget_allocated || 0)),
-                      received: parseFloat(String(category.budget_received || 0)),
-                      spent: parseFloat(String(category.amount_spent || 0))
-                    }))}>
+                    <BarChart data={budget.budget_categories.map(category => {
+                      // Calculate total spending for this category from all spending entries
+                      const totalSpent = category.budget_spending?.reduce((sum: number, spending: any) => {
+                        return sum + parseFloat(spending.amount || 0);
+                      }, 0) || parseFloat(String(category.amount_spent || 0));
+                      
+                      return {
+                        name: category.name.length > 15 ? category.name.substring(0, 15) + '...' : category.name,
+                        fullName: category.name,
+                        budget: parseFloat(String(category.budget_allocated || 0)),
+                        received: parseFloat(String(category.budget_received || 0)),
+                        spent: totalSpent
+                      };
+                    })}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis tickFormatter={(value) => `₹${value.toLocaleString()}`} />
@@ -981,11 +922,19 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const categoriesWithSpending = budget?.budget_categories?.filter(cat => 
-                    parseFloat(String(cat.amount_spent || 0)) > 0
-                  ) || [];
+                  // Calculate actual spending for each category from budget_spending entries
+                  const categoriesWithActualSpending = budget?.budget_categories?.map(category => {
+                    const actualSpent = category.budget_spending?.reduce((sum: number, spending: any) => {
+                      return sum + parseFloat(spending.amount || 0);
+                    }, 0) || 0;
+                    
+                    return {
+                      ...category,
+                      actualSpent: actualSpent
+                    };
+                  }).filter(cat => cat.actualSpent > 0) || [];
                   
-                  if (categoriesWithSpending.length === 0) {
+                  if (categoriesWithActualSpending.length === 0) {
                     return (
                       <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                         <PieChart className="h-12 w-12 mb-2 opacity-50" />
@@ -995,11 +944,13 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                     );
                   }
 
-                  const pieData = categoriesWithSpending.map(category => ({
+                  const totalSpent = categoriesWithActualSpending.reduce((sum, cat) => sum + cat.actualSpent, 0);
+                  
+                  const pieData = categoriesWithActualSpending.map(category => ({
                     name: category.name,
-                    value: parseFloat(String(category.amount_spent || 0)),
-                    percentage: analytics?.totals.spent_total > 0 ? 
-                      (parseFloat(String(category.amount_spent || 0)) / analytics.totals.spent_total * 100).toFixed(1) : 0
+                    value: category.actualSpent,
+                    percentage: totalSpent > 0 ? (category.actualSpent / totalSpent * 100).toFixed(1) : 0,
+                    spendingCount: category.budget_spending?.length || 0
                   }));
 
                   const COLORS = [
@@ -1044,21 +995,29 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                         </ResponsiveContainer>
                       </div>
                       
-                      {/* Legend */}
+                      {/* Legend with detailed breakdown */}
                       <div className="lg:w-64 space-y-2">
-                        <h4 className="font-semibold text-sm">Category Breakdown</h4>
+                        <h4 className="font-semibold text-sm">Spending Breakdown</h4>
+                        <div className="text-xs text-muted-foreground mb-3">
+                          Total: ₹{totalSpent.toLocaleString()}
+                        </div>
                         {pieData.map((category, index) => (
-                          <div key={category.name} className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                              />
-                              <span className="truncate">{category.name}</span>
+                          <div key={category.name} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                                />
+                                <span className="truncate">{category.name}</span>
+                              </div>
+                              <span className="font-medium">
+                                ₹{category.value.toLocaleString()}
+                              </span>
                             </div>
-                            <span className="font-medium">
-                              ₹{category.value.toLocaleString()}
-                            </span>
+                            <div className="text-xs text-muted-foreground ml-5">
+                              {category.percentage}% • {category.spendingCount} entries
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1088,23 +1047,32 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                           <th className="text-right p-2">Spent</th>
                           <th className="text-right p-2">Remaining</th>
                           <th className="text-right p-2">Usage %</th>
+                          <th className="text-right p-2">Entries</th>
                         </tr>
                       </thead>
                       <tbody>
                         {budget.budget_categories.map((category, index) => {
                           const allocated = parseFloat(String(category.budget_allocated || 0));
                           const received = parseFloat(String(category.budget_received || 0));
-                          const spent = parseFloat(String(category.amount_spent || 0));
-                          const remaining = Math.max(allocated, received) - spent;
-                          const usagePercent = Math.max(allocated, received) > 0 ? 
-                            (spent / Math.max(allocated, received)) * 100 : 0;
+                          
+                          // Calculate actual spent from spending entries
+                          const actualSpent = category.budget_spending?.reduce((sum: number, spending: any) => {
+                            return sum + parseFloat(spending.amount || 0);
+                          }, 0) || 0;
+                          
+                          const budgetBase = Math.max(allocated, received);
+                          const remaining = budgetBase - actualSpent;
+                          const usagePercent = budgetBase > 0 ? (actualSpent / budgetBase) * 100 : 0;
+                          const spendingEntries = category.budget_spending?.length || 0;
                           
                           return (
                             <tr key={category.id} className={index % 2 === 0 ? "bg-muted/50" : ""}>
                               <td className="p-2 font-medium">{category.name}</td>
                               <td className="p-2 text-right">₹{allocated.toLocaleString()}</td>
                               <td className="p-2 text-right">₹{received.toLocaleString()}</td>
-                              <td className="p-2 text-right">₹{spent.toLocaleString()}</td>
+                              <td className="p-2 text-right">
+                                <span className="font-semibold">₹{actualSpent.toLocaleString()}</span>
+                              </td>
                               <td className="p-2 text-right">
                                 <span className={remaining >= 0 ? "text-green-600" : "text-red-600"}>
                                   ₹{remaining.toLocaleString()}
@@ -1117,6 +1085,11 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                                   </span>
                                   <Progress value={Math.min(usagePercent, 100)} className="w-16 h-2" />
                                 </div>
+                              </td>
+                              <td className="p-2 text-right">
+                                <Badge variant="outline" className="text-xs">
+                                  {spendingEntries}
+                                </Badge>
                               </td>
                             </tr>
                           );
