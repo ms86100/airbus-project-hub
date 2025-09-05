@@ -276,7 +276,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
         onOpenChange={setIterationDialogOpen}
         projectId={projectId}
         teams={teams}
-        preSelectedTeamId={null} // Don't pre-select any team
+        preSelectedTeamId={newlyCreatedTeamId}
         onIterationCreated={handleIterationCreated}
         onClose={() => setNewlyCreatedTeamId(null)}
       />

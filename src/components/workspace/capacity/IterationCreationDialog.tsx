@@ -232,11 +232,13 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
                 <SelectValue placeholder="Select a team" />
               </SelectTrigger>
               <SelectContent className="bg-background border-border z-50">
-                {teams.map((team) => (
+                {teams.length > 0 ? teams.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
                     {team.team_name}
                   </SelectItem>
-                ))}
+                )) : (
+                  <SelectItem value="" disabled>Loading teams...</SelectItem>
+                )}
               </SelectContent>
             </Select>
             {teams.length === 0 && (
@@ -244,6 +246,10 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
                 No teams available. Create a team first.
               </p>
             )}
+            {/* Debug info */}
+            <p className="text-xs text-muted-foreground mt-1">
+              Teams available: {teams.length} | Selected: {iterationForm.team_id || 'none'}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
