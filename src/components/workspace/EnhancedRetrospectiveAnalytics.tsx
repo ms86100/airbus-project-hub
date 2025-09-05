@@ -100,19 +100,26 @@ export function EnhancedRetrospectiveAnalytics({ projectId, onBack }: EnhancedRe
     try {
       setLoading(true);
       
-      // Fetch retrospectives with detailed data
-      const retrospectivesResponse = await apiClient.getRetrospectives(projectId);
+      // Fetch all relevant data from database
+      const [retrospectivesResponse, stakeholdersResponse, tasksResponse] = await Promise.all([
+        apiClient.getRetrospectives(projectId),
+        apiClient.getStakeholders(projectId),
+        apiClient.getTasks(projectId)
+      ]);
+
       const retrospectives = Array.isArray(retrospectivesResponse.data) 
         ? retrospectivesResponse.data 
         : [];
-
-      // Fetch stakeholders for voter names
-      const stakeholdersResponse = await apiClient.getStakeholders(projectId);
+        
       const stakeholders = Array.isArray(stakeholdersResponse.data) 
         ? stakeholdersResponse.data 
         : stakeholdersResponse.data?.stakeholders || [];
 
-      // Calculate comprehensive analytics
+      const tasks = Array.isArray(tasksResponse.data) 
+        ? tasksResponse.data 
+        : [];
+
+      // Calculate comprehensive analytics from real data
       const totalRetrospectives = retrospectives.length;
       
       // Collect all cards with detailed information
@@ -162,8 +169,12 @@ export function EnhancedRetrospectiveAnalytics({ projectId, onBack }: EnhancedRe
           }))
         }));
 
-      // Calculate conversion metrics (using estimated data for now)
-      const convertedTasks = Math.floor(totalActionItems * 0.35); // 35% conversion rate
+      // Calculate real conversion metrics from tasks data
+      const retrospectiveCardIds = allCards.map(card => card.id);
+      const convertedTasks = tasks.filter(task => 
+        task.description?.includes('retrospective') || 
+        task.tags?.some(tag => retrospectiveCardIds.includes(tag))
+      ).length;
       const conversionRate = totalActionItems > 0 ? Math.round((convertedTasks / totalActionItems) * 100) : 0;
 
       // Enhanced monthly trend
@@ -197,39 +208,24 @@ export function EnhancedRetrospectiveAnalytics({ projectId, onBack }: EnhancedRe
         }))
         .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
 
-      // Mock implementation plan (in real scenario, this would come from task backlog)
-      const implementationPlan = [
-        {
-          id: '1',
-          title: 'Improve team communication',
-          description: 'Implement daily standups and better communication tools',
-          priority: 'High',
-          status: 'In Progress',
-          assignee: 'Team Lead',
-          estimatedEffort: '2 weeks',
-          dependencies: ['Tool procurement', 'Team training']
-        },
-        {
-          id: '2',
-          title: 'Refactor legacy code',
-          description: 'Clean up technical debt identified in retrospectives',
-          priority: 'Medium',
-          status: 'Planned',
-          assignee: 'Senior Developer',
-          estimatedEffort: '1 month',
-          dependencies: ['Code review', 'Testing strategy']
-        },
-        {
-          id: '3',
-          title: 'Enhance testing coverage',
-          description: 'Increase automated test coverage to reduce bugs',
-          priority: 'High',
-          status: 'Not Started',
-          assignee: 'QA Team',
-          estimatedEffort: '3 weeks',
-          dependencies: ['Framework selection', 'Training']
-        }
-      ];
+      // Real implementation plan from task backlog
+      const implementationPlan = tasks
+        .filter(task => 
+          task.description?.toLowerCase().includes('retrospective') ||
+          task.description?.toLowerCase().includes('action item') ||
+          task.tags?.some(tag => tag.toLowerCase().includes('retro'))
+        )
+        .slice(0, 10)
+        .map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description || 'No description available',
+          priority: task.priority || 'Medium',
+          status: task.status || 'Not Started',
+          assignee: task.assigned_to || 'Unassigned',
+          estimatedEffort: task.estimated_hours ? `${task.estimated_hours} hours` : 'TBD',
+          dependencies: task.dependencies || []
+        }));
 
       const enhancedAnalytics: DetailedAnalytics = {
         totalRetrospectives,

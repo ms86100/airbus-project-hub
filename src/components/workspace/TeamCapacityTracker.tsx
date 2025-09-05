@@ -217,49 +217,141 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
   };
 
   const fetchTeams = async () => {
-    // Use local API endpoint for teams - for now we'll use mock data 
-    // until the teams endpoint is fully implemented
     try {
-      // Mock teams data for now
-      setTeams([]);
+      const response = await fetch(`/api/capacity-service/projects/${projectId}/teams`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTeams(data.data || []);
+        }
+      } else {
+        setTeams([]);
+      }
     } catch (error) {
       console.error('Error fetching teams:', error);
+      setTeams([]);
     }
   };
 
   const fetchAnalytics = async () => {
     try {
-      // For now, using empty array until tables are properly set up
-      setAnalytics([]);
+      // Fetch real analytics data from the database
+      const analyticsData: CapacityAnalytics[] = [];
+      
+      for (const iteration of iterations) {
+        try {
+          const response = await fetch(`/api/capacity-service/iterations/${iteration.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data.weeks) {
+              const weeks = data.data.weeks;
+              const totalCapacity = weeks.reduce((acc, week) => {
+                return acc + (week.members?.reduce((memberAcc, member) => 
+                  memberAcc + (member.effective_capacity || 0), 0) || 0);
+              }, 0);
+              
+              const analytics: CapacityAnalytics = {
+                project_id: projectId,
+                iteration_id: iteration.id,
+                total_capacity_days: totalCapacity,
+                allocated_capacity_days: iteration.committed_story_points || 0,
+                utilization_percentage: totalCapacity > 0 
+                  ? Math.min(100, ((iteration.committed_story_points || 0) / totalCapacity) * 100)
+                  : 0,
+                velocity_points: iteration.committed_story_points || 0,
+                team_size: weeks[0]?.members?.length || 0,
+                avg_member_capacity: weeks[0]?.members?.length > 0 ? 
+                  totalCapacity / weeks[0].members.length : 0,
+                work_mode_distribution: {
+                  office: weeks[0]?.members?.filter(m => m.work_mode === 'office').length || 0,
+                  wfh: weeks[0]?.members?.filter(m => m.work_mode === 'wfh').length || 0,
+                  hybrid: weeks[0]?.members?.filter(m => m.work_mode === 'hybrid').length || 0
+                }
+              };
+              
+              analyticsData.push(analytics);
+            }
+          }
+        } catch (iterationError) {
+          console.error(`Error fetching analytics for iteration ${iteration.id}:`, iterationError);
+        }
+      }
+      
+      setAnalytics(analyticsData);
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      setAnalytics([]);
     }
   };
 
   const generateAnalytics = async () => {
     try {
-      // Generate mock analytics based on current data
-      const mockAnalytics: CapacityAnalytics[] = iterations.map(iteration => ({
-        project_id: projectId,
-        iteration_id: iteration.id,
-        total_capacity_days: iteration.totalEffectiveCapacity || 0,
-        allocated_capacity_days: iteration.committed_story_points,
-        utilization_percentage: iteration.totalEffectiveCapacity > 0 
-          ? (iteration.committed_story_points / iteration.totalEffectiveCapacity) * 100 
-          : 0,
-        velocity_points: iteration.committed_story_points,
-        team_size: iteration.totalMembers || 0,
-        avg_member_capacity: iteration.totalMembers > 0 
-          ? (iteration.totalEffectiveCapacity || 0) / iteration.totalMembers 
-          : 0,
-        work_mode_distribution: {
-          office: iteration.members?.filter(m => m.work_mode === 'office').length || 0,
-          wfh: iteration.members?.filter(m => m.work_mode === 'wfh').length || 0,
-          hybrid: iteration.members?.filter(m => m.work_mode === 'hybrid').length || 0
+      // Generate real analytics based on database data
+      const realAnalytics: CapacityAnalytics[] = [];
+      
+      for (const iteration of iterations) {
+        try {
+          const response = await fetch(`/api/capacity-service/iterations/${iteration.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data.weeks) {
+              const weeks = data.data.weeks;
+              const totalCapacity = weeks.reduce((acc, week) => {
+                return acc + (week.members?.reduce((memberAcc, member) => 
+                  memberAcc + (member.effective_capacity || 0), 0) || 0);
+              }, 0);
+              
+              const members = weeks[0]?.members || [];
+              const analytics: CapacityAnalytics = {
+                project_id: projectId,
+                iteration_id: iteration.id,
+                total_capacity_days: totalCapacity,
+                allocated_capacity_days: iteration.committed_story_points || 0,
+                utilization_percentage: totalCapacity > 0 
+                  ? Math.min(100, ((iteration.committed_story_points || 0) / totalCapacity) * 100)
+                  : 0,
+                velocity_points: iteration.committed_story_points || 0,
+                team_size: members.length,
+                avg_member_capacity: members.length > 0 ? totalCapacity / members.length : 0,
+                work_mode_distribution: {
+                  office: members.filter(m => m.work_mode === 'office').length,
+                  wfh: members.filter(m => m.work_mode === 'wfh').length,
+                  hybrid: members.filter(m => m.work_mode === 'hybrid').length
+                }
+              };
+              
+              realAnalytics.push(analytics);
+            }
+          } else {
+            // Fallback to iteration data if API fails
+            const fallbackAnalytics: CapacityAnalytics = {
+              project_id: projectId,
+              iteration_id: iteration.id,
+              total_capacity_days: iteration.totalEffectiveCapacity || 0,
+              allocated_capacity_days: iteration.committed_story_points || 0,
+              utilization_percentage: iteration.totalEffectiveCapacity > 0 
+                ? ((iteration.committed_story_points || 0) / iteration.totalEffectiveCapacity) * 100 
+                : 0,
+              velocity_points: iteration.committed_story_points || 0,
+              team_size: iteration.totalMembers || 0,
+              avg_member_capacity: iteration.totalMembers > 0 
+                ? (iteration.totalEffectiveCapacity || 0) / iteration.totalMembers 
+                : 0,
+              work_mode_distribution: {
+                office: iteration.members?.filter(m => m.work_mode === 'office').length || 0,
+                wfh: iteration.members?.filter(m => m.work_mode === 'wfh').length || 0,
+                hybrid: iteration.members?.filter(m => m.work_mode === 'hybrid').length || 0
+              }
+            };
+            
+            realAnalytics.push(fallbackAnalytics);
+          }
+        } catch (iterationError) {
+          console.error(`Error generating analytics for iteration ${iteration.id}:`, iterationError);
         }
-      }));
+      }
 
-      setAnalytics(mockAnalytics);
+      setAnalytics(realAnalytics);
       toast({
         title: "Analytics Updated",
         description: "Capacity analytics have been refreshed.",
