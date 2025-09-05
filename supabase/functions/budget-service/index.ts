@@ -247,6 +247,73 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Route: DELETE /budget-service/categories/{categoryId}
+    if (pathParts.length >= 3 && pathParts[0] === 'budget-service' && pathParts[1] === 'categories') {
+      const categoryId = pathParts[2];
+      if (req.method === 'DELETE') {
+        console.log('🗑️ Deleting budget category:', categoryId);
+
+        // Delete dependent spending first to avoid FK violations
+        const { error: spendingDelError } = await supabase
+          .from('budget_spending')
+          .delete()
+          .eq('budget_category_id', categoryId);
+
+        if (spendingDelError) {
+          console.error('❌ Error deleting related spending:', spendingDelError);
+          return createErrorResponse('Failed to delete related spending entries', 'DELETE_ERROR', 500);
+        }
+
+        const { error: categoryDelError } = await supabase
+          .from('budget_categories')
+          .delete()
+          .eq('id', categoryId);
+
+        if (categoryDelError) {
+          console.error('❌ Error deleting category:', categoryDelError);
+          return createErrorResponse('Failed to delete category', 'DELETE_ERROR', 500);
+        }
+
+        return createSuccessResponse({ success: true });
+      }
+    }
+
+    // Route: DELETE /budget-service/spending/{spendingId}
+    if (pathParts.length >= 3 && pathParts[0] === 'budget-service' && pathParts[1] === 'spending') {
+      const spendingId = pathParts[2];
+      if (req.method === 'DELETE') {
+        console.log('🗑️ Deleting spending entry:', spendingId);
+
+        // Fetch to know category for recalculation
+        const { data: spending, error: fetchErr } = await supabase
+          .from('budget_spending')
+          .select('id, budget_category_id')
+          .eq('id', spendingId)
+          .maybeSingle();
+
+        if (fetchErr) {
+          console.error('❌ Error fetching spending before delete:', fetchErr);
+          return createErrorResponse('Failed to fetch spending entry', 'FETCH_ERROR', 500);
+        }
+
+        const { error: delErr } = await supabase
+          .from('budget_spending')
+          .delete()
+          .eq('id', spendingId);
+
+        if (delErr) {
+          console.error('❌ Error deleting spending:', delErr);
+          return createErrorResponse('Failed to delete spending entry', 'DELETE_ERROR', 500);
+        }
+
+        if (spending?.budget_category_id) {
+          await updateCategorySpentAmount(supabase, spending.budget_category_id);
+        }
+
+        return createSuccessResponse({ success: true });
+      }
+    }
+
     return createErrorResponse('Endpoint not found', 'NOT_FOUND', 404);
 
   } catch (error) {
