@@ -54,9 +54,15 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   const fetchTeams = async () => {
     try {
       setLoading(true);
+      console.log('Fetching teams for project:', projectId);
       const response = await apiClient.getTeams(projectId);
+      console.log('Teams response:', response);
       if (response.success) {
+        console.log('Teams data:', response.data);
         setTeams(response.data || []);
+      } else {
+        console.error('Failed to fetch teams:', response.error);
+        toast({ title: 'Error', description: 'Failed to fetch teams', variant: 'destructive' });
       }
     } catch (error) {
       console.error('Error fetching teams:', error);
@@ -80,10 +86,10 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
 
   const handleTeamCreated = (teamId: string) => {
     setNewlyCreatedTeamId(teamId);
-    fetchTeams(); // Refresh teams list immediately
+    // Refresh teams list immediately to show the new team
+    setTimeout(() => fetchTeams(), 500); // Small delay to ensure backend has processed
     setTeamDialogOpen(false);
     setIterationDialogOpen(true);
-    // Don't pre-select the team, let user choose from all teams
     toast({ title: 'Success', description: 'Team created. Create an iteration to start capacity planning.' });
   };
 
@@ -92,6 +98,30 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
     setIterationDialogOpen(false);
     setSelectedIteration(iteration);
     toast({ title: 'Success', description: `Iteration created with ${iteration.weeks_count} weeks.` });
+  };
+
+  const handleEditTeam = (team: Team) => {
+    // TODO: Implement team editing
+    toast({ title: 'Info', description: 'Team editing feature coming soon' });
+  };
+
+  const handleDeleteTeam = async (team: Team) => {
+    if (!confirm(`Are you sure you want to delete team "${team.team_name}"?`)) {
+      return;
+    }
+    
+    try {
+      const response = await apiClient.deleteTeam(team.id);
+      if (response.success) {
+        await fetchTeams(); // Refresh teams list
+        toast({ title: 'Success', description: 'Team deleted successfully' });
+      } else {
+        throw new Error(response.error || 'Failed to delete team');
+      }
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      toast({ title: 'Error', description: 'Failed to delete team', variant: 'destructive' });
+    }
   };
 
   const openIterationMatrix = (iteration: Iteration) => {
@@ -174,6 +204,20 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => handleEditTeam(team)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteTeam(team)}
+                          >
+                            Delete
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
                             onClick={() => {
                               setNewlyCreatedTeamId(team.id);
                               setIterationDialogOpen(true);

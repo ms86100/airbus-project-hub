@@ -246,10 +246,6 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
                 No teams available. Create a team first.
               </p>
             )}
-            {/* Debug info */}
-            <p className="text-xs text-muted-foreground mt-1">
-              Teams available: {teams.length} | Selected: {iterationForm.team_id || 'none'}
-            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
