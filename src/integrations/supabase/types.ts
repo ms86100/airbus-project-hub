@@ -399,6 +399,44 @@ export type Database = {
         }
         Relationships: []
       }
+      iteration_weeks: {
+        Row: {
+          created_at: string
+          id: string
+          iteration_id: string
+          updated_at: string
+          week_end_date: string
+          week_number: number
+          week_start_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          iteration_id: string
+          updated_at?: string
+          week_end_date: string
+          week_number: number
+          week_start_date: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          iteration_id?: string
+          updated_at?: string
+          week_end_date?: string
+          week_number?: number
+          week_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iteration_weeks_iteration_id_fkey"
+            columns: ["iteration_id"]
+            isOneToOne: false
+            referencedRelation: "team_capacity_iterations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestones: {
         Row: {
           created_at: string
@@ -1284,6 +1322,7 @@ export type Database = {
           iteration_name: string
           project_id: string
           start_date: string
+          team_id: string | null
           updated_at: string
           working_days: number
         }
@@ -1297,6 +1336,7 @@ export type Database = {
           iteration_name: string
           project_id: string
           start_date: string
+          team_id?: string | null
           updated_at?: string
           working_days: number
         }
@@ -1310,10 +1350,19 @@ export type Database = {
           iteration_name?: string
           project_id?: string
           start_date?: string
+          team_id?: string | null
           updated_at?: string
           working_days?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_capacity_iterations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_capacity_members: {
         Row: {
@@ -1496,6 +1545,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      weekly_member_availability: {
+        Row: {
+          availability_percent: number
+          created_at: string
+          effective_capacity: number | null
+          id: string
+          iteration_week_id: string
+          leaves: number
+          notes: string | null
+          team_member_id: string
+          updated_at: string
+        }
+        Insert: {
+          availability_percent?: number
+          created_at?: string
+          effective_capacity?: number | null
+          id?: string
+          iteration_week_id: string
+          leaves?: number
+          notes?: string | null
+          team_member_id: string
+          updated_at?: string
+        }
+        Update: {
+          availability_percent?: number
+          created_at?: string
+          effective_capacity?: number | null
+          id?: string
+          iteration_week_id?: string
+          leaves?: number
+          notes?: string | null
+          team_member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_member_availability_iteration_week_id_fkey"
+            columns: ["iteration_week_id"]
+            isOneToOne: false
+            referencedRelation: "iteration_weeks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_member_availability_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_capacity_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

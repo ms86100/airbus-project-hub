@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, Users, Eye, Edit, Trash2 } from 'lucide-react';
+import { Plus, Calendar, Users, Eye, Edit, Trash2, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/services/api';
 import TeamManagement from './TeamManagement';
+import WeeklyAvailabilityManager from './WeeklyAvailabilityManager';
 
 interface Team {
   id: string;
@@ -54,6 +55,8 @@ const RevampedTeamCapacity: React.FC<RevampedTeamCapacityProps> = ({ projectId }
   const [iterationDialogOpen, setIterationDialogOpen] = useState(false);
   const [viewingIteration, setViewingIteration] = useState<Iteration | null>(null);
   const [editingIteration, setEditingIteration] = useState<Iteration | null>(null);
+  const [weeklyAvailabilityDialogOpen, setWeeklyAvailabilityDialogOpen] = useState(false);
+  const [planningIteration, setPlanningIteration] = useState<Iteration | null>(null);
   const { toast } = useToast();
 
   const [iterationForm, setIterationForm] = useState({
@@ -96,6 +99,15 @@ const RevampedTeamCapacity: React.FC<RevampedTeamCapacityProps> = ({ projectId }
     }
   };
 
+  const calculateWeeksFromDates = (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffDays / 7);
+  };
+
   const handleCreateIteration = async () => {
     try {
       setLoading(true);
@@ -105,12 +117,16 @@ const RevampedTeamCapacity: React.FC<RevampedTeamCapacityProps> = ({ projectId }
         startDate: iterationForm.start_date,
         endDate: iterationForm.end_date,
         workingDays: iterationForm.working_days,
-        committedStoryPoints: iterationForm.committed_story_points
+        committedStoryPoints: iterationForm.committed_story_points,
+        teamId: iterationForm.team_id // Include team assignment
       };
       
       const response = await apiClient.createCapacityIteration(projectId, iterationData);
       if (response.success) {
-        toast({ title: 'Success', description: 'Iteration created successfully' });
+        toast({ 
+          title: 'Success', 
+          description: `Iteration created with ${calculateWeeksFromDates(iterationForm.start_date, iterationForm.end_date)} weeks` 
+        });
         setIterationDialogOpen(false);
         resetIterationForm();
         fetchIterations();
@@ -391,6 +407,9 @@ const RevampedTeamCapacity: React.FC<RevampedTeamCapacityProps> = ({ projectId }
                           working_days: parseInt(e.target.value) || 10 
                         })}
                       />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Duration: {calculateWeeksFromDates(iterationForm.start_date, iterationForm.end_date)} weeks
+                      </p>
                     </div>
                     <div>
                       <Label htmlFor="team-select">Select Team</Label>
@@ -468,6 +487,7 @@ const RevampedTeamCapacity: React.FC<RevampedTeamCapacityProps> = ({ projectId }
                       <TableCell>{iteration.committed_story_points || 0}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                        <div className="flex gap-1">
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -475,6 +495,34 @@ const RevampedTeamCapacity: React.FC<RevampedTeamCapacityProps> = ({ projectId }
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {iteration.team_id && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setPlanningIteration(iteration);
+                                setWeeklyAvailabilityDialogOpen(true);
+                              }}
+                              title="Plan Weekly Availability"
+                            >
+                              <Clock className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => openIterationDialog(iteration)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteIteration(iteration.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -577,6 +625,30 @@ const RevampedTeamCapacity: React.FC<RevampedTeamCapacityProps> = ({ projectId }
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Weekly Availability Planning Dialog */}
+      <Dialog open={weeklyAvailabilityDialogOpen} onOpenChange={setWeeklyAvailabilityDialogOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Weekly Availability Planning - {planningIteration?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {planningIteration && planningIteration.team_id && (
+            <WeeklyAvailabilityManager
+              projectId={projectId}
+              iterationId={planningIteration.id}
+              teamId={planningIteration.team_id}
+              startDate={planningIteration.start_date}
+              endDate={planningIteration.end_date}
+              onSave={() => {
+                setWeeklyAvailabilityDialogOpen(false);
+                fetchIterations();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

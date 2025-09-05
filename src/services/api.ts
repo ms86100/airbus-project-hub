@@ -281,6 +281,7 @@ class ApiClient {
     endDate: string;
     workingDays: number;
     committedStoryPoints?: number;
+    teamId?: string;
   }): Promise<ApiResponse<{ message: string; iteration: any }>> {
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
       method: 'POST',
