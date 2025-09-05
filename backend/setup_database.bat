@@ -39,15 +39,33 @@ if %errorlevel% equ 0 (
     )
 )
 
-REM Run migration to set up auth tables
-echo 🔧 Running auth tables migration...
+REM Run migrations
+echo 🔧 Running auth tables migration (001)...
 psql -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -f migrations/001_setup_auth_tables.sql
-if %errorlevel% equ 0 (
-    echo ✅ Auth tables migration completed successfully
-) else (
+if %errorlevel% neq 0 (
     echo ❌ Auth tables migration failed
     exit /b 1
 )
+
+echo 🔧 Running completion migration (002)...
+psql -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -f migrations/002_setup_complete.sql
+if %errorlevel% neq 0 (
+    echo ⚠️  Completion migration returned a non-zero exit (may be informational). Continuing...
+)
+
+echo 🔧 Running capacity trigger fix (003)...
+psql -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -f migrations/003_fix_capacity_member_trigger.sql
+if %errorlevel% neq 0 (
+    echo ⚠️  Capacity trigger fix returned a non-zero exit. Continuing...
+)
+
+echo 🔧 Running budget tables migration (004)...
+psql -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -f migrations/004_create_budget_tables.sql
+if %errorlevel% neq 0 (
+    echo ❌ Budget tables migration failed
+    exit /b 1
+)
+
 
 REM Test database connection
 echo 🔍 Testing database connection...

@@ -41,14 +41,25 @@ else
     echo -e "${GREEN}✅ Database '$DB_NAME' created successfully${NC}"
 fi
 
-# Run migration to set up auth tables
-echo -e "${BLUE}🔧 Running auth tables migration...${NC}"
-if psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f migrations/001_setup_auth_tables.sql; then
-    echo -e "${GREEN}✅ Auth tables migration completed successfully${NC}"
-else
-    echo -e "${RED}❌ Auth tables migration failed${NC}"
-    exit 1
+# Run migrations sequentially
+echo -e "${BLUE}🔧 Running auth tables migration (001)...${NC}"
+if ! psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f migrations/001_setup_auth_tables.sql; then
+  echo -e "${RED}❌ Auth tables migration failed${NC}"
+  exit 1
 fi
+
+echo -e "${BLUE}🔧 Running completion migration (002)...${NC}"
+psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f migrations/002_setup_complete.sql || echo -e "${YELLOW}⚠️  002 migration returned a non-zero exit (informational). Continuing...${NC}"
+
+echo -e "${BLUE}🔧 Running capacity trigger fix (003)...${NC}"
+psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f migrations/003_fix_capacity_member_trigger.sql || echo -e "${YELLOW}⚠️  003 migration returned a non-zero exit. Continuing...${NC}"
+
+echo -e "${BLUE}🔧 Running budget tables migration (004)...${NC}"
+if ! psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f migrations/004_create_budget_tables.sql; then
+  echo -e "${RED}❌ Budget tables migration failed${NC}"
+  exit 1
+fi
+
 
 # Test database connection
 echo -e "${BLUE}🔍 Testing database connection...${NC}"
