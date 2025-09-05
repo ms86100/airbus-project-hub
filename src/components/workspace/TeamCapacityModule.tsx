@@ -237,23 +237,30 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             onClick={() => {
                               console.log('🔍 View Availability clicked for team:', team.team_name);
                               
-                              // ALWAYS create a temporary iteration for availability matrix view
-                              // This ensures consistent behavior regardless of existing iterations
-                              const tempIteration = {
-                                id: `temp-${team.id}`,
-                                name: `${team.team_name} Availability`,
-                                type: 'capacity_tracker' as const,
-                                project_id: projectId,
-                                team_id: team.id,
-                                team_name: team.team_name,
-                                start_date: new Date().toISOString().split('T')[0],
-                                end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                weeks_count: 3,
-                                created_at: new Date().toISOString()
-                              };
+                              // Check if team has existing iteration
+                              const teamIteration = iterations.find(it => it.team_id === team.id);
                               
-                              console.log('✅ Setting temp iteration for availability matrix:', tempIteration);
-                              setSelectedIteration(tempIteration);
+                              if (teamIteration) {
+                                console.log('✅ Found existing iteration, using real iteration for saving:', teamIteration);
+                                // Use real iteration so saving works properly
+                                setSelectedIteration(teamIteration);
+                              } else {
+                                console.log('⚠️ No existing iteration, creating temporary iteration for preview');
+                                // Create temporary iteration for teams without iterations
+                                const tempIteration = {
+                                  id: `temp-${team.id}`,
+                                  name: `${team.team_name} Availability`,
+                                  type: 'capacity_tracker' as const,
+                                  project_id: projectId,
+                                  team_id: team.id,
+                                  team_name: team.team_name,
+                                  start_date: new Date().toISOString().split('T')[0],
+                                  end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                  weeks_count: 3,
+                                  created_at: new Date().toISOString()
+                                };
+                                setSelectedIteration(tempIteration);
+                              }
                             }}
                           >
                             <Users className="h-3 w-3 mr-1" />
