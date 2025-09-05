@@ -668,31 +668,44 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="spending_category">Category *</Label>
-                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border z-50">
-                        {(() => {
-                          const availableCategories = budget?.budget_categories || [];
-                          
-                          if (availableCategories.length === 0) {
-                            return (
-                              <SelectItem value="" disabled>
-                                No budget categories found. Go to Budget tab to create categories first.
-                              </SelectItem>
-                            );
-                          }
+                    <Label>Category *</Label>
+                    <div className="mt-2 space-y-2">
+                      {(() => {
+                        const availableCategories = budget?.budget_categories || [];
+                        
+                        if (availableCategories.length === 0) {
+                          return (
+                            <div className="text-sm text-muted-foreground p-3 border rounded-md">
+                              No budget categories found. Go to Budget tab to create categories first.
+                            </div>
+                          );
+                        }
 
-                          return availableCategories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
+                        return availableCategories.map((category) => (
+                          <div key={category.id} className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              id={`category-${category.id}`}
+                              name="spending_category"
+                              value={category.id}
+                              checked={selectedCategory === category.id}
+                              onChange={(e) => setSelectedCategory(e.target.value)}
+                              className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                            />
+                            <Label 
+                              htmlFor={`category-${category.id}`} 
+                              className="text-sm font-normal cursor-pointer flex-1"
+                            >
                               {category.name} ({category.budget_type_code})
-                            </SelectItem>
-                          ));
-                        })()}
-                      </SelectContent>
-                    </Select>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                Budget: {formatCurrency(category.budget_allocated)} | 
+                                Spent: {formatCurrency(category.amount_spent)}
+                              </span>
+                            </Label>
+                          </div>
+                        ));
+                      })()}
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
