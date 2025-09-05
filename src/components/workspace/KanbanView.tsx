@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, MoreHorizontal, Clock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,6 +82,15 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       },
     })
   );
+
+  // Memoize tasks by status to prevent unnecessary re-renders
+  const tasksByStatus = useMemo(() => {
+    const grouped: Record<string, Task[]> = {};
+    statusColumns.forEach(column => {
+      grouped[column.key] = tasks.filter(task => task.status === column.key);
+    });
+    return grouped;
+  }, [tasks]);
 
   useEffect(() => {
     fetchData();
@@ -179,7 +188,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const updateTaskStatus = async (taskId: string, newStatus: string) => {
+  const updateTaskStatus = useCallback(async (taskId: string, newStatus: string) => {
     try {
       // Find the task to get its current details
       const task = tasks.find(t => t.id === taskId);
@@ -250,7 +259,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       // Refresh data to ensure consistency
       fetchData();
     }
-  };
+  }, [tasks, toast]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find(t => t.id === event.active.id);
@@ -293,9 +302,9 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     updateTaskStatus(taskId, newStatus);
   };
 
-  const getTasksForStatus = (status: string) => {
-    return tasks.filter(task => task.status === status);
-  };
+  const getTasksForStatus = useCallback((status: string) => {
+    return tasksByStatus[status] || [];
+  }, [tasksByStatus]);
 
   const getMilestoneName = (milestoneId?: string) => {
     if (!milestoneId) return 'No Milestone';
@@ -312,8 +321,8 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     }
   };
 
-  // Draggable Task Card Component  
-  function DraggableTaskCard({ task }: { task: Task }) {
+  // Draggable Task Card Component - Memoized for performance
+  const DraggableTaskCard = React.memo(({ task }: { task: Task }) => {
     const {
       attributes,
       listeners,
@@ -392,10 +401,10 @@ export function KanbanView({ projectId }: KanbanViewProps) {
         </CardContent>
       </Card>
     );
-  }
+  });
 
-  // Droppable Column Component
-  function DroppableColumn({ column, tasks: columnTasks }: { column: typeof statusColumns[0], tasks: Task[] }) {
+  // Droppable Column Component - Memoized for performance
+  const DroppableColumn = React.memo(({ column, tasks: columnTasks }: { column: typeof statusColumns[0], tasks: Task[] }) => {
     const { isOver, setNodeRef } = useDroppable({
       id: column.key,
       data: {
@@ -448,7 +457,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
         </div>
       </div>
     );
-  }
+  });
 
   if (loading) {
     return (
