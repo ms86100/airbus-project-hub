@@ -102,15 +102,14 @@ export function RoadmapView() {
     try {
       setLoading(true);
       
-      // Fetch roadmap data (includes milestones) 
-      const roadmapResponse = await apiClient.getRoadmap(id!);
-      if (!roadmapResponse.success) {
-        throw new Error(roadmapResponse.error || 'Failed to fetch roadmap data');
+      // Fetch milestones from workspace service to ensure consistency with tasks
+      const milestonesResponse = await apiClient.getMilestones(id!);
+      if (!milestonesResponse.success) {
+        console.error('Failed to fetch milestones:', milestonesResponse.error);
+        setMilestones([]);
+      } else {
+        setMilestones(milestonesResponse.data || []);
       }
-      
-      // Extract milestones from roadmap response
-      const roadmapData = roadmapResponse.data;
-      setMilestones(roadmapData.milestones || []);
       
       // Fetch tasks separately from workspace service
       const tasksResponse = await apiClient.getTasks(id!);

@@ -389,13 +389,10 @@ Deno.serve(async (req) => {
         if (typeof taskData[k] === 'string' && taskData[k].trim() === '') taskData[k] = null;
       });
       
-      // Handle milestone_id separately - only set to null if it's actually empty/undefined or null
-      // Keep valid milestone_id values intact
+      // Handle milestone_id - keep valid IDs intact, only null out truly empty values
       if (!taskData.milestone_id || taskData.milestone_id === '' || taskData.milestone_id === 'null' || taskData.milestone_id === 'undefined') {
         taskData.milestone_id = null;
       }
-      
-      console.log('Processed task data:', taskData);
 
       if (!projectId) return createErrorResponse('Project ID is required', 'MISSING_PROJECT_ID');
 
@@ -404,7 +401,7 @@ Deno.serve(async (req) => {
         const status = access.reason === 'PROJECT_NOT_FOUND' ? 404 : 403;
         return createErrorResponse(access.reason === 'PROJECT_NOT_FOUND' ? 'Project not found' : 'Insufficient permissions', access.reason, status);
       }
-
+      
       const { data: task, error } = await supabaseAuth
         .from('tasks')
         .insert({
