@@ -86,6 +86,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [editingSpending, setEditingSpending] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>('categories');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{type: 'category' | 'spending', id: string, name: string} | null>(null);
 
@@ -155,20 +156,26 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
           });
         });
 
-        const remainingTotal = totalReceived - totalSpent;
-        const overallVarianceAmount = remainingTotal;
-        const overallVariancePercent = totalReceived > 0 ? (overallVarianceAmount / totalReceived) * 100 : 0;
+        // Also consider main budget totals if they exist and are higher
+        const mainBudgetAllocated = parseFloat(String(budgetData.total_budget_allocated || 0));
+        const mainBudgetReceived = parseFloat(String(budgetData.total_budget_received || 0));
+        
+        // Use the higher of category totals or main budget totals for allocated and received
+        const finalAllocatedTotal = Math.max(totalAllocated, mainBudgetAllocated);
+        const finalReceivedTotal = Math.max(totalReceived, mainBudgetReceived);
+        
+        const remainingTotal = finalReceivedTotal - totalSpent;
 
         calculatedAnalytics = {
           totals: {
-            allocated_total: totalAllocated,
-            received_total: totalReceived,
+            allocated_total: finalAllocatedTotal,
+            received_total: finalReceivedTotal,
             spent_total: totalSpent,
             remaining_total: remainingTotal,
           },
           variance_summary: {
-            overall_variance_amount: overallVarianceAmount,
-            overall_variance_percent: Math.round(overallVariancePercent * 100) / 100,
+            overall_variance_amount: remainingTotal,
+            overall_variance_percent: finalReceivedTotal > 0 ? Math.round((remainingTotal / finalReceivedTotal) * 10000) / 100 : 0,
           },
           category_breakdown: budgetData.budget_categories.map((category: any) => ({
             code: category.budget_type_code,
@@ -331,6 +338,8 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         status: 'pending',
       });
       setSelectedCategory('');
+      // Keep spending tab active after saving
+      setActiveTab('spending');
       fetchBudgetData();
     } catch (error) {
       console.error('❌ Error creating spending:', error);
@@ -504,7 +513,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         </Card>
       </div>
 
-      <Tabs defaultValue="categories" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="categories">Budget</TabsTrigger>
           <TabsTrigger value="spending">Spending</TabsTrigger>
