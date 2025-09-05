@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Calendar, Clock, User, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Settings } from 'lucide-react';
+import { CalendarDays, Calendar, Clock, User, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Settings, Plus } from 'lucide-react';
 import { MilestoneManagementDialog } from './MilestoneManagementDialog';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, addWeeks, addMonths, addYears, subWeeks, subMonths, subYears, isWithinInterval, parseISO, differenceInDays, addDays } from 'date-fns';
 
@@ -144,6 +144,7 @@ export function RoadmapView() {
 
   const timelineData = useMemo(() => {
     console.log('Calculating timeline data for tasks:', tasks);
+    console.log('Available milestones:', milestones);
     
     // If no tasks, use current date range
     if (tasks.length === 0) {
@@ -285,13 +286,22 @@ export function RoadmapView() {
   }, [tasks]);
 
   const groupedTasksData = useMemo(() => {
-    const grouped = milestones.map(milestone => ({
-      milestone,
-      tasks: filteredTasks.filter(task => task.milestone_id === milestone.id)
-    }));
+    console.log('Grouping tasks. Milestones:', milestones);
+    console.log('Filtered tasks:', filteredTasks);
+    
+    const grouped = milestones.map(milestone => {
+      const milestoneTasks = filteredTasks.filter(task => task.milestone_id === milestone.id);
+      console.log(`Milestone ${milestone.name} (${milestone.id}) has ${milestoneTasks.length} tasks:`, milestoneTasks);
+      return {
+        milestone,
+        tasks: milestoneTasks
+      };
+    });
     
     // Add tasks without milestones
     const tasksWithoutMilestone = filteredTasks.filter(task => !task.milestone_id);
+    console.log('Tasks without milestone:', tasksWithoutMilestone);
+    
     if (tasksWithoutMilestone.length > 0) {
       grouped.push({
         milestone: { id: 'unassigned', name: 'Unassigned Tasks', due_date: '', status: '', description: '', project_id: '', created_by: '' },
@@ -299,7 +309,9 @@ export function RoadmapView() {
       });
     }
     
-    return grouped.filter(group => group.tasks.length > 0);
+    const finalGrouped = grouped.filter(group => group.tasks.length > 0);
+    console.log('Final grouped data:', finalGrouped);
+    return finalGrouped;
   }, [milestones, filteredTasks]);
 
   if (loading) {
@@ -321,6 +333,18 @@ export function RoadmapView() {
         
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-3">
+          {/* Add New Milestone Button */}
+          <MilestoneManagementDialog 
+            projectId={id!} 
+            onMilestoneChange={fetchData}
+            triggerButton={
+              <Button variant="default" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Milestone
+              </Button>
+            }
+          />
+          
           {/* Milestone Management */}
           <MilestoneManagementDialog 
             projectId={id!} 
@@ -328,7 +352,7 @@ export function RoadmapView() {
             triggerButton={
               <Button variant="outline" size="sm">
                 <Settings className="h-4 w-4 mr-2" />
-                Manage Milestones
+                Manage All
               </Button>
             }
           />
@@ -436,7 +460,9 @@ export function RoadmapView() {
                   
                    {/* Tasks */}
                    {group.tasks.map((task, taskIndex) => {
-                     const position = getTaskPosition(task.created_at, task.due_date);
+                     // Use due_date if available, otherwise use created_at as fallback
+                     const taskStartDate = task.due_date || task.created_at;
+                     const position = getTaskPosition(taskStartDate, task.due_date);
                      if (!position) return null;
                      
                      const taskColorClass = getTaskColor(task, taskIndex);
