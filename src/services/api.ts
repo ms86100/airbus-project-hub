@@ -862,11 +862,11 @@ class ApiClient {
   // ========================
 
   async getTeams(projectId: string): Promise<ApiResponse> {
-    return this.makeRequest(`/projects/${projectId}/teams`, { method: 'GET' });
+    return this.makeRequest(`/capacity-service/projects/${projectId}/teams`, { method: 'GET' });
   }
 
   async createTeam(projectId: string, teamData: any): Promise<ApiResponse> {
-    return this.makeRequest(`/projects/${projectId}/teams`, {
+    return this.makeRequest(`/capacity-service/projects/${projectId}/teams`, {
       method: 'POST',
       body: JSON.stringify(teamData),
     });
@@ -884,7 +884,7 @@ class ApiClient {
   }
 
   async getTeamMembers(teamId: string): Promise<ApiResponse> {
-    return this.makeRequest(`/teams/${teamId}/members`, { method: 'GET' });
+    return this.makeRequest(`/capacity-service/teams/${teamId}/members`, { method: 'GET' });
   }
 
   async createTeamMember(teamId: string, memberData: any): Promise<ApiResponse> {
@@ -942,7 +942,7 @@ class ApiClient {
     });
   }
 
-  // New Team Capacity API methods
+  // Team Capacity API methods
   async getIterations(projectId: string): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/capacity-service/projects/${projectId}/iterations`, { method: 'GET' });
   }
