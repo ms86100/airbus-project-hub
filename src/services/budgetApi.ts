@@ -11,12 +11,13 @@ class BudgetApiService {
   }
 
   private async getAuthHeaders(): Promise<HeadersInit> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q'
+    };
+
     // Check if supabase client is available
     if (!supabase) {
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      
       try {
         const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
         if (storedAuth) {
@@ -27,17 +28,11 @@ class BudgetApiService {
       } catch (e) {
         console.warn('Failed to parse local session for token');
       }
-      
       return headers;
     }
     
     const session = await supabase.auth.getSession();
     const token = session.data.session?.access_token;
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q'
-    };
     
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
