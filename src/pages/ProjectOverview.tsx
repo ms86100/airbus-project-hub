@@ -27,6 +27,7 @@ import { TaskBacklog } from '@/components/workspace/TaskBacklog';
 import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker';
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
 import { ProjectBudgetManagement } from '@/components/workspace/ProjectBudgetManagement';
+import { ProjectAnalyticsDashboard } from '@/components/analytics/ProjectAnalyticsDashboard';
 import { useModulePermissions, ModuleName } from '@/hooks/useModulePermissions';
 
 interface Project {
@@ -302,50 +303,7 @@ const ProjectOverview = () => {
               {/* Only render tab content for modules the user has access to */}
               {canRead('overview') && (
                 <TabsContent value="overview" className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <Card className="border-l-4 border-l-airbus-primary">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <CheckCircle className="h-5 w-5 text-airbus-primary" />
-                          Tasks
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-foreground">{workspaceData?.summary?.tasks || 0}</div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {workspaceData?.recentTasks?.filter((t: any) => t.status === 'completed').length || 0} completed
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-airbus-secondary">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Calendar className="h-5 w-5 text-airbus-secondary" />
-                          Milestones
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-foreground">{workspaceData?.summary?.milestones || 0}</div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {workspaceData?.upcomingMilestones?.filter((m: any) => m.status === 'completed').length || 0} completed
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-accent">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Users className="h-5 w-5 text-accent" />
-                          Team
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-foreground">1</div>
-                        <p className="text-sm text-muted-foreground mt-1">Project creator</p>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  <ProjectAnalyticsDashboard projectId={id!} />
                 </TabsContent>
               )}
 
