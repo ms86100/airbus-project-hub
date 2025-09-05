@@ -18,6 +18,7 @@ interface Iteration {
   start_date: string;
   end_date: string;
   weeks_count: number;
+  hasRealIteration?: boolean;
 }
 
 interface TeamMember {
@@ -181,11 +182,11 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
   };
 
   const saveAvailability = async () => {
-    // Check if this is a temporary iteration
-    if (iteration.id.startsWith('temp-')) {
+    // Check if this team has a real iteration for saving
+    if (!iteration.hasRealIteration) {
       toast({
         title: 'Create Iteration Required',
-        description: 'This is a preview mode. Create a proper iteration to save availability data.',
+        description: 'This team needs a proper iteration to save availability data. Use "Create Iteration" button first.',
         variant: 'destructive'
       });
       return;
