@@ -114,7 +114,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
     amount: '',
     payment_method: '',
     status: 'pending',
-    budget_type_code: '',
   });
 
   const fetchBudgetData = async () => {
@@ -330,7 +329,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         amount: '',
         payment_method: '',
         status: 'pending',
-        budget_type_code: '',
       });
       setSelectedCategory('');
       fetchBudgetData();
@@ -426,7 +424,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
       date: spending.date,
       payment_method: spending.payment_method || '',
       status: spending.status,
-      budget_type_code: spending.budget_type_code || '',
       invoice_id: spending.invoice_id || '',
     });
     setSelectedCategory(spending.budget_category_id || '');
@@ -671,25 +668,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="spending_budget_type">Budget Type *</Label>
-                    <Select value={spendingForm.budget_type_code || ''} onValueChange={(value) => {
-                      setSpendingForm(prev => ({ ...prev, budget_type_code: value }));
-                      // Clear selected category when budget type changes
-                      setSelectedCategory('');
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select budget type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {budgetTypes.map((type) => (
-                          <SelectItem key={type.code} value={type.code}>
-                            {type.label || type.type_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
                     <Label htmlFor="spending_category">Category *</Label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger>
@@ -697,28 +675,24 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                       </SelectTrigger>
                       <SelectContent className="bg-background border z-50">
                         {(() => {
-                          const availableCategories = budget?.budget_categories
-                            ?.filter(category => !spendingForm.budget_type_code || category.budget_type_code === spendingForm.budget_type_code);
+                          const availableCategories = budget?.budget_categories || [];
                           
-                          console.log('🔍 Category filtering debug:', {
-                            selectedBudgetType: spendingForm.budget_type_code,
-                            allCategories: budget?.budget_categories,
-                            filteredCategories: availableCategories
+                          console.log('🔍 Available budget categories for spending:', {
+                            totalCategories: availableCategories.length,
+                            categories: availableCategories.map(c => ({ id: c.id, name: c.name, type: c.budget_type_code }))
                           });
 
-                          if (!availableCategories || availableCategories.length === 0) {
+                          if (availableCategories.length === 0) {
                             return (
                               <SelectItem value="" disabled>
-                                {!spendingForm.budget_type_code 
-                                  ? "Please select a budget type first" 
-                                  : "No categories available for this budget type"}
+                                No budget categories available. Please create budget categories first.
                               </SelectItem>
                             );
                           }
 
                           return availableCategories.map((category) => (
                             <SelectItem key={category.id} value={category.id}>
-                              {category.name}
+                              {category.name} ({category.budget_type_code})
                             </SelectItem>
                           ));
                         })()}
@@ -989,37 +963,17 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="edit_spending_budget_type">Budget Type *</Label>
-                <Select value={spendingForm.budget_type_code || ''} onValueChange={(value) => {
-                  setSpendingForm(prev => ({ ...prev, budget_type_code: value }));
-                  setSelectedCategory('');
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select budget type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {budgetTypes.map((type) => (
-                      <SelectItem key={type.code} value={type.code}>
-                        {type.label || type.type_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
                 <Label htmlFor="edit_spending_category">Category *</Label>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {budget?.budget_categories
-                      ?.filter(category => !spendingForm.budget_type_code || category.budget_type_code === spendingForm.budget_type_code)
-                      ?.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
+                    {budget?.budget_categories?.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name} ({category.budget_type_code})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
