@@ -3,12 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 // Environment-aware API service for budget management
 class BudgetApiService {
   private getBaseUrl(): string {
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const baseUrl = isLocalhost 
-      ? 'http://localhost:3001' 
-      : 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
-    
-    return baseUrl;
+    const viteApiUrl = (import.meta as any)?.env?.VITE_API_URL as string | undefined;
+    const isLocalByEnv = !!viteApiUrl && viteApiUrl.includes('localhost');
+    const isLocalByHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isLocal = isLocalByEnv || isLocalByHost;
+    return isLocal ? 'http://localhost:3001' : 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
   }
 
   private async getAuthHeaders(): Promise<HeadersInit> {
