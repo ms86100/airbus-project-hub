@@ -6,14 +6,7 @@ class BudgetApiService {
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const baseUrl = isLocalhost 
       ? 'http://localhost:3001' 
-      : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
-    
-    console.log('🌐 Budget API Base URL:', {
-      hostname: window.location.hostname,
-      isLocalhost,
-      baseUrl,
-      supabaseUrl: import.meta.env.VITE_SUPABASE_URL
-    });
+      : 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
     
     return baseUrl;
   }
@@ -64,9 +57,7 @@ class BudgetApiService {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
-    if (import.meta.env.VITE_SUPABASE_ANON_KEY) {
-      headers['apikey'] = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    }
+    headers['apikey'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q';
     
     console.log('🔐 Request headers:', {
       hasAuth: !!headers['Authorization'],
