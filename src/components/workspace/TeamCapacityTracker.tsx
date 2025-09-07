@@ -218,12 +218,9 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
   const fetchTeams = async () => {
     try {
-      const response = await fetch(`/api/capacity-service/projects/${projectId}/teams`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setTeams(data.data || []);
-        }
+      const response = await apiClient.getTeams(projectId);
+      if (response.success) {
+        setTeams(response.data || []);
       } else {
         setTeams([]);
       }

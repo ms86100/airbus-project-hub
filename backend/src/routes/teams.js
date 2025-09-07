@@ -375,4 +375,29 @@ router.delete('/team-members/:memberId', verifyToken, async (req, res) => {
   }
 });
 
+// GET /teams/:teamId - Fetch team details
+router.get('/teams/:teamId', verifyToken, async (req, res) => {
+  try {
+    const { teamId } = req.params;
+    const userId = req.user.id;
+
+    const teamRes = await query(`
+      SELECT t.*
+      FROM teams t
+      JOIN projects p ON t.project_id = p.id
+      LEFT JOIN project_members pm ON p.id = pm.project_id
+      WHERE t.id = $1 AND (p.created_by = $2 OR pm.user_id = $2)
+    `, [teamId, userId]);
+
+    if (teamRes.rows.length === 0) {
+      return sendResponse(res, createErrorResponse('Team not found or access denied', 'TEAM_NOT_FOUND'), 404);
+    }
+
+    sendResponse(res, createSuccessResponse(teamRes.rows[0]));
+  } catch (error) {
+    console.error('Error fetching team:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch team', 'DATABASE_ERROR'), 500);
+  }
+});
+
 module.exports = router;

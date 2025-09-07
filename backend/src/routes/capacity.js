@@ -559,4 +559,97 @@ router.get('/iterations/:iterationId/availability', verifyToken, async (req, res
   }
 });
 
+// Additional helper endpoints for UI compatibility
+
+// GET /capacity-service/projects/:id/settings
+router.get('/projects/:id/settings', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    // Return sensible defaults; can be extended to fetch from DB later
+    sendResponse(res, createSuccessResponse({
+      workModeWeights: { office: 1.0, wfh: 0.9, hybrid: 0.95 },
+      defaultWorkingDays: 5,
+      defaultAvailability: 100,
+    }));
+  } catch (error) {
+    sendResponse(res, createErrorResponse('Failed to load capacity settings', 'SETTINGS_ERROR', 500));
+  }
+});
+
+// GET /capacity-service/projects/:id/iterations
+router.get('/projects/:id/iterations', verifyToken, verifyProjectAccess, async (req, res) => {
+  try {
+    const projectId = req.projectId;
+    const result = await query(`
+      SELECT tci.*, t.team_name
+      FROM team_capacity_iterations tci
+      LEFT JOIN teams t ON t.id = tci.team_id
+      WHERE tci.project_id = $1
+      ORDER BY tci.start_date DESC NULLS LAST, tci.created_at DESC
+    `, [projectId]);
+
+    const iterations = result.rows.map((r) => {
+      let weeks_count = 0;
+      if (r.start_date && r.end_date) {
+        const start = new Date(r.start_date);
+        const end = new Date(r.end_date);
+        const diffDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1);
+        weeks_count = Math.max(1, Math.ceil(diffDays / 7));
+      }
+      return { ...r, weeks_count };
+    });
+
+    sendResponse(res, createSuccessResponse(iterations));
+  } catch (error) {
+    console.error('Get iterations error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch iterations', 'FETCH_ERROR', 500));
+  }
+});
+
+// DELETE /capacity-service/capacity/:itemId?type=iteration|member
+router.delete('/capacity/:itemId', verifyToken, async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const { type } = req.query;
+    const userId = req.user.id;
+
+    if (!type) return sendResponse(res, createErrorResponse('Type parameter required', 'MISSING_TYPE', 400));
+
+    if (type === 'iteration') {
+      // Resolve project for access check
+      const iterRes = await query('SELECT project_id FROM team_capacity_iterations WHERE id = $1', [itemId]);
+      if (iterRes.rows.length === 0) return sendResponse(res, createErrorResponse('Iteration not found', 'NOT_FOUND', 404));
+      const projectId = iterRes.rows[0].project_id;
+
+      // Access check (same as other endpoints)
+      const accessRes = await query(`
+        SELECT EXISTS (
+          SELECT 1 FROM projects p
+          WHERE p.id = $1 AND (
+            p.created_by = $2 OR
+            EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = $2 AND ur.role = 'admin'::app_role) OR
+            EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = $1 AND pm.user_id = $2) OR
+            EXISTS (SELECT 1 FROM module_permissions mp WHERE mp.project_id = $1 AND mp.user_id = $2)
+          )
+        ) AS has_access
+      `, [projectId, userId]);
+      if (!accessRes.rows[0]?.has_access) return sendResponse(res, createErrorResponse('Project access denied', 'FORBIDDEN', 403));
+
+      const del = await query('DELETE FROM team_capacity_iterations WHERE id = $1 RETURNING id', [itemId]);
+      if (del.rows.length === 0) return sendResponse(res, createErrorResponse('Iteration not found', 'NOT_FOUND', 404));
+      return sendResponse(res, createSuccessResponse({ message: 'Iteration deleted successfully' }));
+    }
+
+    if (type === 'member') {
+      const del = await query('DELETE FROM team_capacity_members WHERE id = $1 RETURNING id', [itemId]);
+      if (del.rows.length === 0) return sendResponse(res, createErrorResponse('Team member not found', 'NOT_FOUND', 404));
+      return sendResponse(res, createSuccessResponse({ message: 'Team member deleted successfully' }));
+    }
+
+    return sendResponse(res, createErrorResponse('Invalid type. Must be "iteration" or "member"', 'INVALID_TYPE', 400));
+  } catch (error) {
+    console.error('Delete capacity error:', error);
+    sendResponse(res, createErrorResponse('Failed to delete capacity item', 'DELETE_ERROR', 500));
+  }
+});
+
 module.exports = router;

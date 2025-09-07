@@ -109,52 +109,43 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
           const members = membersResponse.success ? membersResponse.data || [] : [];
 
           // Get weekly availability data for this iteration
-          let availabilityResponse;
-          try {
-            const response = await fetch(`http://localhost:3001/capacity-service/iterations/${iteration.id}/analytics`);
-            availabilityResponse = await response.json();
-          } catch (error) {
-            availabilityResponse = { success: false, data: null };
-          }
+          // Weekly availability rows from API
+          const availResp = await apiClient.getWeeklyAvailability(iteration.id);
 
           let weeks: WeekData[] = [];
           let totalCapacity = 0;
           let avgAvailability = 0;
 
-          if (availabilityResponse.success && availabilityResponse.data && availabilityResponse.data.weeks) {
-            const weeklyData = availabilityResponse.data.weeks || [];
-            
-            weeks = weeklyData.map((week: any, index: number) => {
-              const weekMembers: MemberWeekData[] = members.map(member => {
-                const memberAvailability = week.availability?.find((avail: any) => 
-                  avail.team_member_id === member.id
-                ) || {
-                  availability_percent: 100,
-                  calculated_days_present: 5,
-                  calculated_days_total: 5
-                };
+          if (availResp.success && Array.isArray(availResp.data)) {
+            const rows = availResp.data as any[];
+            const maxWeek = rows.reduce((m, r) => Math.max(m, Number(r.week_index || 0)), 0) || iteration.weeks_count || 0;
 
+            // Build week structure 1..maxWeek
+            for (let i = 1; i <= maxWeek; i++) {
+              const weekRows = rows.filter(r => Number(r.week_index) === i);
+              const weekMembers: MemberWeekData[] = members.map(member => {
+                const r = weekRows.find(w => w.team_member_id === member.id) || {};
                 return {
                   member_id: member.id,
                   member_name: member.member_name || 'Unknown',
-                  availability_percent: memberAvailability.availability_percent || 100,
-                  days_present: memberAvailability.calculated_days_present || 5,
-                  days_total: memberAvailability.calculated_days_total || 5,
+                  availability_percent: Number(r.availability_percent ?? 100),
+                  days_present: Number(r.days_present ?? 5),
+                  days_total: Number(r.days_total ?? 5),
                 };
               });
 
               const weekCapacity = weekMembers.reduce((sum, m) => sum + m.availability_percent, 0);
               const weekAvailability = weekMembers.length > 0 ? weekCapacity / weekMembers.length : 100;
 
-              return {
-                week_index: index + 1,
-                week_start: week.week_start || '',
-                week_end: week.week_end || '',
+              weeks.push({
+                week_index: i,
+                week_start: '',
+                week_end: '',
                 members: weekMembers,
                 week_capacity: weekCapacity,
                 week_availability: weekAvailability,
-              };
-            });
+              });
+            }
 
             totalCapacity = weeks.reduce((sum, week) => sum + week.week_capacity, 0);
             avgAvailability = weeks.length > 0 ? totalCapacity / (weeks.length * members.length) : 100;

@@ -719,6 +719,11 @@ class ApiClient {
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, { method: 'GET' });
   }
 
+  // Analytics Service
+  async getProjectOverviewAnalytics(projectId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/analytics-service/projects/${projectId}/project-overview`, { method: 'GET' });
+  }
+
   // Module access logging
   async logModuleAccess(data: {
     userId: string;
@@ -1026,6 +1031,10 @@ class ApiClient {
   }
 
   async getWeeklyAvailability(iterationId: string): Promise<ApiResponse<any[]>> {
+    // If iterationId is not a UUID (e.g., temp/team identifiers), avoid calling backend
+    if (!/^[0-9a-fA-F-]{36}$/.test(iterationId)) {
+      return { success: true, data: [] } as ApiResponse<any[]>;
+    }
     const ep = this.resolveEndpoint(
       `/capacity-service/iterations/${iterationId}/availability`,
       `/capacity-service/iterations/${iterationId}/availability`

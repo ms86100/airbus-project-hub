@@ -100,24 +100,13 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
     try {
       setLoading(true);
       
-      // Fetch real analytics data from your local API
-      const response = await fetch(`http://localhost:3001/analytics-service/projects/${projectId}/project-overview`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch analytics data: ${response.status}`);
+      // Fetch analytics via API client (handles auth)
+      const resp = await apiClient.getProjectOverviewAnalytics(projectId);
+      if (!resp.success) {
+        throw new Error(resp.error || 'Analytics request failed');
       }
 
-      const analyticsResult = await response.json();
-      if (!analyticsResult.success) {
-        throw new Error(analyticsResult.error || 'Analytics request failed');
-      }
-
-      const apiData = analyticsResult.data;
+      const apiData = resp.data;
 
       // Build analytics data from real API response with "not available" fallbacks
       const finalAnalyticsData: ProjectAnalyticsData = {
@@ -227,7 +216,7 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
       
       toast({
         title: 'Analytics Service',
-        description: 'Unable to connect to analytics service on localhost:3001.',
+        description: 'Unable to load analytics right now.',
         variant: 'destructive'
       });
     } finally {
