@@ -171,18 +171,24 @@ router.post('/register', async (req, res) => {
         [userId, lowerEmail, hashedPassword, new Date(), new Date(), new Date()]
       );
 
-      // Populate extended auth.users columns when present (best-effort, ignore if columns are missing)
-      const safeUpdate = async (sql, params) => {
-        try { await client.query(sql, params); } catch (_) { /* ignore missing columns */ }
+      // Populate extended auth.users columns only if they exist to avoid aborting the transaction
+      const updateIfCol = async (column, sql, params) => {
+        const colCheck = await client.query(
+          "SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = $1",
+          [column]
+        );
+        if (colCheck.rowCount > 0) {
+          await client.query(sql, params);
+        }
       };
-      await safeUpdate('UPDATE auth.users SET aud = $2 WHERE id = $1', [userId, 'authenticated']);
-      await safeUpdate('UPDATE auth.users SET role = $2 WHERE id = $1', [userId, 'authenticated']);
-      await safeUpdate('UPDATE auth.users SET raw_app_meta_data = $2::jsonb WHERE id = $1', [userId, JSON.stringify({ provider: 'email', providers: ['email'] })]);
-      await safeUpdate('UPDATE auth.users SET raw_user_meta_data = jsonb_build_object(\'full_name\', $2) WHERE id = $1', [userId, fullName || email]);
-      await safeUpdate('UPDATE auth.users SET confirmed_at = COALESCE(confirmed_at, NOW()) WHERE id = $1', [userId]);
-      await safeUpdate('UPDATE auth.users SET is_super_admin = FALSE WHERE id = $1', [userId]);
-      await safeUpdate('UPDATE auth.users SET is_sso_user = FALSE WHERE id = $1', [userId]);
-      await safeUpdate('UPDATE auth.users SET is_anonymous = FALSE WHERE id = $1', [userId]);
+      await updateIfCol('aud', 'UPDATE auth.users SET aud = $2 WHERE id = $1', [userId, 'authenticated']);
+      await updateIfCol('role', 'UPDATE auth.users SET role = $2 WHERE id = $1', [userId, 'authenticated']);
+      await updateIfCol('raw_app_meta_data', 'UPDATE auth.users SET raw_app_meta_data = $2::jsonb WHERE id = $1', [userId, JSON.stringify({ provider: 'email', providers: ['email'] })]);
+      await updateIfCol('raw_user_meta_data', "UPDATE auth.users SET raw_user_meta_data = jsonb_build_object('full_name', $2) WHERE id = $1", [userId, fullName || email]);
+      await updateIfCol('confirmed_at', 'UPDATE auth.users SET confirmed_at = COALESCE(confirmed_at, NOW()) WHERE id = $1', [userId]);
+      await updateIfCol('is_super_admin', 'UPDATE auth.users SET is_super_admin = FALSE WHERE id = $1', [userId]);
+      await updateIfCol('is_sso_user', 'UPDATE auth.users SET is_sso_user = FALSE WHERE id = $1', [userId]);
+      await updateIfCol('is_anonymous', 'UPDATE auth.users SET is_anonymous = FALSE WHERE id = $1', [userId]);
       
       // Ensure profile exists (trigger should create it; fallback here for local setups)
       await client.query(
