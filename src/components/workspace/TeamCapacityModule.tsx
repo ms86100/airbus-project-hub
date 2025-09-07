@@ -227,43 +227,12 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   };
 
   if (selectedIteration) {
-    console.log('🚨 RENDERING AvailabilityMatrix with selectedIteration:', selectedIteration);
-    
-    // @ts-ignore - check for view mode
-    const isViewMode = selectedIteration.viewMode === true;
-    console.log('🚨 isViewMode:', isViewMode);
-    
-    if (isViewMode) {
-      console.log('🚨 Rendering AvailabilityView');
-      return (
-        <AvailabilityView
-          iteration={selectedIteration}
-          onBack={() => {
-            console.log('🔙 Back button clicked from view, clearing selectedIteration');
-            setSelectedIteration(null);
-          }}
-          onEdit={() => {
-            console.log('✏️ Edit button clicked, switching to edit mode');
-            setSelectedIteration({
-              ...selectedIteration,
-              // @ts-ignore
-              viewMode: false
-            });
-          }}
-        />
-      );
-    }
-    
-    console.log('🚨 Rendering AvailabilityMatrix in EDIT mode');
+    // Always render AvailabilityMatrix - no view/edit mode complexity
     return (
       <AvailabilityMatrix
         iteration={selectedIteration}
-        onBack={() => {
-          console.log('🔙 Back button clicked, clearing selectedIteration');
-          setSelectedIteration(null);
-        }}
+        onBack={() => setSelectedIteration(null)}
         onUpdate={() => {
-          console.log('🔄 Update triggered, refreshing and going back');
           fetchIterations();
           setSelectedIteration(null);
         }}
@@ -392,34 +361,20 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             size="sm"
                             variant="outline"
                              onClick={() => {
-                               console.log('🚨 TEAM EDIT BUTTON CLICKED for team:', team.team_name);
-                               console.log('🚨 Current selectedIteration:', selectedIteration);
-                               
-                               // Check if team has existing iteration
-                               const teamIteration = iterations.find(it => it.team_id === team.id);
-                               
-                               // ALWAYS create a temporary iteration for consistent UI behavior
-                               const tempIteration = {
-                                 id: `temp-${team.id}`,
-                                 name: `${team.team_name} Availability`,
+                               // Simple: Just create iteration and navigate to AvailabilityMatrix
+                               const editIteration = {
+                                 id: `team-${team.id}`,
+                                 name: `${team.team_name} Capacity`,
                                  type: 'capacity_tracker' as const,
                                  project_id: projectId,
                                  team_id: team.id,
                                  team_name: team.team_name,
                                  start_date: new Date().toISOString().split('T')[0],
-                                 end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                 weeks_count: 3,
-                                 created_at: new Date().toISOString(),
-                                 // Store the real iteration ID for API calls if it exists
-                                 hasRealIteration: !!teamIteration,
-                                 realIterationId: teamIteration?.id,
-                                 // @ts-ignore - force edit mode
-                                 viewMode: false
+                                 end_date: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 week
+                                 weeks_count: 1,
+                                 created_at: new Date().toISOString()
                                };
-                               
-                               console.log('🚨 Setting temp iteration for availability matrix:', tempIteration);
-                               setSelectedIteration(tempIteration);
-                               console.log('🚨 selectedIteration should now be set!');
+                               setSelectedIteration(editIteration);
                              }}
                           >
                             Edit
@@ -512,10 +467,8 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                        </Button>
                                         <Button
                                            onClick={() => {
-                                             console.log('🚨 ITERATION EDIT AVAILABILITY BUTTON CLICKED for iteration:', iteration);
-                                             console.log('🚨 Current selectedIteration:', selectedIteration);
-                                             handleEditAvailability(iteration);
-                                             console.log('🚨 handleEditAvailability called!');
+                                             // Simple: Just navigate to AvailabilityMatrix
+                                             setSelectedIteration(iteration);
                                            }}
                                           variant="outline"
                                         >
