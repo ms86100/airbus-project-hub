@@ -184,12 +184,19 @@ router.post('/register', async (req, res) => {
       await safeUpdate('UPDATE auth.users SET is_sso_user = FALSE WHERE id = $1', [userId]);
       await safeUpdate('UPDATE auth.users SET is_anonymous = FALSE WHERE id = $1', [userId]);
       
-      // Do NOT insert into profiles here; handle_new_user trigger will create it
+      // Ensure profile exists (trigger should create it; fallback here for local setups)
+      await client.query(
+        `INSERT INTO profiles (id, email, full_name, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (id) DO NOTHING`,
+        [userId, lowerEmail, fullName || email, new Date(), new Date()]
+      );
+
       // Assign default role if not already present
       const role = lowerEmail === process.env.ADMIN_EMAIL ? 'admin' : 'project_coordinator';
       await client.query(
         `INSERT INTO user_roles (user_id, role)
-         SELECT $1, $2
+         SELECT $1, $2::app_role
          WHERE NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id = $1)`,
         [userId, role]
       );
@@ -235,7 +242,11 @@ router.post('/register', async (req, res) => {
     if (error.code === '23505') {
       sendResponse(res, createErrorResponse('User already exists', 'USER_EXISTS', 400));
     } else {
-      sendResponse(res, createErrorResponse('Registration failed', 'REGISTRATION_ERROR', 500));
+      const expose = process.env.NODE_ENV !== 'production';
+      const errorMsg = expose
+        ? [error.detail, error.message, error.code, error.constraint, error.table].filter(Boolean).join(' | ')
+        : 'Registration failed';
+      sendResponse(res, createErrorResponse(errorMsg, 'REGISTRATION_ERROR', 500));
     }
   }
 });
