@@ -119,21 +119,27 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
       // Fetch saved weekly availability and prefill state
       const iterationIdForApi = iteration.realIterationId || iteration.id;
       if (iterationIdForApi) {
+        console.log('🔍 Fetching weekly availability for iteration:', iterationIdForApi);
         const waRes = await apiClient.getWeeklyAvailability(iterationIdForApi);
+        console.log('📊 Weekly availability response:', waRes);
         if (waRes.success && Array.isArray(waRes.data)) {
           const map: Record<string, WeeklyAvailability> = {};
           waRes.data.forEach((row: any) => {
+            console.log('📊 Processing row:', row);
             const weekId = `week-${row.week_index}`;
             const key = getAvailabilityKey(row.team_member_id, weekId);
             map[key] = {
               iteration_week_id: weekId,
               team_member_id: row.team_member_id,
-              availability_percent: row.availability_percent,
-              calculated_days_present: row.days_present,
-              calculated_days_total: row.days_total,
+              availability_percent: row.availability_percent || 100,
+              calculated_days_present: row.days_present || Math.round((row.availability_percent || 100) / 100 * 5),
+              calculated_days_total: row.days_total || 5,
             } as WeeklyAvailability;
           });
+          console.log('📊 Setting availability map:', map);
           setAvailability(map);
+        } else {
+          console.log('📊 No weekly availability data found or failed to fetch');
         }
       }
     } catch (error) {
