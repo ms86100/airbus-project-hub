@@ -362,18 +362,20 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             variant="outline"
                              onClick={() => {
                                console.log('EDIT BUTTON CLICKED - NAVIGATING TO AVAILABILITY MATRIX');
-                               setSelectedIteration({
-                                 id: team.id,
-                                 name: team.team_name,
+                               const iterationData = {
+                                 id: `team-${team.id}`,
+                                 name: `${team.team_name} - Availability Matrix`,
                                  type: 'capacity_tracker' as const,
                                  project_id: projectId,
-                                 team_id: team.id,
+                                 team_id: team.id, // CRITICAL: This is required by AvailabilityMatrix
                                  team_name: team.team_name,
                                  start_date: '2025-09-04',
                                  end_date: '2025-09-25',
                                  weeks_count: 3,
                                  created_at: new Date().toISOString()
-                               });
+                               };
+                               console.log('Setting iteration with team_id:', iterationData.team_id);
+                               setSelectedIteration(iterationData);
                              }}
                           >
                             Edit
