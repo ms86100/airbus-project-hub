@@ -361,20 +361,19 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             size="sm"
                             variant="outline"
                              onClick={() => {
-                               // Simple direct navigation - exactly what user wants
-                               const teamIteration = {
+                               console.log('EDIT BUTTON CLICKED - NAVIGATING TO AVAILABILITY MATRIX');
+                               setSelectedIteration({
                                  id: team.id,
                                  name: team.team_name,
                                  type: 'capacity_tracker' as const,
                                  project_id: projectId,
                                  team_id: team.id,
                                  team_name: team.team_name,
-                                 start_date: new Date().toISOString().split('T')[0],
-                                 end_date: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                 weeks_count: 1,
+                                 start_date: '2025-09-04',
+                                 end_date: '2025-09-25',
+                                 weeks_count: 3,
                                  created_at: new Date().toISOString()
-                               };
-                               setSelectedIteration(teamIteration);
+                               });
                              }}
                           >
                             Edit
@@ -466,7 +465,10 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                          View Availability
                                        </Button>
                                         <Button
-                                           onClick={() => setSelectedIteration(iteration)}
+                                           onClick={() => {
+                                             console.log('EDIT AVAILABILITY BUTTON CLICKED - NAVIGATING TO AVAILABILITY MATRIX');
+                                             setSelectedIteration(iteration);
+                                           }}
                                           variant="outline"
                                         >
                                           <Users className="h-4 w-4 mr-2" />
