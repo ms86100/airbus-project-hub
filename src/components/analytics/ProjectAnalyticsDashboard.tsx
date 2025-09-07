@@ -248,127 +248,136 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
 
   return (
     <div className="space-y-6">
-      {/* Executive Summary Cards */}
+      {/* Executive Summary Cards - Redesigned to match screenshot */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-600">Project Health</p>
-                <p className="text-2xl font-bold text-blue-700">{projectHealth.overall}%</p>
-                <p className="text-xs text-blue-500 flex items-center">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  +5% from last week
-                </p>
-              </div>
-              <Activity className="h-8 w-8 text-blue-500" />
+        {/* Project Health Card */}
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-medium text-blue-600">Project Health</div>
+              <TrendingUp className="h-5 w-5 text-blue-500" />
             </div>
-            <Progress value={projectHealth.overall} className="mt-2 h-2" />
+            <div className="text-3xl font-bold text-blue-700 mb-1">{projectHealth.overall}%</div>
+            <div className="text-xs text-blue-500 flex items-center">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              +5% from last week
+            </div>
+            <div className="mt-3">
+              <div className="w-full bg-blue-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${projectHealth.overall}%` }}
+                ></div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-green-500/10 to-green-600/10 border-green-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                 <p className="text-sm font-medium text-green-600">Budget Health</p>
-                {budgetAnalytics.totalAllocated > 0 ? (
-                  <>
-                    <p className="text-2xl font-bold text-green-700">${budgetAnalytics.totalSpent.toLocaleString()}</p>
-                    <p className="text-xs text-green-500">
-                      ${budgetAnalytics.remainingBudget.toLocaleString()} remaining
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-2xl font-bold text-green-700">$0</p>
-                    <p className="text-xs text-green-500">No budget set</p>
-                  </>
-                )}
-              </div>
-              <DollarSign className="h-8 w-8 text-green-500" />
+        {/* Budget Health Card */}
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-medium text-green-600">Budget Health</div>
+              <DollarSign className="h-5 w-5 text-green-500" />
             </div>
-            {budgetAnalytics.totalAllocated > 0 && (
-              <Progress value={(budgetAnalytics.totalSpent / budgetAnalytics.totalAllocated) * 100} className="mt-2 h-2" />
-            )}
+            <div className="text-3xl font-bold text-green-700 mb-1">
+              ${budgetAnalytics.totalSpent.toLocaleString()}
+            </div>
+            <div className="text-xs text-green-500">
+              ${budgetAnalytics.remainingBudget.toLocaleString()} remaining
+            </div>
+            <div className="mt-3">
+              <div className="w-full bg-green-200 rounded-full h-2">
+                <div 
+                  className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ 
+                    width: budgetAnalytics.totalAllocated > 0 
+                      ? `${Math.min((budgetAnalytics.totalSpent / budgetAnalytics.totalAllocated) * 100, 100)}%` 
+                      : '0%' 
+                  }}
+                ></div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-purple-500/10 to-purple-600/10 border-purple-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-purple-600">Team Performance</p>
-                {teamPerformance.totalMembers > 0 ? (
-                  <>
-                    <p className="text-2xl font-bold text-purple-700">{teamPerformance.utilizationRate}%</p>
-                    <p className="text-xs text-purple-500">
-                      {teamPerformance.activeMembers}/{teamPerformance.totalMembers} active
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-2xl font-bold text-purple-700">0%</p>
-                    <p className="text-xs text-purple-500">No team data</p>
-                  </>
-                )}
-              </div>
-              <Users className="h-8 w-8 text-purple-500" />
+        {/* Team Performance Card */}
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-medium text-purple-600">Team Performance</div>
+              <Users className="h-5 w-5 text-purple-500" />
             </div>
-            {teamPerformance.totalMembers > 0 && (
-              <Progress value={teamPerformance.utilizationRate} className="mt-2 h-2" />
-            )}
+            <div className="text-3xl font-bold text-purple-700 mb-1">
+              {teamPerformance.utilizationRate}%
+            </div>
+            <div className="text-xs text-purple-500">
+              {teamPerformance.activeMembers}/{teamPerformance.totalMembers} active
+            </div>
+            <div className="mt-3">
+              <div className="w-full bg-purple-200 rounded-full h-2">
+                <div 
+                  className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${teamPerformance.utilizationRate}%` }}
+                ></div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-amber-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-amber-600">Task Completion</p>
-                {taskAnalytics.totalTasks > 0 ? (
-                  <>
-                    <p className="text-2xl font-bold text-amber-700">{Math.round((taskAnalytics.completedTasks / taskAnalytics.totalTasks) * 100)}%</p>
-                    <p className="text-xs text-amber-500">
-                      {taskAnalytics.completedTasks}/{taskAnalytics.totalTasks} tasks
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-2xl font-bold text-amber-700">0%</p>
-                    <p className="text-xs text-amber-500">No tasks created</p>
-                  </>
-                )}
-              </div>
-              <CheckCircle className="h-8 w-8 text-amber-500" />
+        {/* Task Completion Card */}
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-medium text-orange-600">Task Completion</div>
+              <CheckCircle className="h-5 w-5 text-orange-500" />
             </div>
-            {taskAnalytics.totalTasks > 0 && (
-              <Progress value={(taskAnalytics.completedTasks / taskAnalytics.totalTasks) * 100} className="mt-2 h-2" />
-            )}
+            <div className="text-3xl font-bold text-orange-700 mb-1">
+              {taskAnalytics.totalTasks > 0 ? Math.round((taskAnalytics.completedTasks / taskAnalytics.totalTasks) * 100) : 0}%
+            </div>
+            <div className="text-xs text-orange-500">
+              {taskAnalytics.completedTasks}/{taskAnalytics.totalTasks} tasks
+            </div>
+            <div className="mt-3">
+              <div className="w-full bg-orange-200 rounded-full h-2">
+                <div 
+                  className="bg-orange-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ 
+                    width: taskAnalytics.totalTasks > 0 
+                      ? `${(taskAnalytics.completedTasks / taskAnalytics.totalTasks) * 100}%` 
+                      : '0%' 
+                  }}
+                ></div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-red-500/10 to-red-600/10 border-red-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-red-600">Risk Score</p>
-                {riskAnalysis.totalRisks > 0 ? (
-                  <>
-                    <p className="text-2xl font-bold text-red-700">{riskAnalysis.highRisks}</p>
-                    <p className="text-xs text-red-500">
-                      {riskAnalysis.totalRisks} total risks
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Risk data is not available</p>
-                )}
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-500" />
+        {/* Risk Score Card */}
+        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-medium text-red-600">Risk Score</div>
+              <AlertTriangle className="h-5 w-5 text-red-500" />
             </div>
-            {riskAnalysis.totalRisks > 0 && (
-              <Progress value={(riskAnalysis.mitigatedRisks / riskAnalysis.totalRisks) * 100} className="mt-2 h-2" />
-            )}
+            <div className="text-3xl font-bold text-red-700 mb-1">
+              {riskAnalysis.highRisks}
+            </div>
+            <div className="text-xs text-red-500">
+              {riskAnalysis.totalRisks} total risks
+            </div>
+            <div className="mt-3">
+              <div className="w-full bg-red-200 rounded-full h-2">
+                <div 
+                  className="bg-red-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ 
+                    width: riskAnalysis.totalRisks > 0 
+                      ? `${(riskAnalysis.mitigatedRisks / riskAnalysis.totalRisks) * 100}%` 
+                      : '0%' 
+                  }}
+                ></div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
