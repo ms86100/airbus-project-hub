@@ -170,7 +170,7 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
         <div className="py-6">
           <SidebarGroup>
             <SidebarGroupLabel className="px-6 mb-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Main Navigation
+              PROJECT NAVIGATION
             </SidebarGroupLabel>
             
             <SidebarGroupContent className="px-3">
