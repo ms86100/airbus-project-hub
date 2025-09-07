@@ -114,9 +114,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
 
   const fetchDiscussions = async () => {
     try {
-      console.log('🗣️ Fetching discussions for project:', projectId);
       const response = await apiClient.getDiscussions(projectId);
-      console.log('🗣️ Discussions response:', response);
       
       if (response.success) {
         const discussionData = Array.isArray(response.data) 
@@ -124,7 +122,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
           : (response.data && typeof response.data === 'object' && 'discussions' in response.data)
             ? (response.data as any).discussions || []
             : [];
-        console.log('🗣️ Setting discussions data:', discussionData);
+        
         setDiscussions(discussionData);
       } else {
         console.error('❌ Error fetching discussions:', response.error);
@@ -146,9 +144,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
 
   const fetchActionItems = async () => {
     try {
-      console.log('📋 Fetching action items for project:', projectId);
       const response = await apiClient.getActionItems(projectId);
-      console.log('📋 Action items response:', response);
       
       if (response.success) {
         const actionItemData = Array.isArray(response.data) 
@@ -156,7 +152,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
           : (response.data && typeof response.data === 'object' && 'actionItems' in response.data)
             ? (response.data as any).actionItems || []
             : [];
-        console.log('📋 Setting action items data:', actionItemData);
+        
         setActionItems(actionItemData);
       } else {
         console.error('❌ Error fetching action items:', response.error);

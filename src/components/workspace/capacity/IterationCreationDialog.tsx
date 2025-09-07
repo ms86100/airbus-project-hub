@@ -121,7 +121,7 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
 
       const response = await apiClient.createIteration(projectId, iterationData);
       
-      console.log('🔄 Full iteration response:', response);
+      
       
       if (!response.success) {
         // Log the COMPLETE server response
@@ -132,7 +132,7 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
         throw new Error(serverError);
       }
 
-      console.log('✅ Iteration created successfully:', response.data);
+      
       
       // Map backend response to frontend format
       const iteration = {

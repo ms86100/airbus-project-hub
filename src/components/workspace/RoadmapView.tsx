@@ -147,7 +147,7 @@ export function RoadmapView() {
     if (tasks.length === 0) {
       const start = startOfMonth(new Date());
       const end = endOfMonth(new Date());
-      console.log('No tasks, using current date range:', { start, end });
+      
       return { start, end, intervals: eachDayOfInterval({ start, end }) };
     }
 
@@ -155,24 +155,24 @@ export function RoadmapView() {
     const allDates: Date[] = [];
     
     tasks.forEach(task => {
-      console.log('Processing task:', task.title, 'created:', task.created_at, 'due:', task.due_date);
+      
       
       // Add task start date (created_at) - only if not null
       if (task.created_at) {
         const startDate = parseISO(task.created_at);
         allDates.push(startDate);
-        console.log('Parsed start date:', startDate);
+        
       }
       
       // Add task end date (due_date) - only if not null
       if (task.due_date) {
         const endDate = parseISO(task.due_date);
         allDates.push(endDate);
-        console.log('Parsed end date:', endDate);
+        
       }
     });
 
-    console.log('All dates collected:', allDates);
+    
 
     // Find the absolute earliest and latest dates
     const earliestDate = allDates.reduce((earliest, date) => 
@@ -180,7 +180,7 @@ export function RoadmapView() {
     const latestDate = allDates.reduce((latest, date) => 
       date > latest ? date : latest, allDates[0]);
 
-    console.log('Date range calculated:', { earliestDate, latestDate });
+    
 
     // Extend timeline with padding based on view mode
     let start: Date, end: Date, intervals: Date[];
@@ -213,7 +213,7 @@ export function RoadmapView() {
         intervals = eachDayOfInterval({ start, end });
     }
 
-    console.log('Final timeline range:', { start, end, viewMode });
+    
     return { start, end, intervals };
   }, [tasks, viewMode]);
 
@@ -283,7 +283,7 @@ export function RoadmapView() {
   }, [tasks]);
 
   const groupedTasksData = useMemo(() => {
-    console.log('Grouping tasks. Milestones:', milestones);
+    
     const grouped = milestones.map(milestone => {
       const milestoneTasks = filteredTasks.filter(task => task.milestone_id === milestone.id);
       return {

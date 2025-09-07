@@ -20,12 +20,12 @@ class ApiClient {
       // Local backend - use direct routes without service prefixes
       this.baseUrl = apiUrl;
       this.isLocalBackend = true;
-      console.log('✅ Using LOCAL backend:', this.baseUrl);
+      
     } else {
       // Force local backend for now - do not use Supabase
       this.baseUrl = 'http://localhost:3001';
       this.isLocalBackend = true;
-      console.log('🔧 FORCING LOCAL backend:', this.baseUrl);
+      
     }
   }
 
@@ -43,11 +43,11 @@ class ApiClient {
             return token;
           }
         } catch (e) {
-          console.warn('Failed parsing stored session');
+          
         }
       }
 
-      console.log('❌ No access token available');
+      
       return null;
     } catch (error) {
       console.error('Error getting auth token:', error);
@@ -77,9 +77,6 @@ class ApiClient {
       // FORCE localhost for ALL requests - NO SUPABASE
       const baseUrl = 'http://localhost:3001';
       
-      console.log(`🌐 FORCED API BASE URL: ${baseUrl}`);
-      console.log(`🌐 IS LOCAL: ${this.isLocalBackend}`);
-      console.log(`🌐 ENDPOINT: ${endpoint} -> ${actualEndpoint}`);
       
       const headers = {
         'Content-Type': 'application/json',
@@ -102,8 +99,6 @@ class ApiClient {
 
     try {
       const actualEndpoint = this.getLocalEndpoint(endpoint);
-      console.log(`🌐 Making request to: ${actualEndpoint} (from ${endpoint})`);
-      console.log(`🔐 Using token: ${token ? `${token.substring(0, 20)}...` : 'None'}`);
 
       let { response, result } = await doFetch(token || undefined);
 
@@ -117,11 +112,11 @@ class ApiClient {
         }
       }
 
-      console.log(`📡 Response from ${endpoint}:`, result);
+      
       
       // Return the RAW response - don't sanitize errors
       if (!result || !result.success) {
-        console.error(`❌ RAW SERVER ERROR:`, result);
+        
       }
       
       return result ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' };
@@ -981,21 +976,19 @@ class ApiClient {
       `/capacity-service/projects/${projectId}/iterations`,
       `/capacity-service/projects/${projectId}/capacity`
     );
-    console.log('🔍 Getting iterations from endpoint:', ep);
     const res = await this.makeRequest<any>(ep, { method: 'GET' });
-    console.log('🔍 Raw iterations response:', res);
     if (!res.success) return res as any;
     
     // Local backend returns an object; prefer 'iterations' array if present
     const data = Array.isArray((res as any).data?.iterations)
       ? (res as any).data.iterations
       : ((res as any).data || []);
-    console.log('🔍 Processed iterations data:', data);
+    
     return { success: true, data } as ApiResponse<any[]>;
   }
 
   async createIteration(projectId: string, iterationData: any): Promise<ApiResponse<any>> {
-    console.log('🔄 Creating iteration with data:', iterationData);
+    
     
     // The backend expects these EXACT field names (see capacity.js line 77)
     const payload = {
@@ -1008,7 +1001,7 @@ class ApiClient {
       teamId: iterationData.team_id  // backend expects 'teamId' not 'team_id'
     };
 
-    console.log('🔄 Sending payload to backend:', payload);
+    
     
     return this.makeRequest(`/capacity-service/projects/${projectId}/capacity`, {
       method: 'POST',

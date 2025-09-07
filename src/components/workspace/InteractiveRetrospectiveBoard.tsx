@@ -341,7 +341,7 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
 
     // Move card to new column
     try {
-      console.log('Moving card:', cardId, 'to column:', newColumnId);
+      
       const response = await apiClient.moveRetrospectiveCard(cardId, newColumnId);
       if (response.success) {
         toast({

@@ -97,9 +97,6 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
         weeks_count: Math.ceil(form.working_days / 5),
       };
 
-      console.log('Creating capacity tracker with team_id:', form.team_id, 'iterationData:', iterationData);
-
-      console.log('Creating capacity tracker:', iterationData);
       
       const response = await apiClient.createIteration(projectId, iterationData);
       
@@ -110,7 +107,7 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
           team_name: teams.find(t => t.id === form.team_id)?.team_name || 'Unknown Team'
         };
         
-        console.log('Created iteration with team info:', createdIteration);
+        
         
         // Call the tracker created callback BEFORE closing dialog
         onTrackerCreated(createdIteration);

@@ -120,10 +120,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
   const fetchBudgetData = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Starting budget data fetch for project:', projectId);
-
       const result = await budgetApi.getProjectBudget(projectId);
-      console.log('📊 Raw budget data response:', result);
 
       setBudget(result.data.budget);
       setBudgetTypes(result.data.budgetTypes || []);
@@ -133,7 +130,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
       let calculatedAnalytics = null;
       
       if (budgetData && budgetData.budget_categories) {
-        console.log('📊 Calculating analytics from categories:', budgetData.budget_categories);
+        
         
         let totalAllocated = 0;
         let totalReceived = 0;
@@ -148,12 +145,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
           totalReceived += received;
           totalSpent += spent;
           
-          console.log('📊 Category analytics:', {
-            name: category.name,
-            allocated,
-            received,
-            spent
-          });
         });
 
         // Also consider main budget totals if they exist
@@ -192,7 +183,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
           })),
         };
         
-        console.log('📊 Calculated analytics:', calculatedAnalytics);
+        
       }
       
       setAnalytics(calculatedAnalytics || result.data.analytics);
@@ -206,12 +197,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         });
       }
       
-      console.log('📊 Final processed budget data:', {
-        budget: result.data.budget,
-        budgetTypesCount: result.data.budgetTypes?.length,
-        analytics: calculatedAnalytics,
-        hasAnalytics: !!calculatedAnalytics
-      });
       
       if (result.data.budget) {
         setBudgetForm({
@@ -243,7 +228,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
   const saveBudget = async () => {
     try {
-      console.log('💾 Saving budget for project:', projectId, budgetForm);
+      
 
       const result = await budgetApi.createOrUpdateBudget(projectId, {
         currency: budgetForm.currency,
@@ -270,7 +255,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
   const createCategory = async () => {
     try {
-      console.log('📂 Creating category for project:', projectId, categoryForm);
+      
 
       await budgetApi.createBudgetCategory(projectId, {
         budget_type_code: categoryForm.budget_type_code,
@@ -314,7 +299,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         return;
       }
 
-      console.log('💸 Creating spending for category:', selectedCategory, spendingForm);
+      
 
       await budgetApi.createSpendingEntry(selectedCategory, {
         date: spendingForm.date,
@@ -388,7 +373,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
     if (!itemToDelete) return;
 
     try {
-      console.log('Deleting:', itemToDelete);
+      
       
       if (itemToDelete.type === 'category') {
         await budgetApi.deleteBudgetCategory(itemToDelete.id);
@@ -853,8 +838,6 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  console.log('Current budget data for debugging:', budget);
-                  console.log('Analytics data:', analytics);
                   toast({
                     title: "Debug Info",
                     description: "Check console for budget and analytics data",

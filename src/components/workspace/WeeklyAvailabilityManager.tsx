@@ -169,8 +169,6 @@ const WeeklyAvailabilityManager: React.FC<WeeklyAvailabilityManagerProps> = ({
         const weekAvailabilityData = Object.values(availability[week.id] || {});
         
         // This would be implemented to save to the API
-        console.log('Saving week:', weekData);
-        console.log('Saving availability:', weekAvailabilityData);
       }
       
       toast({ title: 'Success', description: 'Weekly availability saved successfully' });

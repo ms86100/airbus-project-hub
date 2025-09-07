@@ -69,7 +69,6 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log('🔍 Fetching data for iteration:', iteration);
     
     // Validate that we have required iteration data
     if (!iteration.team_id) {
@@ -88,7 +87,7 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching data for iteration:', iteration);
+      
 
       if (!iteration || !iteration.team_id) {
         console.error('❌ No team_id found in iteration:', iteration);
@@ -97,13 +96,11 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
       }
 
       // Fetch team members for the specific team
-      console.log('🔍 Fetching team members for team_id:', iteration.team_id);
       const membersResponse = await apiClient.getTeamMembers(iteration.team_id);
-      console.log('👥 Team members response:', membersResponse);
 
       if (membersResponse.success && membersResponse.data) {
         const teamMembers = membersResponse.data.filter(member => member.team_id === iteration.team_id || !member.team_id);
-        console.log('👥 Setting filtered team members:', teamMembers);
+        
         setTeamMembers(teamMembers);
       } else {
         console.error('❌ Failed to fetch team members:', membersResponse.error);
@@ -120,13 +117,11 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
       // Fetch saved weekly availability and prefill state
       const iterationIdForApi = iteration.realIterationId || iteration.id;
       if (iterationIdForApi) {
-        console.log('🔍 Fetching weekly availability for iteration:', iterationIdForApi);
         const waRes = await apiClient.getWeeklyAvailability(iterationIdForApi);
-        console.log('📊 Weekly availability response:', waRes);
         if (waRes.success && Array.isArray(waRes.data)) {
           const map: Record<string, WeeklyAvailability> = {};
           waRes.data.forEach((row: any) => {
-            console.log('📊 Processing row:', row);
+            
             const weekId = `week-${row.week_index}`;
             const key = getAvailabilityKey(row.team_member_id, weekId);
             map[key] = {
@@ -137,10 +132,10 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
               calculated_days_total: row.days_total || 5,
             } as WeeklyAvailability;
           });
-          console.log('📊 Setting availability map:', map);
+          
           setAvailability(map);
         } else {
-          console.log('📊 No weekly availability data found or failed to fetch');
+          
         }
       }
     } catch (error) {

@@ -68,11 +68,9 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   const fetchTeams = async () => {
     try {
       setLoading(true);
-      console.log('Fetching teams for project:', projectId);
       const response = await apiClient.getTeams(projectId);
-      console.log('Teams response:', response);
       if (response.success) {
-        console.log('Teams data:', response.data);
+        
         setTeams(response.data || []);
       } else {
         console.error('Failed to fetch teams:', response.error);
@@ -88,11 +86,9 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
 
   const fetchIterations = async () => {
     try {
-      console.log('🔍 Fetching iterations for project:', projectId);
       const response = await apiClient.getIterations(projectId);
-      console.log('📊 Iterations response:', response);
       if (response.success) {
-        console.log('📊 Iterations data:', response.data);
+        
         // Map team names from teams array to iterations
         const iterationsWithTeams = (response.data || []).map((iteration: any) => {
           const team = teams.find(t => t.id === iteration.team_id || t.id === iteration.teamId);
@@ -101,7 +97,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
             team_name: team?.team_name || iteration.team_name || 'No team assigned'
           };
         });
-        console.log('📊 Processed iterations with teams:', iterationsWithTeams);
+        
         setIterations(iterationsWithTeams);
       }
     } catch (error) {
@@ -120,7 +116,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   };
 
   const handleIterationCreated = (iteration: Iteration) => {
-    console.log('🎯 Iteration created:', iteration);
+    
     fetchIterations();
     setIterationDialogOpen(false);
     // Mark as real iteration so AvailabilityMatrix can save
@@ -191,7 +187,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   };
 
   const handleViewAvailability = (iteration: Iteration) => {
-    console.log('🎯 handleViewAvailability called with iteration:', iteration);
+    
     // Set to view-only mode with read-only flag
     const viewIteration = {
       ...iteration,
@@ -202,12 +198,12 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
       // @ts-ignore
       viewMode: true
     };
-    console.log('🎯 Setting selectedIteration to:', viewIteration);
+    
     setSelectedIteration(viewIteration);
   };
 
   const handleEditAvailability = (iteration: Iteration) => {
-    console.log('🎯 handleEditAvailability called with iteration:', iteration);
+    
     // Set to edit mode (full AvailabilityMatrix)
     const editIteration = {
       ...iteration,
@@ -218,7 +214,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
       // @ts-ignore
       viewMode: false
     };
-    console.log('🎯 Setting selectedIteration to:', editIteration);
+    
     setSelectedIteration(editIteration);
   };
 
@@ -227,7 +223,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   };
 
   if (selectedIteration) {
-    console.log('RENDERING AvailabilityMatrix with iteration:', selectedIteration);
+    
     return (
       <AvailabilityMatrix
         iteration={selectedIteration}
@@ -315,7 +311,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             size="sm"
                             variant="secondary"
                             onClick={() => {
-                              console.log('🔍 View Availability clicked for team:', team.team_name);
+                              
                               
                               // Check if team has existing iteration
                               const teamIteration = iterations.find(it => it.team_id === team.id);
@@ -337,7 +333,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                 realIterationId: teamIteration?.id
                               };
                               
-                              console.log('✅ Setting temp iteration for availability matrix:', tempIteration);
+                              
                               setSelectedIteration(tempIteration);
                             }}
                           >
@@ -361,7 +357,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             size="sm"
                             variant="outline"
                              onClick={() => {
-                               console.log('EDIT BUTTON CLICKED - NAVIGATING TO AVAILABILITY MATRIX');
+                               
                                const iterationData = {
                                  id: `team-${team.id}`,
                                  name: `${team.team_name} - Availability Matrix`,
@@ -374,7 +370,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                  weeks_count: 3,
                                  created_at: new Date().toISOString()
                                };
-                               console.log('Setting iteration with team_id:', iterationData.team_id);
+                               
                                setSelectedIteration(iterationData);
                              }}
                           >
@@ -438,7 +434,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
               ) : (
                          <div className="space-y-4">
                             {iterations.map((iteration) => {
-                              console.log('🎯 Rendering iteration:', iteration);
+                              
                               return (
                               <Card key={iteration.id} className="hover:bg-muted/50 transition-colors">
                                <CardContent className="p-4">
@@ -458,7 +454,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                     <div className="flex gap-2">
                                        <Button
                                          onClick={() => {
-                                           console.log('🔍 View Availability clicked for iteration:', iteration);
+                                           
                                            handleViewAvailability(iteration);
                                          }}
                                          variant="outline"
@@ -468,7 +464,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                        </Button>
                                         <Button
                                            onClick={() => {
-                                             console.log('EDIT AVAILABILITY BUTTON CLICKED - NAVIGATING TO AVAILABILITY MATRIX');
+                                             
                                              setSelectedIteration(iteration);
                                            }}
                                           variant="outline"
@@ -478,7 +474,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                         </Button>
                                         <Button
                                           onClick={() => {
-                                            console.log('🗑️ Delete clicked for iteration:', iteration);
+                                            
                                             handleDeleteIteration(iteration);
                                           }}
                                           variant="destructive"
@@ -530,7 +526,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
         projectId={projectId}
         teams={teams}
         onTrackerCreated={(iteration) => {
-          console.log('🎯 TeamCapacityTracker created, setting selectedIteration:', iteration);
+          
           
           // Mark as real iteration so AvailabilityMatrix can save
           const realIter = {
@@ -544,7 +540,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
           // Navigate to the availability matrix
           setSelectedIteration(realIter);
           
-          console.log('🎯 Set selectedIteration to:', realIter);
+          
         }}
       />
 

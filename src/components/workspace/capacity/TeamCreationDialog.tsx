@@ -77,7 +77,7 @@ export const TeamCreationDialog: React.FC<TeamCreationDialogProps> = ({
 
       // Add members if any
       if (members.length > 0) {
-        console.log('Creating team members:', members);
+        
         for (const member of members) {
           const memberData = {
             member_name: member.display_name,
@@ -87,7 +87,7 @@ export const TeamCreationDialog: React.FC<TeamCreationDialogProps> = ({
             work_mode: 'office',
             default_availability_percent: 100
           };
-          console.log('Creating member with data:', memberData);
+          
           const memberResponse = await apiClient.createTeamMember(teamId, memberData);
           if (!memberResponse.success) {
             console.error('Failed to create member:', memberResponse.error);

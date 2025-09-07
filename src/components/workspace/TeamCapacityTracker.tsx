@@ -176,12 +176,10 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
   const fetchSettings = async () => {
     try {
-      console.log('🔧 Fetching capacity settings...');
       const response = await apiClient.getCapacitySettings(projectId);
       
       if (response.success) {
         setSettings(response.data);
-        console.log('✅ Settings loaded:', response.data);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -190,13 +188,11 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
 
   const fetchCapacityData = async () => {
     try {
-      console.log('📋 Fetching capacity data...');
       const response = await apiClient.getCapacityData(projectId);
-      console.log('📋 Capacity data response:', response);
       
       if (response.success) {
         setIterations(response.data.iterations || []);
-        console.log('📋 Setting iterations data:', response.data.iterations);
+        
       }
     } catch (error) {
       console.error('Error fetching capacity data:', error);
@@ -453,7 +449,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         committedStoryPoints: iterationForm.committed_story_points
       };
 
-      console.log('🚀 Creating iteration with data:', requestData);
+      
 
       let response;
       if (editingIteration) {
@@ -462,7 +458,6 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         response = await apiClient.createCapacityIteration(projectId, requestData);
       }
       
-      console.log('📡 Response from capacity service:', response);
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to create iteration');
@@ -505,10 +500,10 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         teamId: formData.team_id === 'none' ? null : formData.team_id
       };
 
-      console.log('🚀 Adding member with data:', requestData);
+      
 
       const response = await apiClient.addCapacityMember(projectId, requestData);
-      console.log('📡 Response from capacity service:', response);
+      
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to create capacity item');
