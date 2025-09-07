@@ -379,7 +379,7 @@ router.post('/iterations/:iterationId/availability', verifyToken, async (req, re
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         iteration_id UUID NOT NULL REFERENCES public.team_capacity_iterations(id) ON DELETE CASCADE,
         week_index INT NOT NULL,
-        team_member_id UUID NOT NULL REFERENCES public.team_members(id) ON DELETE CASCADE,
+        team_member_id VARCHAR(255) NOT NULL,
         availability_percent INT NOT NULL DEFAULT 100,
         days_present INT NOT NULL DEFAULT 0,
         days_total INT NOT NULL DEFAULT 5,
