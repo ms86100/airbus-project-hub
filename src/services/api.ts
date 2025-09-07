@@ -32,7 +32,26 @@ class ApiClient {
 
   private async getAuthToken(): Promise<string | null> {
     try {
-      // Use microservice-stored session tokens only (no Supabase SDK coupling)
+      // For Supabase Edge Functions, use Supabase auth directly
+      if (!this.isLocalBackend) {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Supabase auth error:', error);
+          return null;
+        }
+        
+        if (session?.access_token) {
+          console.log('🔐 Retrieved Supabase auth token');
+          return session.access_token;
+        } else {
+          console.warn('⚠️ No Supabase session found');
+          return null;
+        }
+      }
+
+      // Use microservice-stored session tokens for local backend
       const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
       if (storedAuth) {
         try {
@@ -42,11 +61,10 @@ class ApiClient {
             return token;
           }
         } catch (e) {
-          
+          console.error('Error parsing stored auth:', e);
         }
       }
 
-      
       return null;
     } catch (error) {
       console.error('Error getting auth token:', error);
@@ -124,6 +142,25 @@ class ApiClient {
 
   private async refreshToken(): Promise<string | null> {
     try {
+      // For Supabase Edge Functions, refresh session via Supabase
+      if (!this.isLocalBackend) {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await supabase.auth.refreshSession();
+        
+        if (error) {
+          console.error('Supabase refresh error:', error);
+          return null;
+        }
+        
+        if (data?.session?.access_token) {
+          console.log('🔄 Refreshed Supabase auth token');
+          return data.session.access_token;
+        }
+        
+        return null;
+      }
+
+      // For local backend, use the existing refresh token logic
       const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
       if (!storedAuth) return null;
       const session = JSON.parse(storedAuth);
