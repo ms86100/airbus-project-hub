@@ -288,10 +288,6 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
     });
 
     return result
-        actionItemsCreated: totalActionItems,
-        actionItemsCompleted: Math.floor(totalActionItems * 0.7)
-      }
-    }
   } catch (error) {
     console.error('Error in getProjectOverviewAnalytics:', error)
     throw error
