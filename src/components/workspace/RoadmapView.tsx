@@ -5,8 +5,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalendarDays, Calendar, Clock, User, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Settings, Plus } from 'lucide-react';
 import { MilestoneManagementDialog } from './MilestoneManagementDialog';
+import { MonthlyGanttView } from './MonthlyGanttView';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, addWeeks, addMonths, addYears, subWeeks, subMonths, subYears, isWithinInterval, parseISO, differenceInDays, addDays } from 'date-fns';
 
 interface Task {
@@ -390,275 +392,216 @@ export function RoadmapView() {
         </div>
       </div>
 
-      {/* Modern Roadmap Chart */}
-      <Card className="shadow-card">
-        <CardHeader className="border-b border-border">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground flex items-center gap-3">
-              <div className="h-8 w-1 bg-gradient-primary rounded-full"></div>
-              <span>Timeline View</span>
-              <Badge variant="secondary" className="bg-accent-light text-accent-foreground">
-                {format(currentDate, 'MMMM yyyy')}
-              </Badge>
-            </CardTitle>
-          </div>
-        </CardHeader>
+      {/* Tabbed Interface */}
+      <Tabs defaultValue="timeline" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="timeline">Timeline View</TabsTrigger>
+          <TabsTrigger value="monthly">Monthly View</TabsTrigger>
+        </TabsList>
         
-        <CardContent className="p-0">
-          {/* Timeline Header */}
-          <div className="sticky top-0 bg-surface-default border-b border-border z-10">
-            <div className="grid grid-cols-12 gap-1 p-4">
-              <div className="col-span-3 text-sm font-medium text-text-muted">Task / Milestone</div>
-              {timelineData.intervals.slice(0, 9).map((date, index) => (
-                <div key={index} className="text-center text-text-muted text-sm font-medium border-l border-border-subtle pl-2">
-                  {formatTimelineLabel(date)}
-                </div>
-              ))}
-            </div>
-            
-            {/* Timeline ruler */}
-            <div className="relative h-2 bg-surface-alt mx-4 rounded-sm mb-4">
-              {/* Vertical grid lines */}
-              <div className="absolute inset-0 grid grid-cols-12">
-                <div className="col-span-3"></div>
-                {timelineData.intervals.slice(0, 9).map((_, index) => (
-                  <div key={index} className="border-l border-border-subtle h-full"></div>
-                ))}
+        <TabsContent value="timeline" className="mt-6">
+          {/* Modern Roadmap Chart */}
+          <Card className="shadow-card">
+            <CardHeader className="border-b border-border">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-foreground flex items-center gap-3">
+                  <div className="h-8 w-1 bg-gradient-primary rounded-full"></div>
+                  <span>Timeline View</span>
+                  <Badge variant="secondary" className="bg-accent-light text-accent-foreground">
+                    {format(currentDate, 'MMMM yyyy')}
+                  </Badge>
+                </CardTitle>
               </div>
-              
-              {/* Current time indicator */}
-              <div 
-                className="absolute top-0 w-0.5 h-full bg-brand-accent z-10 rounded-full"
-                style={{ 
-                  left: `${Math.min(100, Math.max(0, (differenceInDays(new Date(), timelineData.start) / differenceInDays(timelineData.end, timelineData.start)) * 100))}%` 
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Tasks Container */}
-          <div className="max-h-96 overflow-y-auto" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}>
-            <div className="space-y-2 p-4">
-              {groupedTasksData.map((group, groupIndex) => (
-                <div key={group.milestone.id} className="space-y-2">
-                  {/* Milestone Header */}
-                  <div className="flex items-center gap-2 py-2 border-b border-border-subtle">
-                    <div className="h-3 w-3 rounded-full bg-brand-primary"></div>
-                    <h4 className="font-medium text-foreground">{group.milestone.name}</h4>
-                    <Badge variant="outline" className="text-xs">
-                      {group.tasks.length} tasks
-                    </Badge>
+            </CardHeader>
+            
+            <CardContent className="p-0">
+              {/* Timeline Header */}
+              <div className="sticky top-0 bg-surface-default border-b border-border z-10">
+                <div className="grid grid-cols-12 gap-1 p-4">
+                  <div className="col-span-3 text-sm font-medium text-text-muted">Task / Milestone</div>
+                  {timelineData.intervals.slice(0, 9).map((date, index) => (
+                    <div key={index} className="text-center text-text-muted text-sm font-medium border-l border-border-subtle pl-2">
+                      {formatTimelineLabel(date)}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Timeline ruler */}
+                <div className="relative h-2 bg-surface-alt mx-4 rounded-sm mb-4">
+                  {/* Vertical grid lines */}
+                  <div className="absolute inset-0 grid grid-cols-12">
+                    <div className="col-span-3"></div>
+                    {timelineData.intervals.slice(0, 9).map((_, index) => (
+                      <div key={index} className="border-l border-border-subtle h-full"></div>
+                    ))}
                   </div>
                   
-                   {/* Tasks */}
-                   {group.tasks.map((task, taskIndex) => {
-                     // Use due_date if available, otherwise use created_at as fallback
-                     const taskStartDate = task.due_date || task.created_at;
-                     const position = getTaskPosition(taskStartDate, task.due_date);
-                     if (!position) return null;
-                     
-                     const taskColorClass = getTaskColor(task, taskIndex);
-                     const statusColor = statusColors[task.status as keyof typeof statusColors] || 'bg-muted';
-                    
-                    return (
-                      <div key={task.id} className="grid grid-cols-12 gap-1 items-center group py-2 hover:bg-surface-alt rounded-lg px-2">
-                        <div className="col-span-3 text-sm truncate">
-                          <div className="font-medium text-foreground">{task.title}</div>
-                          <div className="text-text-muted text-xs flex items-center gap-2">
-                            {task.due_date && <span>Due: {format(parseISO(task.due_date), 'MMM dd')}</span>}
-                            {task.owner_id && (
-                              <>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                  <User className="h-3 w-3" />
-                                  {getStakeholderName(task.owner_id)}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                  {/* Current time indicator */}
+                  <div 
+                    className="absolute top-0 w-0.5 h-full bg-brand-accent z-10 rounded-full"
+                    style={{ 
+                      left: `${Math.min(100, Math.max(0, (differenceInDays(new Date(), timelineData.start) / differenceInDays(timelineData.end, timelineData.start)) * 100))}%` 
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Tasks Container */}
+              <div className="max-h-96 overflow-y-auto" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}>
+                <div className="space-y-2 p-4">
+                  {groupedTasksData.map((group, groupIndex) => (
+                    <div key={group.milestone.id} className="space-y-2">
+                      {/* Milestone Header */}
+                      <div className="flex items-center gap-2 py-2 border-b border-border-subtle">
+                        <div className="h-3 w-3 rounded-full bg-brand-primary"></div>
+                        <h4 className="font-medium text-foreground">{group.milestone.name}</h4>
+                        <Badge variant="outline" className="text-xs">
+                          {group.tasks.length} tasks
+                        </Badge>
+                      </div>
+                      
+                       {/* Tasks */}
+                       {group.tasks.map((task, taskIndex) => {
+                         // Use due_date if available, otherwise use created_at as fallback
+                         const taskStartDate = task.due_date || task.created_at;
+                         const position = getTaskPosition(taskStartDate, task.due_date);
+                         if (!position) return null;
+                         
+                         const taskColorClass = getTaskColor(task, taskIndex);
+                         const statusColor = statusColors[task.status as keyof typeof statusColors] || 'bg-muted';
                         
-                        <div className="col-span-9 relative h-6 bg-surface-alt rounded-sm">
-                          {/* Vertical grid lines */}
-                          <div className="absolute inset-0 grid grid-cols-9 pointer-events-none">
-                            {timelineData.intervals.slice(0, 9).map((_, index) => (
-                              <div key={index} className="border-l border-border-subtle h-full opacity-50"></div>
-                            ))}
-                          </div>
-                          
-                           {/* Task bar with intelligent color coding */}
-                           <div
-                             className={`absolute top-0.5 h-5 ${taskColorClass} rounded-sm cursor-pointer group-hover:shadow-md transition-all flex items-center justify-center border border-white/20`}
-                             style={position}
-                             title={`${task.title} - ${task.status}${task.due_date ? ` - Due: ${format(parseISO(task.due_date), 'MMM dd, yyyy')}` : ''}`}
-                           >
-                            {/* Task progress indicator */}
-                            <div className="w-full h-full rounded-sm relative overflow-hidden">
-                              {task.status === 'completed' && (
-                                <div className="absolute inset-0 bg-status-success"></div>
-                              )}
-                              {task.status === 'in_progress' && (
-                                <div className="absolute inset-0 bg-gradient-to-r from-brand-accent to-brand-accent/50"></div>
-                              )}
+                        return (
+                          <div key={task.id} className="grid grid-cols-12 gap-1 items-center group py-2 hover:bg-surface-alt rounded-lg px-2">
+                            <div className="col-span-3 text-sm truncate">
+                              <div className="font-medium text-foreground">{task.title}</div>
+                              <div className="text-text-muted text-xs flex items-center gap-2">
+                                {task.due_date && <span>Due: {format(parseISO(task.due_date), 'MMM dd')}</span>}
+                                {task.owner_id && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-1">
+                                      <User className="h-3 w-3" />
+                                      {getStakeholderName(task.owner_id)}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Timeline Columns */}
+                            <div className="col-span-9 relative h-6">
+                              {/* Task Bar */}
+                              <div 
+                                className={`absolute top-1/2 -translate-y-1/2 h-4 rounded-sm shadow-sm ${taskColorClass} hover:shadow-md transition-all group-hover:shadow-lg`}
+                                style={position}
+                                title={`${task.title} - ${task.status}`}
+                              >
+                                <div className="absolute inset-0 bg-white/10 hover:bg-white/20 rounded-sm transition-colors" />
+                                <div className={`absolute right-1 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full ${statusColor}`} />
+                              </div>
                             </div>
                           </div>
-                          
-                          {/* Priority indicator */}
-                          {task.priority && task.priority !== 'low' && (
-                            <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${priorityColors[task.priority as keyof typeof priorityColors]} border border-background`} />
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  ))}
+
+                  {groupedTasksData.length === 0 && (
+                    <div className="text-center py-8 text-text-muted">
+                      <CalendarDays className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>No tasks or milestones available</p>
+                      <p className="text-sm">Create your first milestone to get started</p>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+            <Card className="bg-gradient-primary/5 border-brand-primary/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-brand-primary/10">
+                    <Calendar className="h-5 w-5 text-brand-primary" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-foreground">
+                      {milestones.length}
+                    </div>
+                    <p className="text-sm text-text-muted mt-1">
+                      Total Milestones
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-accent/5 border-brand-accent/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-brand-accent/10">
+                    <Clock className="h-5 w-5 text-brand-accent" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-foreground">
+                      {filteredTasks.filter(t => t.status === 'in_progress').length}
+                    </div>
+                    <p className="text-sm text-text-muted mt-1">
+                      In Progress
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-success/5 border-status-success/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-status-success/10">
+                    <CalendarDays className="h-5 w-5 text-status-success" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-foreground">
+                      {filteredTasks.filter(t => t.status === 'completed').length}
+                    </div>
+                    <p className="text-sm text-text-muted mt-1">
+                      Completed
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-warning/5 border-status-warning/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-status-warning/10">
+                    <Clock className="h-5 w-5 text-status-warning" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-foreground">
+                      {filteredTasks.filter(t => {
+                        if (!t.due_date || t.status === 'completed') return false;
+                        const dueDate = parseISO(t.due_date);
+                        return dueDate < new Date();
+                      }).length}
+                    </div>
+                    <p className="text-sm text-text-muted mt-1">
+                      Past due date
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-
-          {/* Enhanced Legend with Task Types */}
-          <div className="mt-4 p-4 border-t border-border bg-surface-alt">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Task Type Legend */}
-              <div>
-                <h4 className="text-foreground font-medium mb-3">Task Types</h4>
-                <div className="space-y-2">
-                  {Object.entries(taskColors).map(([type, color]) => (
-                    <div key={type} className="flex items-center gap-2">
-                      <div className={`w-4 h-3 rounded-sm ${color} border border-white/20`} />
-                      <span className="text-text-muted text-xs capitalize">{type}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Status Legend */}
-              <div>
-                <h4 className="text-foreground font-medium mb-3">Status</h4>
-                <div className="space-y-2">
-                  {Object.entries(statusColors).map(([status, color]) => (
-                    <div key={status} className="flex items-center gap-2">
-                      <div className={`w-4 h-3 rounded-sm ${color}`} />
-                      <span className="text-text-muted text-xs capitalize">{status.replace('_', ' ')}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Priority Legend */}
-              <div>
-                <h4 className="text-foreground font-medium mb-3">Priority</h4>
-                <div className="space-y-2">
-                  {Object.entries(priorityColors).map(([priority, color]) => (
-                    <div key={priority} className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${color}`} />
-                      <span className="text-text-muted text-xs capitalize">{priority}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Progress Indicators */}
-              <div>
-                <h4 className="text-foreground font-medium mb-3">Indicators</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-4 bg-brand-accent rounded-full"></div>
-                    <span className="text-text-muted text-xs">Current time</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-destructive border border-background"></div>
-                    <span className="text-text-muted text-xs">High priority</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rounded-sm bg-gradient-to-r from-brand-accent to-brand-accent/50"></div>
-                    <span className="text-text-muted text-xs">In progress</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-brand-primary shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CalendarDays className="h-4 w-4 text-brand-primary" />
-              Milestones
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{milestones.length}</div>
-            <p className="text-sm text-text-muted mt-1">
-              {milestones.filter(m => m.status === 'completed').length} completed
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-status-success shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Clock className="h-4 w-4 text-status-success" />
-              Active Tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {filteredTasks.filter(t => t.status === 'in_progress').length}
-            </div>
-            <p className="text-sm text-text-muted mt-1">
-              In progress
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-status-warning shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Calendar className="h-4 w-4 text-status-warning" />
-              Due This Week
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {filteredTasks.filter(t => {
-                if (!t.due_date) return false;
-                const dueDate = parseISO(t.due_date);
-                const weekStart = startOfWeek(new Date());
-                const weekEnd = endOfWeek(new Date());
-                return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
-              }).length}
-            </div>
-            <p className="text-sm text-text-muted mt-1">
-              Tasks due
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-destructive shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Clock className="h-4 w-4 text-destructive" />
-              Overdue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {filteredTasks.filter(t => {
-                if (!t.due_date || t.status === 'completed') return false;
-                const dueDate = parseISO(t.due_date);
-                return dueDate < new Date();
-              }).length}
-            </div>
-            <p className="text-sm text-text-muted mt-1">
-              Past due date
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        </TabsContent>
+        
+        <TabsContent value="monthly" className="mt-6">
+          <MonthlyGanttView projectId={id!} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
