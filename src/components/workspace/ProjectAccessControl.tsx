@@ -12,11 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Trash2, Plus, Shield } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-interface Project {
-  id: string;
-  name: string;
-}
-
 interface ModulePermission {
   id: string;
   project_id: string;
@@ -29,78 +24,54 @@ interface ModulePermission {
   created_at: string;
 }
 
+interface ProjectAccessControlProps {
+  projectId: string;
+}
+
 const MODULES = [
-  { name: 'overview', label: 'Overview' },
-  { name: 'tasks_milestones', label: 'Tasks & Milestones' },
+  { name: 'budget', label: 'Budget' },
+  { name: 'tasks', label: 'Tasks & Milestones' },
   { name: 'roadmap', label: 'Roadmap' },
   { name: 'kanban', label: 'Kanban' },
   { name: 'stakeholders', label: 'Stakeholders' },
-  { name: 'risk_register', label: 'Risk Register' },
+  { name: 'risks', label: 'Risk Register' },
   { name: 'discussions', label: 'Discussions' },
-  { name: 'task_backlog', label: 'Task Backlog' },
-  { name: 'team_capacity', label: 'Team Capacity' },
-  { name: 'retrospectives', label: 'Retrospectives' },
+  { name: 'backlog', label: 'Task Backlog' },
+  { name: 'capacity', label: 'Team Capacity' },
+  { name: 'retrospective', label: 'Retrospectives' },
+  { name: 'access_control', label: 'Access Control' },
 ];
 
-export default function AccessControl() {
+export function ProjectAccessControl({ projectId }: ProjectAccessControlProps) {
   const { user } = useApiAuth();
-  const [userRole, setUserRole] = useState<string | null>(null);
   const { toast } = useToast();
-  const [projects, setProjects] = useState<Project[]>([]);
   const [permissions, setPermissions] = useState<ModulePermission[]>([]);
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState('');
-  const [selectedProject, setSelectedProject] = useState('');
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [selectedAccess, setSelectedAccess] = useState<'read' | 'write'>('read');
 
   useEffect(() => {
-    if (user) {
-      fetchUserRole();
-      fetchProjects();
+    if (user && projectId) {
       fetchPermissions();
     }
-  }, [user]);
-
-  const fetchUserRole = async () => {
-    if (!user) return;
-    
-    try {
-      // Get user role from profiles/user_roles via API if needed
-      // For now, assume regular user unless admin
-      setUserRole('project_coordinator');
-    } catch (error) {
-      console.error('Error fetching user role:', error);
-    }
-  };
-
-  const fetchProjects = async () => {
-    try {
-      const response = await apiClient.getProjects();
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch projects');
-      }
-      setProjects(response.data || []);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch projects",
-        variant: "destructive",
-      });
-    }
-  };
+  }, [user, projectId]);
 
   const fetchPermissions = async () => {
     try {
-      const response = await apiClient.getAllPermissions();
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch permissions');
-      }
+      const response = await apiClient.getModulePermissions(projectId);
       
-      setPermissions(response.data.permissions || []);
+      if (!response.success) {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to fetch permissions",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setPermissions(response.data || []);
     } catch (error) {
-      console.error('Error fetching permissions:', error);
       toast({
         title: "Error",
         description: "Failed to fetch permissions",
@@ -110,10 +81,10 @@ export default function AccessControl() {
   };
 
   const grantAccess = async () => {
-    if (!userEmail || !selectedProject || selectedModules.length === 0) {
+    if (!userEmail || selectedModules.length === 0) {
       toast({
         title: "Error",
-        description: "Please fill in all fields and select at least one module",
+        description: "Please fill in user email and select at least one module",
         variant: "destructive",
       });
       return;
@@ -125,7 +96,7 @@ export default function AccessControl() {
       // Grant access for each selected module using the API
       const permissionPromises = selectedModules.map(module => 
         apiClient.grantModulePermission({
-          projectId: selectedProject,
+          projectId: projectId,
           userEmail: userEmail,
           module,
           accessLevel: selectedAccess,
@@ -146,7 +117,6 @@ export default function AccessControl() {
 
       // Reset form
       setUserEmail('');
-      setSelectedProject('');
       setSelectedModules([]);
       setSelectedAccess('read');
 
@@ -164,16 +134,10 @@ export default function AccessControl() {
     }
   };
 
-  const removePermission = async (permissionId: string) => {
+  const removePermission = async (permission: ModulePermission) => {
     try {
-      // Find the permission to get project and user info for revocation
-      const permission = permissions.find(p => p.id === permissionId);
-      if (!permission) {
-        throw new Error('Permission not found');
-      }
-
       const response = await apiClient.revokeModulePermission({
-        projectId: permission.project_id || '', // Fallback for global permissions
+        projectId: permission.project_id,
         userId: permission.user_id,
         module: permission.module
       });
@@ -198,30 +162,11 @@ export default function AccessControl() {
     }
   };
 
-  if (userRole !== 'admin' && projects.length === 0) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center gap-2 mb-6">
-          <Shield className="h-6 w-6 text-brand-primary" />
-          <h1 className="text-3xl font-bold text-text-primary">Access Control</h1>
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>No Projects Found</CardTitle>
-            <CardDescription>
-              You must be a project owner or administrator to manage access control.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-2 mb-6">
-        <Shield className="h-6 w-6 text-brand-primary" />
-        <h1 className="text-3xl font-bold text-text-primary">Access Control</h1>
+        <Shield className="h-6 w-6 text-primary" />
+        <h1 className="text-3xl font-bold">Project Access Control</h1>
       </div>
 
       {/* Grant Access Form */}
@@ -229,28 +174,16 @@ export default function AccessControl() {
         <CardHeader>
           <CardTitle>Grant Module Access</CardTitle>
           <CardDescription>
-            Invite collaborators and assign specific module permissions
+            Invite collaborators and assign specific module permissions for this project
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               placeholder="User email"
               value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
             />
-            <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Select value={selectedAccess} onValueChange={(value: 'read' | 'write') => setSelectedAccess(value)}>
               <SelectTrigger>
                 <SelectValue />
@@ -308,9 +241,9 @@ export default function AccessControl() {
       {/* Current Permissions */}
       <Card>
         <CardHeader>
-          <CardTitle>Current Permissions</CardTitle>
+          <CardTitle>Current Project Permissions</CardTitle>
           <CardDescription>
-            Manage existing module permissions for all projects
+            Manage existing module permissions for this project
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -318,7 +251,6 @@ export default function AccessControl() {
             <TableHeader>
               <TableRow>
                 <TableHead>User Email</TableHead>
-                <TableHead>Project</TableHead>
                 <TableHead>Module</TableHead>
                 <TableHead>Access Level</TableHead>
                 <TableHead>Granted Date</TableHead>
@@ -329,7 +261,6 @@ export default function AccessControl() {
               {permissions.map((permission) => (
                 <TableRow key={permission.id}>
                   <TableCell className="font-medium">{permission.user_email}</TableCell>
-                  <TableCell>{permission.project_name}</TableCell>
                   <TableCell>
                     {MODULES.find(m => m.name === permission.module)?.label || permission.module}
                   </TableCell>
@@ -345,7 +276,7 @@ export default function AccessControl() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => removePermission(permission.id)}
+                      onClick={() => removePermission(permission)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -354,8 +285,8 @@ export default function AccessControl() {
               ))}
               {permissions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-text-muted">
-                    No permissions granted yet
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    No permissions granted yet for this project
                   </TableCell>
                 </TableRow>
               )}

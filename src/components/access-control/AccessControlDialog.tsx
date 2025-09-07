@@ -25,16 +25,17 @@ interface AccessControlDialogProps {
 }
 
 const MODULES = [
-  { value: 'overview', label: 'Overview' },
-  { value: 'tasks_milestones', label: 'Tasks & Milestones' },
+  { value: 'budget', label: 'Budget' },
+  { value: 'tasks', label: 'Tasks & Milestones' },
   { value: 'roadmap', label: 'Roadmap' },
   { value: 'kanban', label: 'Kanban' },
   { value: 'stakeholders', label: 'Stakeholders' },
-  { value: 'risk_register', label: 'Risk Register' },
+  { value: 'risks', label: 'Risk Register' },
   { value: 'discussions', label: 'Discussions' },
-  { value: 'task_backlog', label: 'Task Backlog' },
-  { value: 'team_capacity', label: 'Team Capacity' },
-  { value: 'retrospectives', label: 'Retrospectives' },
+  { value: 'backlog', label: 'Task Backlog' },
+  { value: 'capacity', label: 'Team Capacity' },
+  { value: 'retrospective', label: 'Retrospectives' },
+  { value: 'access_control', label: 'Access Control' },
 ];
 
 export function AccessControlDialog({ projectId, trigger }: AccessControlDialogProps) {
@@ -125,9 +126,13 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
     }
   };
 
-  const removePermission = async (permissionId: string) => {
+  const removePermission = async (permission: ModulePermission) => {
     try {
-      const response = await apiClient.revokeModulePermission(permissionId);
+      const response = await apiClient.revokeModulePermission({
+        projectId: projectId,
+        userId: permission.user_id,
+        module: permission.module
+      });
 
       if (!response.success) {
         toast({
@@ -276,7 +281,7 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => removePermission(permission.id)}
+                              onClick={() => removePermission(permission)}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>

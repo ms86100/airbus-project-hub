@@ -9,6 +9,7 @@ import { TaskBacklog } from '@/components/workspace/TaskBacklog';
 import { TeamCapacityModule } from '@/components/workspace/TeamCapacityModule';
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
 import { ProjectBudgetManagement } from '@/components/workspace/ProjectBudgetManagement';
+import { ProjectAccessControl } from '@/components/workspace/ProjectAccessControl';
 import { ProjectAnalyticsDashboard } from '@/components/analytics/ProjectAnalyticsDashboard';
 import { ModuleAccessWrapper } from '@/components/ModuleAccessWrapper';
 import { ModuleName } from '@/hooks/useModulePermissions';
@@ -97,6 +98,12 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
           component: <ProjectBudgetManagement projectId={projectId} />, 
           moduleName: 'budget' as ModuleName, 
           requiredAccess: 'read' 
+        };
+      case 'access-control':
+        return { 
+          component: <ProjectAccessControl projectId={projectId} />, 
+          moduleName: 'access_control' as ModuleName, 
+          requiredAccess: 'write' 
         };
       default:
         return { 

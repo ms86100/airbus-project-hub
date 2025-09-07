@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-  ScatterChart, Scatter
+  PieChart, Pie, Cell, ResponsiveContainer, RadarChart, PolarGrid, 
+  PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip
 } from 'recharts';
 import {
-  TrendingUp, TrendingDown, DollarSign, Users, CheckCircle, AlertTriangle,
-  Clock, Target, Zap, Activity, Award, BarChart3, PieChart as PieChartIcon,
-  Calendar, MessageSquare, Shield, Brain, Rocket, Star
+  TrendingUp, DollarSign, Users, CheckCircle, AlertTriangle,
+  Target, Activity, MessageSquare, Calendar, Star, PieChart as PieChartIcon
 } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
@@ -108,7 +102,7 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
 
       const apiData = resp.data;
 
-      // Build analytics data from real API response with "not available" fallbacks
+      // Build analytics data from real API response with fallbacks
       const finalAnalyticsData: ProjectAnalyticsData = {
         projectHealth: apiData.projectHealth || {
           overall: 0,
@@ -243,541 +237,363 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
   const { projectHealth, budgetAnalytics, teamPerformance, taskAnalytics, riskAnalysis, stakeholderEngagement, retrospectiveInsights } = analyticsData;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 p-6">
+      {/* Main Project Overview Header */}
+      <div className="text-center space-y-4 mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          Project Analytics Dashboard
+        </h1>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Comprehensive insights and analytics for your project performance, budget, team efficiency, and progress tracking
+        </p>
+      </div>
+
       {/* Executive Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-blue-200">
-          <CardContent className="p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-950/50 dark:to-blue-900/50 dark:border-blue-800">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-600">Project Health</p>
-                <p className="text-2xl font-bold text-blue-700">{projectHealth.overall}%</p>
-                <p className="text-xs text-blue-500 flex items-center">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">Project Health</p>
+                <p className="text-3xl font-bold text-blue-800 dark:text-blue-200">{projectHealth.overall}%</p>
+                <div className="flex items-center text-xs text-blue-600 dark:text-blue-400">
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  +5% from last week
-                </p>
+                  Overall Score
+                </div>
               </div>
-              <Activity className="h-8 w-8 text-blue-500" />
+              <div className="p-3 bg-blue-200 dark:bg-blue-800 rounded-full">
+                <Activity className="h-8 w-8 text-blue-600 dark:text-blue-300" />
+              </div>
             </div>
-            <Progress value={projectHealth.overall} className="mt-2 h-2" />
+            <Progress value={projectHealth.overall} className="mt-4 h-2" />
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-green-500/10 to-green-600/10 border-green-200">
-          <CardContent className="p-4">
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-950/50 dark:to-green-900/50 dark:border-green-800">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div>
-                 <p className="text-sm font-medium text-green-600">Budget Health</p>
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-green-700 dark:text-green-300">Budget Status</p>
                 {budgetAnalytics.totalAllocated > 0 ? (
                   <>
-                    <p className="text-2xl font-bold text-green-700">${budgetAnalytics.totalSpent.toLocaleString()}</p>
-                    <p className="text-xs text-green-500">
-                      ${budgetAnalytics.remainingBudget.toLocaleString()} remaining
-                    </p>
+                    <p className="text-3xl font-bold text-green-800 dark:text-green-200">₹{(budgetAnalytics.totalSpent / 1000).toFixed(0)}K</p>
+                    <div className="flex items-center text-xs text-green-600 dark:text-green-400">
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      ₹{(budgetAnalytics.remainingBudget / 1000).toFixed(0)}K remaining
+                    </div>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No budget data available</p>
+                  <p className="text-sm text-muted-foreground">No budget data</p>
                 )}
               </div>
-              <DollarSign className="h-8 w-8 text-green-500" />
+              <div className="p-3 bg-green-200 dark:bg-green-800 rounded-full">
+                <DollarSign className="h-8 w-8 text-green-600 dark:text-green-300" />
+              </div>
             </div>
             {budgetAnalytics.totalAllocated > 0 && (
-              <Progress value={(budgetAnalytics.totalSpent / budgetAnalytics.totalAllocated) * 100} className="mt-2 h-2" />
+              <Progress value={(budgetAnalytics.totalSpent / budgetAnalytics.totalAllocated) * 100} className="mt-4 h-2" />
             )}
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-purple-500/10 to-purple-600/10 border-purple-200">
-          <CardContent className="p-4">
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-950/50 dark:to-purple-900/50 dark:border-purple-800">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-purple-600">Team Performance</p>
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-purple-700 dark:text-purple-300">Team Performance</p>
                 {teamPerformance.totalMembers > 0 ? (
                   <>
-                    <p className="text-2xl font-bold text-purple-700">{teamPerformance.utilizationRate}%</p>
-                    <p className="text-xs text-purple-500">
+                    <p className="text-3xl font-bold text-purple-800 dark:text-purple-200">{teamPerformance.utilizationRate}%</p>
+                    <div className="flex items-center text-xs text-purple-600 dark:text-purple-400">
+                      <Users className="h-3 w-3 mr-1" />
                       {teamPerformance.activeMembers}/{teamPerformance.totalMembers} active
-                    </p>
+                    </div>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Team data is not available</p>
+                  <p className="text-sm text-muted-foreground">No team data</p>
                 )}
               </div>
-              <Users className="h-8 w-8 text-purple-500" />
+              <div className="p-3 bg-purple-200 dark:bg-purple-800 rounded-full">
+                <Users className="h-8 w-8 text-purple-600 dark:text-purple-300" />
+              </div>
             </div>
             {teamPerformance.totalMembers > 0 && (
-              <Progress value={teamPerformance.utilizationRate} className="mt-2 h-2" />
+              <Progress value={teamPerformance.utilizationRate} className="mt-4 h-2" />
             )}
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-amber-200">
-          <CardContent className="p-4">
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 dark:from-amber-950/50 dark:to-amber-900/50 dark:border-amber-800">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-amber-600">Task Completion</p>
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Task Progress</p>
                 {taskAnalytics.totalTasks > 0 ? (
                   <>
-                    <p className="text-2xl font-bold text-amber-700">{Math.round((taskAnalytics.completedTasks / taskAnalytics.totalTasks) * 100)}%</p>
-                    <p className="text-xs text-amber-500">
-                      {taskAnalytics.completedTasks}/{taskAnalytics.totalTasks} tasks
-                    </p>
+                    <p className="text-3xl font-bold text-amber-800 dark:text-amber-200">{Math.round((taskAnalytics.completedTasks / taskAnalytics.totalTasks) * 100)}%</p>
+                    <div className="flex items-center text-xs text-amber-600 dark:text-amber-400">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      {taskAnalytics.completedTasks}/{taskAnalytics.totalTasks} completed
+                    </div>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Task data is not available</p>
+                  <p className="text-sm text-muted-foreground">No task data</p>
                 )}
               </div>
-              <CheckCircle className="h-8 w-8 text-amber-500" />
+              <div className="p-3 bg-amber-200 dark:bg-amber-800 rounded-full">
+                <CheckCircle className="h-8 w-8 text-amber-600 dark:text-amber-300" />
+              </div>
             </div>
             {taskAnalytics.totalTasks > 0 && (
-              <Progress value={(taskAnalytics.completedTasks / taskAnalytics.totalTasks) * 100} className="mt-2 h-2" />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-red-500/10 to-red-600/10 border-red-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-red-600">Risk Score</p>
-                {riskAnalysis.totalRisks > 0 ? (
-                  <>
-                    <p className="text-2xl font-bold text-red-700">{riskAnalysis.highRisks}</p>
-                    <p className="text-xs text-red-500">
-                      {riskAnalysis.totalRisks} total risks
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Risk data is not available</p>
-                )}
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-500" />
-            </div>
-            {riskAnalysis.totalRisks > 0 && (
-              <Progress value={(riskAnalysis.mitigatedRisks / riskAnalysis.totalRisks) * 100} className="mt-2 h-2" />
+              <Progress value={(taskAnalytics.completedTasks / taskAnalytics.totalTasks) * 100} className="mt-4 h-2" />
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Detailed Analytics Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="budget">Budget</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="risks">Risks</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
-        </TabsList>
+      {/* Key Metrics Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Project Health Radar */}
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Target className="h-6 w-6 text-primary" />
+              Project Health Overview
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Multi-dimensional view of project performance across key areas
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={350}>
+              <RadarChart data={[
+                { subject: 'Budget', A: projectHealth.budget, fullMark: 100 },
+                { subject: 'Timeline', A: projectHealth.timeline, fullMark: 100 },
+                { subject: 'Team', A: projectHealth.team, fullMark: 100 },
+                { subject: 'Risks', A: projectHealth.risks, fullMark: 100 },
+                { subject: 'Quality', A: 85, fullMark: 100 }
+              ]}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="subject" className="text-sm" />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} />
+                <Radar name="Health Score" dataKey="A" stroke="#2563eb" fill="#2563eb" fillOpacity={0.2} strokeWidth={2} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Project Health Radar Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Project Health Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RadarChart data={[
-                    { subject: 'Budget', A: projectHealth.budget, fullMark: 100 },
-                    { subject: 'Timeline', A: projectHealth.timeline, fullMark: 100 },
-                    { subject: 'Team', A: projectHealth.team, fullMark: 100 },
-                    { subject: 'Risks', A: projectHealth.risks, fullMark: 100 },
-                    { subject: 'Quality', A: 85, fullMark: 100 }
-                  ]}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="subject" />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                    <Radar name="Health Score" dataKey="A" stroke="#2563eb" fill="#2563eb" fillOpacity={0.3} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Budget Burn Rate */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Budget Burn Rate
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={budgetAnalytics.burnRate}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
-                    <Area type="monotone" dataKey="planned" stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.3} />
-                    <Area type="monotone" dataKey="actual" stackId="2" stroke="#2563eb" fill="#2563eb" fillOpacity={0.5} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Key Metrics Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Key Performance Indicators
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Metric</TableHead>
-                    <TableHead>Current</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Trend</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">Delivery Timeline</TableCell>
-                    <TableCell>91%</TableCell>
-                    <TableCell>95%</TableCell>
-                    <TableCell><Badge variant="secondary">On Track</Badge></TableCell>
-                    <TableCell><TrendingUp className="h-4 w-4 text-green-500" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Budget Utilization</TableCell>
-                    <TableCell>57.5%</TableCell>
-                    <TableCell>60%</TableCell>
-                    <TableCell><Badge variant="secondary">Good</Badge></TableCell>
-                    <TableCell><TrendingUp className="h-4 w-4 text-green-500" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Team Satisfaction</TableCell>
-                    <TableCell>8.4/10</TableCell>
-                    <TableCell>8.0/10</TableCell>
-                    <TableCell><Badge className="bg-green-500">Excellent</Badge></TableCell>
-                    <TableCell><TrendingUp className="h-4 w-4 text-green-500" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Risk Mitigation</TableCell>
-                    <TableCell>78%</TableCell>
-                    <TableCell>85%</TableCell>
-                    <TableCell><Badge variant="outline">Needs Attention</Badge></TableCell>
-                    <TableCell><TrendingDown className="h-4 w-4 text-amber-500" /></TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="budget" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Spend by Category</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={budgetAnalytics.spendByCategory}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {budgetAnalytics.spendByCategory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Amount']} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Budget vs Spend Trend</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={budgetAnalytics.burnRate}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
-                    <Line type="monotone" dataKey="planned" stroke="#94a3b8" strokeDasharray="5 5" />
-                    <Line type="monotone" dataKey="actual" stroke="#2563eb" strokeWidth={3} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="team" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Team Capacity Trend</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={teamPerformance.capacityTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="week" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="planned" fill="#94a3b8" />
-                    <Bar dataKey="actual" fill="#2563eb" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Performers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {teamPerformance.topPerformers.map((performer, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-primary">{index + 1}</span>
-                        </div>
-                        <div>
-                          <p className="font-medium">{performer.name}</p>
-                          <p className="text-sm text-muted-foreground">{performer.tasksCompleted} tasks completed</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-green-600">{performer.efficiency}%</p>
-                        <p className="text-xs text-muted-foreground">efficiency</p>
-                      </div>
-                    </div>
-                  ))}
+        {/* Budget Distribution */}
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <PieChartIcon className="h-6 w-6 text-primary" />
+              Budget Distribution
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Breakdown of budget allocation and spending across categories
+            </p>
+          </CardHeader>
+          <CardContent>
+            {budgetAnalytics.spendByCategory && budgetAnalytics.spendByCategory.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <PieChart>
+                  <Pie
+                    data={budgetAnalytics.spendByCategory}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {budgetAnalytics.spendByCategory.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={Object.values(COLORS)[index % Object.values(COLORS).length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`₹${Number(value).toLocaleString()}`, 'Amount']} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+                <div className="text-center space-y-2">
+                  <PieChartIcon className="h-12 w-12 mx-auto opacity-50" />
+                  <p>No budget categories available</p>
+                  <p className="text-sm">Budget data will appear once configured</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-        <TabsContent value="tasks" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Task Status Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={taskAnalytics.tasksByStatus}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                      label={({ status, count }) => `${status}: ${count}`}
-                    >
-                      {taskAnalytics.tasksByStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+      {/* Detailed Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Task Status Overview */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Task Status Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Total Tasks</span>
+                <span className="font-semibold">{taskAnalytics.totalTasks}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Completed</span>
+                <span className="font-semibold text-green-600">{taskAnalytics.completedTasks}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">In Progress</span>
+                <span className="font-semibold text-blue-600">{taskAnalytics.totalTasks - taskAnalytics.completedTasks}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Avg. Completion Time</span>
+                <span className="font-semibold">{taskAnalytics.avgCompletionTime} days</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Productivity Trend</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={taskAnalytics.productivityTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="completed" fill="#22c55e" />
-                    <Bar dataKey="created" fill="#3b82f6" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+        {/* Team Metrics */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Team Metrics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Team Size</span>
+                <span className="font-semibold">{teamPerformance.totalMembers}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Active Members</span>
+                <span className="font-semibold text-green-600">{teamPerformance.activeMembers}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Avg. Capacity</span>
+                <span className="font-semibold">{teamPerformance.avgCapacity}h/week</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Efficiency Rate</span>
+                <span className="font-semibold">{teamPerformance.utilizationRate}%</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="risks" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Risk Distribution by Category</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {riskAnalysis.risksByCategory.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={riskAnalysis.risksByCategory}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="category" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#ef4444" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No risk data available</p>
-                      <p className="text-sm">Add risks to your project to see analytics</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+        {/* Stakeholder Engagement */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Stakeholder Engagement
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Total Stakeholders</span>
+                <span className="font-semibold">{stakeholderEngagement.totalStakeholders}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Active Stakeholders</span>
+                <span className="font-semibold text-green-600">{stakeholderEngagement.activeStakeholders}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Recent Meetings</span>
+                <span className="font-semibold">{stakeholderEngagement.recentMeetings}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Retrospectives</span>
+                <span className="font-semibold">{retrospectiveInsights.totalRetros}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Risk Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-3 bg-muted/20 rounded-lg">
-                    <span className="font-medium">Total Risks</span>
-                    <span className="text-2xl font-bold text-primary">{riskAnalysis.totalRisks}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                    <span className="font-medium text-red-700">High Priority Risks</span>
-                    <span className="text-2xl font-bold text-red-600">{riskAnalysis.highRisks}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                    <span className="font-medium text-green-700">Mitigated Risks</span>
-                    <span className="text-2xl font-bold text-green-600">{riskAnalysis.mitigatedRisks}</span>
-                  </div>
-                  {riskAnalysis.totalRisks > 0 && (
-                    <div className="mt-4">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span>Risk Mitigation Progress</span>
-                        <span>{Math.round((riskAnalysis.mitigatedRisks / riskAnalysis.totalRisks) * 100)}%</span>
-                      </div>
-                      <Progress value={(riskAnalysis.mitigatedRisks / riskAnalysis.totalRisks) * 100} className="h-2" />
-                    </div>
-                  )}
+      {/* Risk Analysis */}
+      {riskAnalysis.totalRisks > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6 text-amber-500" />
+              Risk Analysis Summary
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Current risk landscape and mitigation status
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-amber-600">{riskAnalysis.totalRisks}</div>
+                <div className="text-sm text-muted-foreground">Total Risks</div>
+              </div>
+              <div className="text-center p-4 bg-red-50 dark:bg-red-950/50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">{riskAnalysis.highRisks}</div>
+                <div className="text-sm text-muted-foreground">High Priority</div>
+              </div>
+              <div className="text-center p-4 bg-green-50 dark:bg-green-950/50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{riskAnalysis.mitigatedRisks}</div>
+                <div className="text-sm text-muted-foreground">Mitigated</div>
+              </div>
+              <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {riskAnalysis.totalRisks > 0 ? Math.round((riskAnalysis.mitigatedRisks / riskAnalysis.totalRisks) * 100) : 0}%
                 </div>
-              </CardContent>
-            </Card>
+                <div className="text-sm text-muted-foreground">Mitigation Rate</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Stakeholder Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <Users className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                    <p className="text-2xl font-bold text-blue-700">{stakeholderEngagement.totalStakeholders}</p>
-                    <p className="text-sm text-blue-600">Total Stakeholders</p>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <Activity className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                    <p className="text-2xl font-bold text-green-700">{stakeholderEngagement.activeStakeholders}</p>
-                    <p className="text-sm text-green-600">Active Stakeholders</p>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <MessageSquare className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-                    <p className="text-2xl font-bold text-purple-700">{stakeholderEngagement.recentMeetings}</p>
-                    <p className="text-sm text-purple-600">Recent Meetings</p>
-                  </div>
-                </div>
-                {stakeholderEngagement.totalStakeholders === 0 && (
-                  <div className="mt-6 text-center text-muted-foreground">
-                    <p className="text-sm">No stakeholder data available</p>
-                    <p className="text-xs">Add stakeholders to your project to see engagement analytics</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+      {/* Action Items Summary */}
+      {retrospectiveInsights.totalRetros > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-6 w-6 text-purple-500" />
+              Retrospective Insights
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Team feedback and continuous improvement metrics
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">{retrospectiveInsights.totalRetros}</div>
+                <div className="text-sm text-muted-foreground">Retrospectives</div>
+              </div>
+              <div className="text-center p-4 bg-amber-50 dark:bg-amber-950/50 rounded-lg">
+                <div className="text-2xl font-bold text-amber-600">{retrospectiveInsights.actionItemsCreated}</div>
+                <div className="text-sm text-muted-foreground">Action Items</div>
+              </div>
+              <div className="text-center p-4 bg-green-50 dark:bg-green-950/50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{retrospectiveInsights.actionItemsCompleted}</div>
+                <div className="text-sm text-muted-foreground">Completed</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        <TabsContent value="insights" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  AI-Powered Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Rocket className="h-4 w-4 text-blue-600" />
-                    <span className="font-semibold text-blue-800">Performance Insight</span>
-                  </div>
-                  <p className="text-sm text-blue-700">
-                    Your team's velocity has increased by 18% over the last 3 sprints. Consider maintaining current team composition.
-                  </p>
-                </div>
-                
-                <div className="p-4 bg-amber-50 border-l-4 border-amber-400 rounded">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <span className="font-semibold text-amber-800">Budget Alert</span>
-                  </div>
-                  <p className="text-sm text-amber-700">
-                    Current spend rate suggests budget exhaustion by month 9. Consider reviewing high-cost categories.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-green-50 border-l-4 border-green-400 rounded">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Star className="h-4 w-4 text-green-600" />
-                    <span className="font-semibold text-green-800">Success Pattern</span>
-                  </div>
-                  <p className="text-sm text-green-700">
-                    Teams with regular retrospectives show 23% higher satisfaction scores. Continue current practices.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Team Satisfaction & Velocity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={retrospectiveInsights.teamSatisfactionTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="sprint" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip />
-                    <Line yAxisId="left" type="monotone" dataKey="satisfaction" stroke="#22c55e" strokeWidth={3} />
-                    <Line yAxisId="right" type="monotone" dataKey="velocity" stroke="#3b82f6" strokeWidth={3} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+      {/* Footer */}
+      <div className="text-center pt-8 border-t">
+        <p className="text-sm text-muted-foreground">
+          Last updated: {new Date().toLocaleString()} • All metrics are calculated in real-time
+        </p>
+      </div>
     </div>
   );
 };

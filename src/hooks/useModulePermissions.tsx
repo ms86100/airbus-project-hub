@@ -13,7 +13,8 @@ export type ModuleName =
   | 'task_backlog'
   | 'team_capacity'
   | 'retrospectives'
-  | 'budget';
+  | 'budget'
+  | 'access_control';
 
 export type AccessLevel = 'read' | 'write';
 
@@ -71,6 +72,7 @@ export function useModulePermissions(projectId: string) {
           team_capacity: 'write',
           retrospectives: 'write',
           budget: 'write',
+          access_control: 'write',
         };
         setPermissions(fullPermissions);
         setLoading(false);

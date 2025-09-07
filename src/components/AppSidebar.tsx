@@ -27,7 +27,7 @@ const dashboardNavigation = [
 
 const getProjectNavigation = (projectId: string) => [
   { title: "Dashboard", url: `/project/${projectId}`, icon: Home },
-  { title: "Project List", url: "/projects", icon: FolderOpen },
+  { title: "Project List", url: "/", icon: FolderOpen },
   { title: "Budget", url: `/project/${projectId}/budget`, icon: BarChart3 },
   { title: "Tasks & Milestones", url: `/project/${projectId}/tasks`, icon: Calendar },
   { title: "Roadmap", url: `/project/${projectId}/roadmap`, icon: Map },
@@ -38,6 +38,7 @@ const getProjectNavigation = (projectId: string) => [
   { title: "Task Backlog", url: `/project/${projectId}/backlog`, icon: Archive },
   { title: "Team Capacity", url: `/project/${projectId}/capacity`, icon: BarChart3 },
   { title: "Retrospectives", url: `/project/${projectId}/retrospective`, icon: RotateCcw },
+  { title: "Access Control", url: `/project/${projectId}/access-control`, icon: Shield },
 ]
 
 const settings = [
