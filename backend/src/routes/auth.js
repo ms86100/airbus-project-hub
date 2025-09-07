@@ -96,9 +96,60 @@ router.post('/register', async (req, res) => {
     const existingProfile = await query('SELECT id FROM profiles WHERE email = $1', [lowerEmail]);
     const existingAuth = await query('SELECT id FROM auth.users WHERE email = $1', [lowerEmail]);
     if (existingAuth.rows.length > 0) {
+      // If auth user exists but profile is missing, repair the account instead of failing
+      if (existingProfile.rows.length === 0) {
+        const existingUserId = existingAuth.rows[0].id;
+        const client = await require('../config/database').getClient();
+        try {
+          await client.query('BEGIN');
+          await client.query(
+            'INSERT INTO profiles (id, email, full_name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)',
+            [existingUserId, lowerEmail, fullName || email, new Date(), new Date()]
+          );
+          const role = lowerEmail === process.env.ADMIN_EMAIL ? 'admin' : 'project_coordinator';
+          await client.query(
+            `INSERT INTO user_roles (user_id, role)
+             SELECT $1, $2::app_role
+             WHERE NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id = $1)`,
+            [existingUserId, role]
+          );
+          await client.query('COMMIT');
+        } catch (repairErr) {
+          await client.query('ROLLBACK');
+          console.error('Account repair error:', repairErr);
+          return sendResponse(res, createErrorResponse('Registration failed', 'REGISTRATION_ERROR', 500));
+        } finally {
+          client.release();
+        }
+
+        const user = {
+          id: existingUserId,
+          email: lowerEmail,
+          full_name: fullName || email,
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+
+        const { accessToken, refreshToken } = generateTokens(user);
+        const session = {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          token_type: 'bearer',
+          expires_in: 604800,
+          expires_at: Math.floor(Date.now() / 1000) + 604800,
+          user
+        };
+
+        return sendResponse(res, createSuccessResponse({
+          user,
+          session,
+          message: 'Account repaired and registration completed'
+        }));
+      }
+
+      // Otherwise, user truly exists
       return sendResponse(res, createErrorResponse('User already exists', 'USER_EXISTS', 400));
     }
-
     // Hash password
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
