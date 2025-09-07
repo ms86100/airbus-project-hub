@@ -244,20 +244,19 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
               if (!open) resetForm();
             }}>
               <DialogTrigger asChild>
-                <Button onClick={() => {
-                  console.log('Add stakeholder button clicked, current state:', isAddingStakeholder);
-                  setIsAddingStakeholder(true);
-                  console.log('State set to true');
-                }}>
+                <Button>
                   <UserPlus className="h-4 w-4 mr-2" />
                   Add Stakeholder
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent className="sm:max-w-[500px]" aria-describedby="stakeholder-dialog-description">
                 <DialogHeader>
                   <DialogTitle>
                     {editingStakeholder ? 'Edit Stakeholder' : 'Add New Stakeholder'}
                   </DialogTitle>
+                  <div id="stakeholder-dialog-description" className="sr-only">
+                    Dialog for adding or editing stakeholder information including name, email, department, RACI level, and influence level.
+                  </div>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -372,13 +371,14 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
                 <p className="text-muted-foreground text-center mb-4">
                   Add stakeholders to track project participants and assign tasks.
                 </p>
-                <Button onClick={() => {
-                  console.log('Empty state add stakeholder clicked');
-                  setIsAddingStakeholder(true);
-                }}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Stakeholder
-                </Button>
+                <Dialog open={isAddingStakeholder} onOpenChange={setIsAddingStakeholder}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Stakeholder
+                    </Button>
+                  </DialogTrigger>
+                </Dialog>
               </CardContent>
             </Card>
           ) : (

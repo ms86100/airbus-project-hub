@@ -445,34 +445,132 @@ export type Database = {
           id: string
           iteration_id: string
           updated_at: string
-          week_end_date: string
-          week_number: number
-          week_start_date: string
+          week_end: string
+          week_index: number
+          week_start: string
         }
         Insert: {
           created_at?: string
           id?: string
           iteration_id: string
           updated_at?: string
-          week_end_date: string
-          week_number: number
-          week_start_date: string
+          week_end: string
+          week_index: number
+          week_start: string
         }
         Update: {
           created_at?: string
           id?: string
           iteration_id?: string
           updated_at?: string
-          week_end_date?: string
-          week_number?: number
-          week_start_date?: string
+          week_end?: string
+          week_index?: number
+          week_start?: string
         }
         Relationships: [
           {
             foreignKeyName: "iteration_weeks_iteration_id_fkey"
             columns: ["iteration_id"]
             isOneToOne: false
-            referencedRelation: "team_capacity_iterations"
+            referencedRelation: "iterations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      iterations: {
+        Row: {
+          created_at: string
+          created_by: string
+          end_date: string
+          id: string
+          name: string
+          project_id: string
+          start_date: string
+          team_id: string
+          type: string
+          updated_at: string
+          weeks_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          end_date: string
+          id?: string
+          name: string
+          project_id: string
+          start_date: string
+          team_id: string
+          type: string
+          updated_at?: string
+          weeks_count: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          id?: string
+          name?: string
+          project_id?: string
+          start_date?: string
+          team_id?: string
+          type?: string
+          updated_at?: string
+          weeks_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iterations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_weekly_availability: {
+        Row: {
+          availability_percent: number | null
+          created_at: string
+          effective_capacity: number | null
+          id: string
+          iteration_week_id: string
+          leaves: number | null
+          team_member_id: string
+          updated_at: string
+        }
+        Insert: {
+          availability_percent?: number | null
+          created_at?: string
+          effective_capacity?: number | null
+          id?: string
+          iteration_week_id: string
+          leaves?: number | null
+          team_member_id: string
+          updated_at?: string
+        }
+        Update: {
+          availability_percent?: number | null
+          created_at?: string
+          effective_capacity?: number | null
+          id?: string
+          iteration_week_id?: string
+          leaves?: number | null
+          team_member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_weekly_availability_iteration_week_id_fkey"
+            columns: ["iteration_week_id"]
+            isOneToOne: false
+            referencedRelation: "iteration_weeks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_weekly_availability_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
         ]
@@ -1394,15 +1492,7 @@ export type Database = {
           updated_at?: string
           working_days?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "team_capacity_iterations_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       team_capacity_members: {
         Row: {
@@ -1541,39 +1631,30 @@ export type Database = {
       team_members: {
         Row: {
           created_at: string
-          created_by: string
-          default_availability_percent: number | null
+          display_name: string
           email: string | null
           id: string
-          member_name: string
           role: string | null
-          skills: string[] | null
           team_id: string
           updated_at: string
           work_mode: string | null
         }
         Insert: {
           created_at?: string
-          created_by: string
-          default_availability_percent?: number | null
+          display_name: string
           email?: string | null
           id?: string
-          member_name: string
           role?: string | null
-          skills?: string[] | null
           team_id: string
           updated_at?: string
           work_mode?: string | null
         }
         Update: {
           created_at?: string
-          created_by?: string
-          default_availability_percent?: number | null
+          display_name?: string
           email?: string | null
           id?: string
-          member_name?: string
           role?: string | null
-          skills?: string[] | null
           team_id?: string
           updated_at?: string
           work_mode?: string | null
@@ -1594,8 +1675,8 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          name: string
           project_id: string
-          team_name: string
           updated_at: string
         }
         Insert: {
@@ -1603,8 +1684,8 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
+          name: string
           project_id: string
-          team_name: string
           updated_at?: string
         }
         Update: {
@@ -1612,8 +1693,8 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          name?: string
           project_id?: string
-          team_name?: string
           updated_at?: string
         }
         Relationships: []
@@ -1676,22 +1757,7 @@ export type Database = {
           team_member_id?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "weekly_availability_iteration_week_id_fkey"
-            columns: ["iteration_week_id"]
-            isOneToOne: false
-            referencedRelation: "iteration_weeks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "weekly_availability_team_member_id_fkey"
-            columns: ["team_member_id"]
-            isOneToOne: false
-            referencedRelation: "team_members"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       weekly_member_availability: {
         Row: {
@@ -1728,13 +1794,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "weekly_member_availability_iteration_week_id_fkey"
-            columns: ["iteration_week_id"]
-            isOneToOne: false
-            referencedRelation: "iteration_weeks"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "weekly_member_availability_team_member_id_fkey"
             columns: ["team_member_id"]
