@@ -66,7 +66,7 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
       case 'status':
         return { 
           component: (
-            <div className="p-6">
+            <div>
               <h1 className="text-2xl font-bold mb-6">Tasks & Milestones</h1>
               <StatusManagementView projectId={projectId} />
             </div>
@@ -116,7 +116,9 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
         module={config.moduleName} 
         requiredAccess={config.requiredAccess}
       >
-        {config.component}
+        <div className="p-6">
+          {config.component}
+        </div>
       </ModuleAccessWrapper>
     </div>
   );

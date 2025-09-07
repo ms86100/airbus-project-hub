@@ -267,7 +267,7 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600">Budget Health</p>
+                 <p className="text-sm font-medium text-green-600">Budget Health</p>
                 {budgetAnalytics.totalAllocated > 0 ? (
                   <>
                     <p className="text-2xl font-bold text-green-700">${budgetAnalytics.totalSpent.toLocaleString()}</p>
@@ -276,7 +276,7 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Budget data is not available</p>
+                  <p className="text-sm text-muted-foreground">No budget data available</p>
                 )}
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
@@ -629,32 +629,87 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                 <CardTitle>Risk Distribution by Category</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={riskAnalysis.risksByCategory}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#ef4444" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {riskAnalysis.risksByCategory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={riskAnalysis.risksByCategory}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="category" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#ef4444" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No risk data available</p>
+                      <p className="text-sm">Add risks to your project to see analytics</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Risk Heat Map</CardTitle>
+                <CardTitle>Risk Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <ScatterChart data={riskAnalysis.riskHeatmap}>
-                    <CartesianGrid />
-                    <XAxis type="number" dataKey="impact" name="Impact" domain={[0, 5]} />
-                    <YAxis type="number" dataKey="likelihood" name="Likelihood" domain={[0, 5]} />
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                    <Scatter name="Risks" dataKey="count" fill="#ef4444" />
-                  </ScatterChart>
-                </ResponsiveContainer>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 bg-muted/20 rounded-lg">
+                    <span className="font-medium">Total Risks</span>
+                    <span className="text-2xl font-bold text-primary">{riskAnalysis.totalRisks}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                    <span className="font-medium text-red-700">High Priority Risks</span>
+                    <span className="text-2xl font-bold text-red-600">{riskAnalysis.highRisks}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                    <span className="font-medium text-green-700">Mitigated Risks</span>
+                    <span className="text-2xl font-bold text-green-600">{riskAnalysis.mitigatedRisks}</span>
+                  </div>
+                  {riskAnalysis.totalRisks > 0 && (
+                    <div className="mt-4">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span>Risk Mitigation Progress</span>
+                        <span>{Math.round((riskAnalysis.mitigatedRisks / riskAnalysis.totalRisks) * 100)}%</span>
+                      </div>
+                      <Progress value={(riskAnalysis.mitigatedRisks / riskAnalysis.totalRisks) * 100} className="h-2" />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Stakeholder Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <Users className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                    <p className="text-2xl font-bold text-blue-700">{stakeholderEngagement.totalStakeholders}</p>
+                    <p className="text-sm text-blue-600">Total Stakeholders</p>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <Activity className="h-8 w-8 mx-auto mb-2 text-green-600" />
+                    <p className="text-2xl font-bold text-green-700">{stakeholderEngagement.activeStakeholders}</p>
+                    <p className="text-sm text-green-600">Active Stakeholders</p>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <MessageSquare className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+                    <p className="text-2xl font-bold text-purple-700">{stakeholderEngagement.recentMeetings}</p>
+                    <p className="text-sm text-purple-600">Recent Meetings</p>
+                  </div>
+                </div>
+                {stakeholderEngagement.totalStakeholders === 0 && (
+                  <div className="mt-6 text-center text-muted-foreground">
+                    <p className="text-sm">No stakeholder data available</p>
+                    <p className="text-xs">Add stakeholders to your project to see engagement analytics</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

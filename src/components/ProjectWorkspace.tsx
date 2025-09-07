@@ -98,7 +98,7 @@ const ProjectWorkspace = () => {
 
         <div className="flex flex-1">
           <ProjectSidebar projectId={projectId} />
-          <main className="flex-1">
+          <main className="flex-1 overflow-auto">
             <ProjectWorkspaceContent projectId={projectId} currentModule={module} />
           </main>
         </div>

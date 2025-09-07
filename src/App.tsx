@@ -22,24 +22,31 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/create-project" element={<ProjectWizard />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/project/:id" element={<ProjectOverview />} />
-            <Route path="/project/:id/edit" element={<EditProject />} />
-            <Route path="/retrospectives" element={<Retrospectives />} />
-            <Route path="/team-capacity" element={<TeamCapacity />} />
-            <Route path="/access-control" element={<AccessControl />} />
-            <Route path="/project/:id/:module" element={<ProjectWorkspace />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <div className="min-h-screen flex flex-col">
+          <div className="flex-1">
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/create-project" element={<ProjectWizard />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/project/:id" element={<ProjectOverview />} />
+                <Route path="/project/:id/edit" element={<EditProject />} />
+                <Route path="/retrospectives" element={<Retrospectives />} />
+                <Route path="/team-capacity" element={<TeamCapacity />} />
+                <Route path="/access-control" element={<AccessControl />} />
+                <Route path="/project/:id/:module" element={<ProjectWorkspace />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </div>
+          <footer className="bg-card border-t py-4 text-center text-sm text-muted-foreground">
+            © 2025 Airbus. All rights reserved.
+          </footer>
+        </div>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
