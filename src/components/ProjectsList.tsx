@@ -330,7 +330,7 @@ const ProjectsList = () => {
           <div className="text-sm text-muted-foreground">
             Latest projects in the system
           </div>
-          <Button variant="outline" onClick={() => navigate('/create-project')}>
+          <Button variant="outline" onClick={() => navigate('/projects')}>
             View All Projects
           </Button>
         </div>
