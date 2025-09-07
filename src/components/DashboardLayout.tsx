@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApiAuth } from '@/hooks/useApiAuth';
+import { useProjectContext } from '@/hooks/useProjectContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -21,6 +22,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { user, signOut } = useApiAuth();
+  const { isProjectSelected } = useProjectContext();
 
   const getRoleBadgeVariant = (role: string | null) => {
     switch (role) {
@@ -47,14 +49,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-surface-default">
-        <AppSidebar />
+        {isProjectSelected && <AppSidebar />}
         
         <div className="flex-1 flex flex-col">
           {/* Top Header */}
           <header className="sticky top-0 z-40 w-full border-b border-border bg-surface-default/95 backdrop-blur-sm shadow-sm">
             <div className="flex h-16 items-center justify-between px-6">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="hover:bg-surface-alt" />
+                {isProjectSelected && <SidebarTrigger className="hover:bg-surface-alt" />}
                 <div className="text-lg font-semibold text-text-primary">
                   Professional Project Management
                 </div>

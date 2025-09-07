@@ -1,6 +1,8 @@
 import { useState } from "react"
-import { Home, FolderOpen, Users, Settings, Plane, BarChart3, Calendar, Bell, RotateCcw, Shield } from "lucide-react"
-import { NavLink, useLocation } from "react-router-dom"
+import { Home, FolderOpen, Users, Settings, Plane, BarChart3, Calendar, Bell, RotateCcw, Shield, Map, Kanban, MessageSquare, Archive, AlertTriangle, Activity, ArrowLeft } from "lucide-react"
+import { NavLink, useLocation, useNavigate } from "react-router-dom"
+import { useProjectContext } from "@/hooks/useProjectContext"
+import { Button } from "@/components/ui/button"
 
 import {
   Sidebar,
@@ -15,16 +17,26 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-const navigation = [
+const dashboardNavigation = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Projects", url: "/projects", icon: FolderOpen },
   { title: "Team Capacity", url: "/team-capacity", icon: BarChart3 },
   { title: "Retrospectives", url: "/retrospectives", icon: RotateCcw },
-  { title: "Team", url: "/team", icon: Users },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Calendar", url: "/calendar", icon: Calendar },
-  { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Access Control", url: "/access-control", icon: Shield },
+]
+
+const getProjectNavigation = (projectId: string) => [
+  { title: "Overview", url: `/project/${projectId}`, icon: Home },
+  { title: "Roadmap", url: `/project/${projectId}/roadmap`, icon: Map },
+  { title: "Kanban", url: `/project/${projectId}/kanban`, icon: Kanban },
+  { title: "Stakeholders", url: `/project/${projectId}/stakeholders`, icon: Users },
+  { title: "Discussions", url: `/project/${projectId}/discussions`, icon: MessageSquare },
+  { title: "Backlog", url: `/project/${projectId}/backlog`, icon: Archive },
+  { title: "Status", url: `/project/${projectId}/status`, icon: Activity },
+  { title: "Risks", url: `/project/${projectId}/risks`, icon: AlertTriangle },
+  { title: "Capacity", url: `/project/${projectId}/capacity`, icon: BarChart3 },
+  { title: "Retrospective", url: `/project/${projectId}/retrospective`, icon: RotateCcw },
+  { title: "Budget", url: `/project/${projectId}/budget`, icon: BarChart3 },
 ]
 
 const settings = [
@@ -36,6 +48,12 @@ export function AppSidebar() {
   const location = useLocation()
   const currentPath = location.pathname
   const isCollapsed = state === "collapsed"
+  const { selectedProjectId, isProjectSelected } = useProjectContext()
+  const navigate = useNavigate()
+  
+  const navigation = isProjectSelected && selectedProjectId 
+    ? getProjectNavigation(selectedProjectId) 
+    : dashboardNavigation
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -68,9 +86,23 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-3 py-4">
+        {isProjectSelected && (
+          <div className="mb-4 px-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/projects')}
+              className="w-full justify-start gap-2 text-text-muted hover:text-text-primary"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {!isCollapsed && "Back to Projects"}
+            </Button>
+          </div>
+        )}
+        
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-            {!isCollapsed ? 'Main Navigation' : ''}
+            {!isCollapsed ? (isProjectSelected ? 'Project Navigation' : 'Main Navigation') : ''}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
