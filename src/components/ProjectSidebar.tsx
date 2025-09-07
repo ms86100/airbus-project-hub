@@ -39,6 +39,86 @@ const sidebarItems: Array<{
     description: 'Project analytics and insights',
     module: 'overview' as ModuleName
   },
+  { 
+    id: 'budget', 
+    title: 'Budget', 
+    icon: DollarSign, 
+    path: 'budget',
+    description: 'Manage project budget and expenses',
+    module: 'budget' as ModuleName
+  },
+  { 
+    id: 'tasks', 
+    title: 'Tasks & Milestones', 
+    icon: Calendar, 
+    path: 'status',
+    description: 'Manage tasks and milestones',
+    module: 'tasks_milestones' as ModuleName
+  },
+  { 
+    id: 'roadmap', 
+    title: 'Roadmap', 
+    icon: Calendar, 
+    path: 'roadmap',
+    description: 'Timeline view of milestones and tasks',
+    module: 'roadmap' as ModuleName
+  },
+  { 
+    id: 'kanban', 
+    title: 'Kanban', 
+    icon: LayoutGrid, 
+    path: 'kanban',
+    description: 'Drag and drop tasks by status',
+    module: 'kanban' as ModuleName
+  },
+  { 
+    id: 'stakeholders', 
+    title: 'Stakeholders', 
+    icon: Users, 
+    path: 'stakeholders',
+    description: 'Project stakeholder registry',
+    module: 'stakeholders' as ModuleName
+  },
+  { 
+    id: 'risks', 
+    title: 'Risk Register', 
+    icon: AlertTriangle, 
+    path: 'risks',
+    description: 'Identify and manage project risks',
+    module: 'risk_register' as ModuleName
+  },
+  { 
+    id: 'discussions', 
+    title: 'Discussions', 
+    icon: MessageCircle, 
+    path: 'discussions',
+    description: 'Project discussions and meetings',
+    module: 'discussions' as ModuleName
+  },
+  { 
+    id: 'backlog', 
+    title: 'Task Backlog', 
+    icon: Settings, 
+    path: 'backlog',
+    description: 'Manage task backlog',
+    module: 'task_backlog' as ModuleName
+  },
+  { 
+    id: 'capacity', 
+    title: 'Team Capacity', 
+    icon: BarChart3, 
+    path: 'capacity',
+    description: 'Manage team capacity planning',
+    module: 'team_capacity' as ModuleName
+  },
+  { 
+    id: 'retrospective', 
+    title: 'Retrospectives', 
+    icon: RotateCcw, 
+    path: 'retrospective',
+    description: 'Sprint retrospectives and team feedback',
+    module: 'retrospectives' as ModuleName
+  },
 ];
 
 export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
