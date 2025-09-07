@@ -93,16 +93,19 @@ serve(async (req) => {
 
 async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
   try {
-    // Fetch all required data
+    console.log('🔍 Fetching analytics for project:', projectId);
+    
+    // Fetch all required data with detailed logging
     const [
-      { data: project },
-      { data: tasks },
-      { data: milestones },
-      { data: risks },
-      { data: stakeholders },
-      { data: retrospectives },
-      { data: budgets },
-      { data: teams }
+      { data: project, error: projectError },
+      { data: tasks, error: tasksError },
+      { data: milestones, error: milestonesError },
+      { data: risks, error: risksError },
+      { data: stakeholders, error: stakeholdersError },
+      { data: retrospectives, error: retrospectivesError },
+      { data: budgets, error: budgetsError },
+      { data: budgetSpending, error: spendingError },
+      { data: teamCapacityIterations, error: teamError }
     ] = await Promise.all([
       supabase.from('projects').select('*').eq('id', projectId).single(),
       supabase.from('tasks').select('*').eq('project_id', projectId),
@@ -111,30 +114,73 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
       supabase.from('stakeholders').select('*').eq('project_id', projectId),
       supabase.from('retrospectives').select('*, retrospective_columns(*, retrospective_cards(*))').eq('project_id', projectId),
       supabase.from('project_budgets').select('*, budget_categories(*)').eq('project_id', projectId),
-      supabase.from('team_capacity_teams').select('*, team_capacity_members(*)').eq('project_id', projectId)
+      supabase.rpc('get_project_budget_spending', { project_id_param: projectId }),
+      supabase.from('team_capacity_iterations').select('*, team_capacity_members(*)').eq('project_id', projectId)
     ])
 
-    // Process tasks
+    console.log('📊 Data fetched:', {
+      tasks: tasks?.length || 0,
+      milestones: milestones?.length || 0,
+      risks: risks?.length || 0,
+      stakeholders: stakeholders?.length || 0,
+      budgets: budgets?.length || 0,
+      budgetSpending: budgetSpending?.length || 0,
+      teamCapacityIterations: teamCapacityIterations?.length || 0
+    });
+
+    if (tasksError) console.log('❌ Tasks error:', tasksError);
+    if (budgetsError) console.log('❌ Budgets error:', budgetsError);
+    if (spendingError) console.log('❌ Spending error:', spendingError);
+
+    // Process tasks with correct status mapping
     const tasksData = tasks || []
-    const completedTasks = tasksData.filter(task => task.status === 'completed').length
+    const completedTasks = tasksData.filter(task => 
+      task.status === 'completed' || task.status === 'done'
+    ).length
+    const inProgressTasks = tasksData.filter(task => 
+      task.status === 'in_progress' || task.status === 'in progress'
+    ).length
+    const todoTasks = tasksData.filter(task => 
+      task.status === 'todo' || task.status === 'backlog'
+    ).length
+    const blockedTasks = tasksData.filter(task => 
+      task.status === 'blocked'
+    ).length
     const overdueTasks = tasksData.filter(task => {
       if (!task.due_date) return false
-      return new Date() > new Date(task.due_date) && task.status !== 'completed'
+      return new Date() > new Date(task.due_date) && 
+             !['completed', 'done'].includes(task.status)
     }).length
 
-    // Process risks
+    // Process risks with proper scoring
     const risksData = risks || []
-    const highRisks = risksData.filter(risk => (risk.risk_score || 0) >= 15).length
-    const mitigatedRisks = risksData.filter(risk => risk.status === 'mitigated').length
+    const highRisks = risksData.filter(risk => {
+      const likelihood = risk.likelihood || 0
+      const impact = risk.impact || 0
+      return likelihood * impact >= 9
+    }).length
+    const mitigatedRisks = risksData.filter(risk => 
+      ['closed', 'mitigated'].includes(risk.status)
+    ).length
 
-    // Process budget
+    // Process budget data
     const budgetData = budgets?.[0] || { total_budget_allocated: 0, total_budget_received: 0 }
     const categories = budgetData.budget_categories || []
-    const totalSpent = categories.reduce((sum, cat) => sum + (cat.amount_spent || 0), 0)
+    
+    // Calculate total spent from budget_spending table
+    const totalSpent = budgetSpending?.reduce((sum, spending) => sum + (spending.amount || 0), 0) || 0
+    
+    console.log('💰 Budget analysis:', {
+      allocated: budgetData.total_budget_allocated,
+      spent: totalSpent,
+      categories: categories.length,
+      spendingEntries: budgetSpending?.length || 0
+    });
 
-    // Process team data
-    const teamsData = teams || []
-    const totalMembers = teamsData.reduce((sum, team) => sum + (team.team_capacity_members?.length || 0), 0)
+    // Process team data from iterations
+    const iterationsData = teamCapacityIterations || []
+    const totalMembers = iterationsData.reduce((sum, iteration) => 
+      sum + (iteration.team_capacity_members?.length || 0), 0)
 
     // Process retrospectives
     const retrospectivesData = retrospectives || []
@@ -143,17 +189,23 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
         colSum + (col.retrospective_cards?.length || 0), 0) || 0)
     }, 0)
 
-    // Calculate health scores
-    const timelineHealth = tasksData.length > 0 ? 
-      Math.min(100, ((tasksData.length - overdueTasks) / tasksData.length) * 100) : 100
+    // Calculate health scores with improved logic
+    const timelineHealth = milestones?.length > 0 ? 
+      ((milestones.filter(m => m.status === 'completed').length / milestones.length) * 100) : 
+      (tasksData.length > 0 ? ((completedTasks / tasksData.length) * 100) : 100)
+      
     const budgetHealth = budgetData.total_budget_allocated > 0 ? 
-      Math.min(100, ((budgetData.total_budget_allocated - totalSpent) / budgetData.total_budget_allocated) * 100) : 100
+      Math.max(0, ((budgetData.total_budget_allocated - totalSpent) / budgetData.total_budget_allocated) * 100) : 100
+      
     const riskHealth = risksData.length > 0 ? 
-      Math.max(0, 100 - (highRisks / risksData.length) * 100) : 100
-    const teamHealth = totalMembers > 0 ? 85 : 100 // Default team health
+      Math.max(0, 100 - ((highRisks / risksData.length) * 100)) : 100
+      
+    const teamHealth = totalMembers > 0 ? 85 : 100 // Default team health when no team data
+    
     const overallHealth = Math.round((timelineHealth + budgetHealth + riskHealth + teamHealth) / 4)
 
-    return {
+    // Build detailed analytics response
+    const result = {
       projectHealth: {
         overall: overallHealth,
         budget: Math.round(budgetHealth),
@@ -164,40 +216,78 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
       budgetAnalytics: {
         totalAllocated: budgetData.total_budget_allocated || 0,
         totalSpent,
-        remainingBudget: (budgetData.total_budget_allocated || 0) - totalSpent,
-        spendByCategory: categories.map((cat, index) => ({
+        remainingBudget: Math.max(0, (budgetData.total_budget_allocated || 0) - totalSpent),
+        spendByCategory: categories.length > 0 ? categories.map((cat, index) => ({
           name: cat.name || 'Unknown',
           value: cat.amount_spent || 0,
-          color: ['#2563eb', '#10b981', '#f59e0b', '#ef4444'][index % 4]
-        }))
+          color: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]
+        })) : [],
+        burnRate: [] // Can be populated with historical data
       },
       taskAnalytics: {
         totalTasks: tasksData.length,
         completedTasks,
         overdueTasks,
-        tasksByStatus: [
+        avgCompletionTime: 0, // Can calculate from task data
+        tasksByStatus: tasksData.length > 0 ? [
           { status: 'Completed', count: completedTasks, color: '#22c55e' },
-          { status: 'In Progress', count: tasksData.filter(t => t.status === 'in_progress').length, color: '#06b6d4' },
-          { status: 'Todo', count: tasksData.filter(t => t.status === 'todo').length, color: '#f97316' }
-        ]
+          { status: 'In Progress', count: inProgressTasks, color: '#06b6d4' },
+          { status: 'Todo', count: todoTasks, color: '#f97316' },
+          { status: 'Blocked', count: blockedTasks, color: '#ef4444' }
+        ] : [],
+        tasksByOwner: [], // Would need join with profiles
+        overdueTasksList: [], // Can be populated from overdue tasks
+        productivityTrend: [] // Historical data needed
       },
       teamPerformance: {
         totalMembers,
         activeMembers: totalMembers,
-        avgCapacity: 85,
-        utilizationRate: 88
+        avgCapacity: iterationsData.length > 0 ? 
+          Math.round(iterationsData.reduce((sum, iter) => {
+            const avgCap = iter.team_capacity_members?.reduce((memberSum, member) => 
+              memberSum + (member.effective_capacity_days || 0), 0) || 0
+            return sum + (avgCap / Math.max(1, iter.team_capacity_members?.length || 1))
+          }, 0) / iterationsData.length) : 0,
+        avgEfficiency: iterationsData.length > 0 ? 
+          Math.round(iterationsData.reduce((sum, iter) => {
+            const avgEff = iter.team_capacity_members?.reduce((memberSum, member) => 
+              memberSum + (member.availability_percent || 0), 0) || 0
+            return sum + (avgEff / Math.max(1, iter.team_capacity_members?.length || 1))
+          }, 0) / iterationsData.length) : 0,
+        topPerformers: [],
+        capacityTrend: []
       },
       riskAnalysis: {
         totalRisks: risksData.length,
         highRisks,
-        mitigatedRisks
+        mitigatedRisks,
+        riskHeatmap: [],
+        risksByCategory: []
       },
-      stakeholderEngagement: {
+      stakeholderAnalytics: {
         totalStakeholders: (stakeholders || []).length,
-        activeStakeholders: (stakeholders || []).filter(sh => sh.engagement_level !== 'low').length
+        activeStakeholders: (stakeholders || []).length, // Assume all active for now
+        recentMeetings: 0,
+        communicationFrequency: []
       },
-      retrospectiveInsights: {
+      retrospectiveAnalytics: {
         totalRetros: retrospectivesData.length,
+        totalActionItems,
+        convertedToTasks: 0, // Would need to track task conversion
+        teamSatisfactionTrend: []
+      }
+    }
+
+    console.log('📈 Analytics result:', {
+      totalTasks: result.taskAnalytics.totalTasks,
+      completedTasks: result.taskAnalytics.completedTasks,
+      totalBudget: result.budgetAnalytics.totalAllocated,
+      totalSpent: result.budgetAnalytics.totalSpent,
+      categories: result.budgetAnalytics.spendByCategory.length,
+      overallHealth: result.projectHealth.overall
+    });
+
+    return result
         actionItemsCreated: totalActionItems,
         actionItemsCompleted: Math.floor(totalActionItems * 0.7)
       }
