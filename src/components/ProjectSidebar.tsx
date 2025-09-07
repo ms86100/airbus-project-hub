@@ -141,131 +141,115 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
       : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
 
   return (
-    <Sidebar className="w-64 bg-card border-r border-border" collapsible="none">
-      <SidebarContent className="bg-card">
-        {/* Header Section */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <LayoutGrid className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold text-foreground">ProjectFlow</h1>
-              <p className="text-xs text-muted-foreground">Enterprise Platform</p>
-            </div>
+    <div className="w-64 bg-sidebar border-r border-border flex flex-col h-full">
+      {/* Header Section */}
+      <div className="p-6 border-b border-border">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <LayoutGrid className="h-4 w-4 text-primary-foreground" />
           </div>
+          <div>
+            <h1 className="text-lg font-semibold text-foreground">ProjectFlow</h1>
+            <p className="text-xs text-muted-foreground">Enterprise Platform</p>
+          </div>
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => navigate('/projects')}
+          className="flex items-center gap-2 w-full justify-start"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Projects
+        </Button>
+      </div>
+
+      <div className="flex-1 py-6">
+        {/* Project Navigation Section */}
+        <div className="px-6 mb-4">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            PROJECT NAVIGATION
+          </h3>
+        </div>
+        
+        <nav className="px-3 space-y-1">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            sidebarItems.map((item) => {
+              const itemIsActive = isActive(item.path);
+              
+              // Check if user has permission to view this module
+              if (!canRead(item.module)) {
+                return null; // Hide modules user doesn't have access to
+              }
+
+              return (
+                <NavLink
+                  key={item.id}
+                  to={`/project/${projectId}/${item.path}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    itemIsActive
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  }`}
+                >
+                  <item.icon className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{item.title}</span>
+                </NavLink>
+              );
+            })
+          )}
           
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => navigate('/projects')}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground w-full justify-start"
+          {/* Access Control moved to main navigation */}
+          <AccessControlDialog 
+            projectId={projectId} 
+            trigger={
+              <button className="flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium transition-all duration-200 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full text-left">
+                <Shield className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Access Control</span>
+              </button>
+            } 
+          />
+        </nav>
+      </div>
+
+      {/* System Section */}
+      <div className="pb-6">
+        <div className="px-6 mb-4">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            SYSTEM
+          </h3>
+        </div>
+        
+        <nav className="px-3 space-y-1">
+          <button 
+            onClick={() => navigate(`/project/${projectId}`)}
+            className="flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium transition-all duration-200 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full text-left"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Projects
-          </Button>
-        </div>
-
-        {/* Main Navigation Section */}
-        <div className="py-6">
-          <SidebarGroup>
-            <SidebarGroupLabel className="px-6 mb-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              PROJECT NAVIGATION
-            </SidebarGroupLabel>
-            
-            <SidebarGroupContent className="px-3">
-              <SidebarMenu className="space-y-1">
-                {loading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                  </div>
-                ) : (
-                  sidebarItems.map((item) => {
-                    const itemIsActive = isActive(item.path);
-                    
-                    // Check if user has permission to view this module
-                    if (!canRead(item.module)) {
-                      return null; // Hide modules user doesn't have access to
-                    }
-
-                    return (
-                      <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton asChild className="w-full">
-                          <NavLink 
-                            to={`/project/${projectId}/${item.path}`} 
-                            className={`flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                              itemIsActive 
-                                ? "bg-primary text-primary-foreground shadow-sm" 
-                                : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                            }`}
-                          >
-                            <item.icon className="h-4 w-4 flex-shrink-0" />
-                            <span className="truncate">{item.title}</span>
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </div>
-
-        {/* System Section */}
-        <div className="mt-auto pb-6">
-          <SidebarGroup>
-            <SidebarGroupLabel className="px-6 mb-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              System
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="px-3">
-              <SidebarMenu className="space-y-1">
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild className="w-full">
-                    <button 
-                      onClick={() => navigate(`/project/${projectId}`)}
-                      className="flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium transition-all duration-200 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-left"
-                    >
-                      <Settings className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">Settings</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                
-                <SidebarMenuItem>
-                  <Dialog open={showAuditLog} onOpenChange={setShowAuditLog}>
-                    <DialogTrigger asChild>
-                      <SidebarMenuButton className="w-full">
-                        <button className="flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium transition-all duration-200 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-left">
-                          <Activity className="h-4 w-4 flex-shrink-0" />
-                          <span className="truncate">Activity Log</span>
-                        </button>
-                      </SidebarMenuButton>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[80vh]">
-                      <DialogHeader>
-                        <DialogTitle>Project Activity History</DialogTitle>
-                      </DialogHeader>
-                      <AuditLogView projectId={projectId} />
-                    </DialogContent>
-                  </Dialog>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild className="w-full">
-                    <AccessControlDialog projectId={projectId} trigger={
-                      <button className="flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium transition-all duration-200 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-left">
-                        <Shield className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">Access Control</span>
-                      </button>
-                    } />
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </div>
-      </SidebarContent>
-    </Sidebar>
+            <Settings className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">Settings</span>
+          </button>
+          
+          <Dialog open={showAuditLog} onOpenChange={setShowAuditLog}>
+            <DialogTrigger asChild>
+              <button className="flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium transition-all duration-200 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full text-left">
+                <Activity className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Activity Log</span>
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh]">
+              <DialogHeader>
+                <DialogTitle>Project Activity History</DialogTitle>
+              </DialogHeader>
+              <AuditLogView projectId={projectId} />
+            </DialogContent>
+          </Dialog>
+        </nav>
+      </div>
+    </div>
   );
 }
