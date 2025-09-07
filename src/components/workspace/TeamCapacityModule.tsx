@@ -57,8 +57,13 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
 
   useEffect(() => {
     fetchTeams();
-    fetchIterations();
   }, [projectId]);
+
+  useEffect(() => {
+    if (teams.length > 0) {
+      fetchIterations();
+    }
+  }, [projectId, teams]);
 
   const fetchTeams = async () => {
     try {
@@ -83,9 +88,21 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
 
   const fetchIterations = async () => {
     try {
+      console.log('🔍 Fetching iterations for project:', projectId);
       const response = await apiClient.getIterations(projectId);
+      console.log('📊 Iterations response:', response);
       if (response.success) {
-        setIterations(response.data || []);
+        console.log('📊 Iterations data:', response.data);
+        // Map team names from teams array to iterations
+        const iterationsWithTeams = (response.data || []).map((iteration: any) => {
+          const team = teams.find(t => t.id === iteration.team_id || t.id === iteration.teamId);
+          return {
+            ...iteration,
+            team_name: team?.team_name || iteration.team_name || 'No team assigned'
+          };
+        });
+        console.log('📊 Processed iterations with teams:', iterationsWithTeams);
+        setIterations(iterationsWithTeams);
       }
     } catch (error) {
       console.error('Error fetching iterations:', error);
@@ -174,8 +191,9 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   };
 
   const handleViewAvailability = (iteration: Iteration) => {
+    console.log('🎯 handleViewAvailability called with iteration:', iteration);
     // Set to view-only mode with read-only flag
-    setSelectedIteration({
+    const viewIteration = {
       ...iteration,
       // @ts-ignore flag as real for matrix with view mode
       hasRealIteration: true,
@@ -183,12 +201,15 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
       realIterationId: iteration.id,
       // @ts-ignore
       viewMode: true
-    });
+    };
+    console.log('🎯 Setting selectedIteration to:', viewIteration);
+    setSelectedIteration(viewIteration);
   };
 
   const handleEditAvailability = (iteration: Iteration) => {
+    console.log('🎯 handleEditAvailability called with iteration:', iteration);
     // Set to edit mode (full AvailabilityMatrix)
-    setSelectedIteration({
+    const editIteration = {
       ...iteration,
       // @ts-ignore flag as real for matrix
       hasRealIteration: true,
@@ -196,7 +217,9 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
       realIterationId: iteration.id,
       // @ts-ignore
       viewMode: false
-    });
+    };
+    console.log('🎯 Setting selectedIteration to:', editIteration);
+    setSelectedIteration(editIteration);
   };
 
   const openIterationMatrix = (iteration: Iteration) => {
@@ -453,49 +476,61 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                 </div>
               ) : (
                          <div className="space-y-4">
-                           {iterations.map((iteration) => (
-                             <Card key={iteration.id} className="hover:bg-muted/50 transition-colors">
+                            {iterations.map((iteration) => {
+                              console.log('🎯 Rendering iteration:', iteration);
+                              return (
+                              <Card key={iteration.id} className="hover:bg-muted/50 transition-colors">
                                <CardContent className="p-4">
                                  <div className="flex items-center justify-between">
                                    <div className="flex-1">
                                      <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="font-semibold">
-                                          {iteration.name}
-                                        </h3>
-                                        <Badge variant="outline">{iteration.weeks_count} weeks</Badge>
-                                     </div>
-                                     <div className="text-sm text-muted-foreground space-y-1">
-                                       <p>Team: {iteration.team_name}</p>
-                                       <p>Duration: {new Date(iteration.start_date).toLocaleDateString()} – {new Date(iteration.end_date).toLocaleDateString()}</p>
-                                     </div>
+                                         <h3 className="font-semibold">
+                                           {iteration.name || (iteration as any).iteration_name || 'Unnamed Iteration'}
+                                         </h3>
+                                         <Badge variant="outline">{iteration.weeks_count || 0} weeks</Badge>
+                                      </div>
+                                      <div className="text-sm text-muted-foreground space-y-1">
+                                        <p>Team: {iteration.team_name || 'No team assigned'}</p>
+                                        <p>Duration: {iteration.start_date ? new Date(iteration.start_date).toLocaleDateString() : 'N/A'} – {iteration.end_date ? new Date(iteration.end_date).toLocaleDateString() : 'N/A'}</p>
+                                      </div>
                                     </div>
                                     <div className="flex gap-2">
-                                      <Button
-                                        onClick={() => handleViewAvailability(iteration)}
-                                        variant="outline"
-                                      >
-                                        <Users className="h-4 w-4 mr-2" />
-                                        View Availability
-                                      </Button>
                                        <Button
-                                         onClick={() => handleEditAvailability(iteration)}
+                                         onClick={() => {
+                                           console.log('🔍 View Availability clicked for iteration:', iteration);
+                                           handleViewAvailability(iteration);
+                                         }}
                                          variant="outline"
                                        >
                                          <Users className="h-4 w-4 mr-2" />
-                                         Edit Availability
+                                         View Availability
                                        </Button>
-                                       <Button
-                                         onClick={() => handleDeleteIteration(iteration)}
-                                         variant="destructive"
-                                         size="sm"
-                                       >
-                                         Delete
-                                       </Button>
+                                        <Button
+                                          onClick={() => {
+                                            console.log('✏️ Edit Availability clicked for iteration:', iteration);
+                                            handleEditAvailability(iteration);
+                                          }}
+                                          variant="outline"
+                                        >
+                                          <Users className="h-4 w-4 mr-2" />
+                                          Edit Availability
+                                        </Button>
+                                        <Button
+                                          onClick={() => {
+                                            console.log('🗑️ Delete clicked for iteration:', iteration);
+                                            handleDeleteIteration(iteration);
+                                          }}
+                                          variant="destructive"
+                                          size="sm"
+                                        >
+                                          Delete
+                                        </Button>
                                      </div>
                                    </div>
                                  </CardContent>
-                               </Card>
-                             ))}
+                                </Card>
+                              );
+                            })}
                            </div>
               )}
             </CardContent>

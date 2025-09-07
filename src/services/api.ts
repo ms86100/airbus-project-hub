@@ -976,13 +976,16 @@ class ApiClient {
       `/capacity-service/projects/${projectId}/iterations`,
       `/capacity-service/projects/${projectId}/capacity`
     );
+    console.log('🔍 Getting iterations from endpoint:', ep);
     const res = await this.makeRequest<any>(ep, { method: 'GET' });
+    console.log('🔍 Raw iterations response:', res);
     if (!res.success) return res as any;
     
     // Local backend returns an object; prefer 'iterations' array if present
     const data = Array.isArray((res as any).data?.iterations)
       ? (res as any).data.iterations
       : ((res as any).data || []);
+    console.log('🔍 Processed iterations data:', data);
     return { success: true, data } as ApiResponse<any[]>;
   }
 
