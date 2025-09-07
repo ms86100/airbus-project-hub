@@ -363,19 +363,21 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                               <p>Team: {iteration.team_name}</p>
                               <p>Duration: {iteration.start_date} to {iteration.end_date}</p>
                             </div>
-                          </div>
-                          <Button
-                            onClick={() => openIterationMatrix({
-                              ...iteration,
-                              // @ts-ignore flag as real for matrix
-                              hasRealIteration: true,
-                              // @ts-ignore
-                              realIterationId: iteration.id,
-                            })}
-                            variant="outline"
-                          >
-                            Open Availability Matrix
-                          </Button>
+                           </div>
+                           <div className="flex gap-2">
+                             <Button
+                               onClick={() => openIterationMatrix({
+                                 ...iteration,
+                                 // @ts-ignore flag as real for matrix
+                                 hasRealIteration: true,
+                                 // @ts-ignore
+                                 realIterationId: iteration.id,
+                               })}
+                               variant="outline"
+                             >
+                               View Availability
+                             </Button>
+                           </div>
                         </div>
                       </CardContent>
                     </Card>

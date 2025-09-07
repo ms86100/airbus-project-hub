@@ -60,6 +60,7 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [availability, setAvailability] = useState<Record<string, WeeklyAvailability>>({});
   const [loading, setLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [selectedMemberWeek, setSelectedMemberWeek] = useState<{
     memberId: string;
     weekId: string;
@@ -381,11 +382,25 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
                           </div>
                         </div>
                       </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {teamMembers.map((member) => (
+                     ))}
+                     <TableHead className="text-center min-w-32">
+                       <div className="font-medium">Total</div>
+                       <div className="text-xs text-muted-foreground">Avg %</div>
+                     </TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {teamMembers.map((member) => {
+                     // Calculate total availability for this member
+                     const memberAvailabilities = weeks.map(week => {
+                       const key = getAvailabilityKey(member.id, week.id);
+                       return availability[key]?.availability_percent || 100;
+                     });
+                     const avgAvailability = memberAvailabilities.length > 0 
+                       ? Math.round(memberAvailabilities.reduce((sum, val) => sum + val, 0) / memberAvailabilities.length)
+                       : 100;
+                     
+                     return (
                     <TableRow key={member.id}>
                       <TableCell>
                         <div>
@@ -405,41 +420,56 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
                         const avail = availability[key];
                         const percent = avail?.availability_percent || 100;
                         
-                        return (
-                          <TableCell key={week.id} className="text-center">
+                         return (
+                           <TableCell key={week.id} className="text-center">
                              <div className="space-y-2">
-                               <Input
-                                 key={`${member.id}-${week.id}-${percent}`}
-                                 type="number"
-                                 min="0"
-                                 max="100"
-                                 value={percent}
-                                 onChange={(e) => updateAvailability(
-                                   member.id, 
-                                   week.id, 
-                                   parseInt(e.target.value) || 0
-                                 )}
-                                 className="w-20 h-8 text-center"
-                               />
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 onClick={() => openDailyModal(member.id, week.id)}
-                                 className="w-20 h-6 text-xs"
-                               >
-                                 Daily
-                               </Button>
-                               {avail?.calculated_days_present && (
+                               {editMode ? (
+                                 <>
+                                   <Input
+                                     key={`${member.id}-${week.id}-${percent}`}
+                                     type="number"
+                                     min="0"
+                                     max="100"
+                                     value={percent}
+                                     onChange={(e) => updateAvailability(
+                                       member.id, 
+                                       week.id, 
+                                       parseInt(e.target.value) || 0
+                                     )}
+                                     className="w-20 h-8 text-center"
+                                   />
+                                   <Button
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() => openDailyModal(member.id, week.id)}
+                                     className="w-20 h-6 text-xs"
+                                   >
+                                     Daily
+                                   </Button>
+                                 </>
+                               ) : (
+                                 <div className="text-center">
+                                   <div className="font-medium text-lg">{percent}%</div>
+                                 </div>
+                               )}
+                               {avail?.calculated_days_present !== undefined && (
                                  <div className="text-xs text-muted-foreground">
                                    {avail.calculated_days_present}/5 days
                                  </div>
                                )}
                              </div>
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  ))}
+                           </TableCell>
+                         );
+                       })}
+                       <TableCell className="text-center bg-muted/30">
+                         <div>
+                           <div className="font-semibold text-lg">{avgAvailability}%</div>
+                           <div className="text-xs text-muted-foreground">Average</div>
+                         </div>
+                       </TableCell>
+                     </TableRow>
+                     );
+                   })}
                 </TableBody>
               </Table>
             </div>
