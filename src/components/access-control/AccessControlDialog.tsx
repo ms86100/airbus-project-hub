@@ -66,8 +66,12 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
         return;
       }
 
-      setPermissions(response.data || []);
+      // Ensure we always set an array, even if the API returns something else
+      const permissionsData = response.data;
+      setPermissions(Array.isArray(permissionsData) ? permissionsData : []);
     } catch (error) {
+      console.error('Error fetching permissions:', error);
+      setPermissions([]); // Ensure permissions is always an array
       toast({
         title: "Error",
         description: "Failed to fetch permissions",
@@ -154,7 +158,7 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
     }
   };
 
-  const groupedPermissions = permissions.reduce((acc, permission) => {
+  const groupedPermissions = (permissions || []).reduce((acc, permission) => {
     if (!acc[permission.user_email!]) {
       acc[permission.user_email!] = [];
     }
