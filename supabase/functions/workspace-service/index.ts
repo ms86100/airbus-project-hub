@@ -432,7 +432,7 @@ Deno.serve(async (req) => {
       // Check if user has access to the project that owns this task
       const { data: task } = await supabase
         .from('tasks')
-        .select('project_id')
+        .select('project_id, status')
         .eq('id', taskId)
         .single();
 
@@ -466,7 +466,6 @@ Deno.serve(async (req) => {
         console.error('Error updating task:', error);
         return createErrorResponse('Failed to update task', 'UPDATE_ERROR');
       }
-
       return createSuccessResponse({ message: 'Task updated successfully', task: updatedTask });
     }
 
@@ -558,10 +557,7 @@ Deno.serve(async (req) => {
 
       const { data: history, error } = await supabase
         .from('task_status_history')
-        .select(`
-          *,
-          profiles!task_status_history_changed_by_fkey(full_name)
-        `)
+        .select('*')
         .eq('task_id', taskId)
         .order('created_at', { ascending: false });
 
@@ -570,10 +566,25 @@ Deno.serve(async (req) => {
         return createErrorResponse('Failed to fetch task history', 'FETCH_ERROR');
       }
 
-      // Transform the data to include user_name for backward compatibility
-      const transformedHistory = (history || []).map(entry => ({
+      // Enrich with user names without requiring FK
+      const entries = history || [];
+      const userIds = Array.from(new Set(entries.map((e: any) => e.changed_by).filter((v: string | null) => !!v)));
+      let namesById: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profilesList, error: profErr } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds);
+        if (profErr) {
+          console.error('Error fetching profiles for history:', profErr);
+        } else if (profilesList) {
+          namesById = Object.fromEntries(profilesList.map((p: any) => [p.id, p.full_name || p.email]));
+        }
+      }
+
+      const transformedHistory = entries.map((entry: any) => ({
         ...entry,
-        user_name: entry.profiles?.full_name || 'Unknown User'
+        user_name: namesById[entry.changed_by] || 'Unknown User',
       }));
 
       return createSuccessResponse(transformedHistory);
