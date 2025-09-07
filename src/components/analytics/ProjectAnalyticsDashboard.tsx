@@ -219,8 +219,8 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
       setAnalyticsData(emptyAnalyticsData);
       
       toast({
-        title: 'Analytics Service',
-        description: 'Unable to load analytics right now.',
+        title: 'Dashboard Service',
+        description: 'Unable to load dashboard right now.',
         variant: 'destructive'
       });
     } finally {
@@ -239,7 +239,7 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
   if (!analyticsData) {
     return (
       <div className="text-center py-8">
-        <div className="text-muted-foreground">Failed to load analytics data</div>
+        <div className="text-muted-foreground">Failed to load dashboard data</div>
       </div>
     );
   }
@@ -382,7 +382,7 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
         </Card>
       </div>
 
-      {/* Detailed Analytics Tabs */}
+      {/* Detailed Dashboard Tabs */}
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>

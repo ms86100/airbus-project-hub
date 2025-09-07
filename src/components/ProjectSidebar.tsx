@@ -33,10 +33,10 @@ const sidebarItems: Array<{
 }> = [
   { 
     id: 'overview', 
-    title: 'Analytics', 
+    title: 'Dashboard', 
     icon: BarChart3, 
     path: 'overview',
-    description: 'Project analytics and insights',
+    description: 'Project dashboard and insights',
     module: 'overview' as ModuleName
   },
   { 
