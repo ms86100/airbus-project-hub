@@ -239,6 +239,23 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
   const handleDailyUpdate = (memberId: string, weekId: string, percent: number, daysPresent: number) => {
     updateAvailability(memberId, weekId, percent);
     setSelectedMemberWeek(null);
+    
+    // Force a refresh of the availability data to reflect the changes
+    // This ensures the UI shows the updated percentages
+    const key = getAvailabilityKey(memberId, weekId);
+    const currentAvail = availability[key];
+    
+    // Update the availability with the new calculated values
+    setAvailability(prev => ({
+      ...prev,
+      [key]: {
+        ...currentAvail,
+        availability_percent: percent,
+        calculated_days_present: daysPresent,
+        // Mark as updated so UI reflects the change
+        updated_at: new Date().toISOString()
+      }
+    }));
   };
 
   if (loading && teamMembers.length === 0) {
@@ -364,28 +381,34 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
                         
                         return (
                           <TableCell key={week.id} className="text-center">
-                            <div className="space-y-2">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={percent}
-                                onChange={(e) => updateAvailability(
-                                  member.id, 
-                                  week.id, 
-                                  parseInt(e.target.value) || 0
-                                )}
-                                className="w-20 h-8 text-center"
-                              />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openDailyModal(member.id, week.id)}
-                                className="w-20 h-6 text-xs"
-                              >
-                                Daily
-                              </Button>
-                            </div>
+                             <div className="space-y-2">
+                               <Input
+                                 key={`${member.id}-${week.id}-${percent}`}
+                                 type="number"
+                                 min="0"
+                                 max="100"
+                                 value={percent}
+                                 onChange={(e) => updateAvailability(
+                                   member.id, 
+                                   week.id, 
+                                   parseInt(e.target.value) || 0
+                                 )}
+                                 className="w-20 h-8 text-center"
+                               />
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => openDailyModal(member.id, week.id)}
+                                 className="w-20 h-6 text-xs"
+                               >
+                                 Daily
+                               </Button>
+                               {avail?.calculated_days_present && (
+                                 <div className="text-xs text-muted-foreground">
+                                   {avail.calculated_days_present}/5 days
+                                 </div>
+                               )}
+                             </div>
                           </TableCell>
                         );
                       })}
