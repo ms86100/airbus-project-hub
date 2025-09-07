@@ -187,8 +187,8 @@ router.post('/register', async (req, res) => {
       // Ensure profile exists (trigger should create it; fallback here for local setups)
       await client.query(
         `INSERT INTO profiles (id, email, full_name, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (id) DO NOTHING`,
+         SELECT $1, $2, $3, $4, $5
+         WHERE NOT EXISTS (SELECT 1 FROM profiles WHERE id = $1)`,
         [userId, lowerEmail, fullName || email, new Date(), new Date()]
       );
 
@@ -242,7 +242,9 @@ router.post('/register', async (req, res) => {
     if (error.code === '23505') {
       sendResponse(res, createErrorResponse('User already exists', 'USER_EXISTS', 400));
     } else {
-      const expose = process.env.NODE_ENV !== 'production';
+      const host = (req.headers?.host || '').toLowerCase();
+      const origin = (req.headers?.origin || '').toLowerCase();
+      const expose = process.env.NODE_ENV !== 'production' || host.includes('localhost') || host.includes('127.0.0.1') || origin.includes('localhost') || origin.includes('127.0.0.1');
       const errorMsg = expose
         ? [error.detail, error.message, error.code, error.constraint, error.table].filter(Boolean).join(' | ')
         : 'Registration failed';
