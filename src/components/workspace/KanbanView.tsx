@@ -417,13 +417,6 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       },
     });
 
-    // Debug logging for the "In Progress" column
-    React.useEffect(() => {
-      if (column.key === 'in_progress') {
-        
-      }
-    }, [isOver, activeTask, column.key]);
-
     return (
       <div className="flex flex-col h-full">
         <div className={`${column.color} rounded-lg p-4 mb-4`}>
@@ -448,11 +441,10 @@ export function KanbanView({ projectId }: KanbanViewProps) {
             minHeight: '200px',
           }}
         >
-          <SortableContext items={columnTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            {columnTasks.map((task) => (
-              <DraggableTaskCard key={task.id} task={task} />
-            ))}
-          </SortableContext>
+          {/* Remove SortableContext wrapper - just render tasks directly */}
+          {columnTasks.map((task) => (
+            <DraggableTaskCard key={task.id} task={task} />
+          ))}
           
           {columnTasks.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
@@ -502,18 +494,21 @@ export function KanbanView({ projectId }: KanbanViewProps) {
 
         {/* Kanban Board */}
         <div className="flex-1 overflow-auto p-6">
-          <div className="grid grid-cols-4 gap-6 h-full">
-            {statusColumns.map((column) => {
-              const columnTasks = getTasksForStatus(column.key);
-              return (
-                <DroppableColumn 
-                  key={column.key} 
-                  column={column} 
-                  tasks={columnTasks} 
-                />
-              );
-            })}
-          </div>
+          {/* Wrap the entire board in SortableContext with all task IDs */}
+          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            <div className="grid grid-cols-4 gap-6 h-full">
+              {statusColumns.map((column) => {
+                const columnTasks = getTasksForStatus(column.key);
+                return (
+                  <DroppableColumn 
+                    key={column.key} 
+                    column={column} 
+                    tasks={columnTasks} 
+                  />
+                );
+              })}
+            </div>
+          </SortableContext>
         </div>
 
         {/* Drag Overlay */}
