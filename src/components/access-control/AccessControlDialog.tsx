@@ -25,16 +25,16 @@ interface AccessControlDialogProps {
 }
 
 const MODULES = [
-  { value: 'budget', label: 'Budget' },
-  { value: 'tasks', label: 'Tasks & Milestones' },
+  { value: 'overview', label: 'Overview' },
+  { value: 'tasks_milestones', label: 'Tasks & Milestones' },
   { value: 'roadmap', label: 'Roadmap' },
   { value: 'kanban', label: 'Kanban' },
   { value: 'stakeholders', label: 'Stakeholders' },
-  { value: 'risks', label: 'Risk Register' },
+  { value: 'risk_register', label: 'Risk Register' },
   { value: 'discussions', label: 'Discussions' },
-  { value: 'backlog', label: 'Task Backlog' },
-  { value: 'capacity', label: 'Team Capacity' },
-  { value: 'retrospective', label: 'Retrospectives' },
+  { value: 'task_backlog', label: 'Task Backlog' },
+  { value: 'team_capacity', label: 'Team Capacity' },
+  { value: 'retrospectives', label: 'Retrospectives' },
 ];
 
 export function AccessControlDialog({ projectId, trigger }: AccessControlDialogProps) {

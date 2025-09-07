@@ -363,7 +363,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
         team_name: teamData.team_name,
         description: teamData.description,
         created_at: new Date().toISOString(),
-        members: (teamData.members || []).map(member => ({
+        members: teamData.members.map(member => ({
           ...member,
           id: `member-${Date.now()}-${Math.random()}`,
           team_id: `team-${Date.now()}`
@@ -391,7 +391,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
       if (!team) return;
 
       // Add all team members to the iteration
-      for (const member of (team.members || [])) {
+      for (const member of team.members) {
         await handleMemberSubmit(null, {
           iteration_id: iterationId,
           member_name: member.member_name,
@@ -979,7 +979,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     </Button>
                   </div>
                   
-                  {(teamForm.members || []).map((member, index) => (
+                  {teamForm.members.map((member, index) => (
                     <Card key={member.id} className="p-4">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -987,7 +987,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                           <Input
                             value={member.member_name}
                             onChange={(e) => {
-                              const newMembers = [...(teamForm.members || [])];
+                              const newMembers = [...teamForm.members];
                               newMembers[index].member_name = e.target.value;
                               setTeamForm(prev => ({ ...prev, members: newMembers }));
                             }}
@@ -999,7 +999,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                           <Input
                             value={member.role}
                             onChange={(e) => {
-                              const newMembers = [...(teamForm.members || [])];
+                              const newMembers = [...teamForm.members];
                               newMembers[index].role = e.target.value;
                               setTeamForm(prev => ({ ...prev, members: newMembers }));
                             }}
@@ -1011,7 +1011,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                           <Select 
                             value={member.work_mode} 
                             onValueChange={(value) => {
-                              const newMembers = [...(teamForm.members || [])];
+                              const newMembers = [...teamForm.members];
                               newMembers[index].work_mode = value;
                               setTeamForm(prev => ({ ...prev, members: newMembers }));
                             }}
@@ -1033,7 +1033,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                               type="number"
                               value={member.default_availability_percent}
                               onChange={(e) => {
-                                const newMembers = [...(teamForm.members || [])];
+                                const newMembers = [...teamForm.members];
                                 newMembers[index].default_availability_percent = parseInt(e.target.value) || 100;
                                 setTeamForm(prev => ({ ...prev, members: newMembers }));
                               }}
@@ -1046,7 +1046,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                             variant="outline" 
                             size="sm"
                             onClick={() => {
-                              const newMembers = (teamForm.members || []).filter((_, i) => i !== index);
+                              const newMembers = teamForm.members.filter((_, i) => i !== index);
                               setTeamForm(prev => ({ ...prev, members: newMembers }));
                             }}
                           >
@@ -1117,7 +1117,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                   <div>
                     <h4 className="text-lg font-semibold mb-3">Team Members</h4>
                     <div className="grid gap-3">
-                      {(viewingIteration.members || []).map(member => (
+                      {viewingIteration.members?.map(member => (
                         <Card key={member.id} className="p-4">
                           <div className="flex items-center justify-between">
                             <div>
@@ -1146,7 +1146,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     <h4 className="text-lg font-semibold mb-3">Work Mode Distribution</h4>
                     <div className="grid grid-cols-3 gap-4">
                       {['office', 'wfh', 'hybrid'].map(mode => {
-                        const count = (viewingIteration.members || []).filter(m => m.work_mode === mode).length;
+                        const count = viewingIteration.members?.filter(m => m.work_mode === mode).length || 0;
                         return (
                           <Card key={mode} className="p-4 text-center">
                             <div className="text-2xl font-bold">{count}</div>
@@ -1375,9 +1375,9 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     </div>
                   </div>
                   
-                  {(iteration.members || []).length > 0 ? (
+                  {iteration.members && iteration.members.length > 0 ? (
                     <div className="space-y-4">
-                      {(iteration.members || []).map(member => (
+                      {iteration.members.map(member => (
                         <Card key={member.id} className="p-4">
                           <div className="flex items-center justify-between">
                             <div>
@@ -1445,12 +1445,12 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     <h3 className="text-lg font-semibold">{team.team_name}</h3>
                     <p className="text-sm text-muted-foreground">{team.description}</p>
                   </div>
-                  <Badge variant="outline">{(team.members || []).length} members</Badge>
+                  <Badge variant="outline">{team.members.length} members</Badge>
                 </div>
                 
-                {(team.members || []).length > 0 ? (
+                {team.members.length > 0 ? (
                   <div className="grid gap-3">
-                    {(team.members || []).map(member => (
+                    {team.members.map(member => (
                       <Card key={member.id} className="p-3">
                         <div className="flex items-center justify-between">
                           <div>
