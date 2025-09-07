@@ -255,7 +255,17 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
   const createCategory = async () => {
     try {
-      
+      // Ensure a project budget exists before creating a category
+      if (!budget || !budget.id) {
+        console.log('🧾 No project budget found, creating a default budget before adding category');
+        await budgetApi.createOrUpdateBudget(projectId, {
+          currency: budgetForm.currency || 'INR',
+          total_budget_allocated: parseFloat(budgetForm.total_budget_allocated) || 0,
+          total_budget_received: parseFloat(budgetForm.total_budget_received) || 0,
+          start_date: budgetForm.start_date || null,
+          end_date: budgetForm.end_date || null,
+        });
+      }
 
       await budgetApi.createBudgetCategory(projectId, {
         budget_type_code: categoryForm.budget_type_code,
@@ -278,11 +288,14 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
         comments: '',
       });
       fetchBudgetData();
-    } catch (error) {
-      console.error('❌ Error creating category:', error);
+    } catch (error: any) {
+      console.error('❌ Error creating category:', {
+        message: error?.message,
+        stack: error?.stack
+      });
       toast({
         title: "Error",
-        description: "Failed to create category",
+        description: error?.message || "Failed to create category",
         variant: "destructive",
       });
     }
