@@ -372,7 +372,7 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
     const newMilestoneId = over.id as string;
     
     try {
-      const response = await apiClient.updateTask(taskId, { milestone_id: newMilestoneId });
+      const response = await apiClient.updateTask(taskId, { milestoneId: newMilestoneId });
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to move task');
@@ -442,8 +442,8 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
         description: editFormData.description?.trim() || undefined,
         status: editFormData.status,
         priority: editFormData.priority,
-        due_date: editFormData.due_date || undefined,
-        owner_id: editFormData.owner_id || undefined,
+        dueDate: editFormData.due_date || undefined,
+        ownerId: editFormData.owner_id || undefined,
       };
       console.log('Sending update payload:', payload);
       const response = await apiClient.updateTask(editingTask.id, payload);

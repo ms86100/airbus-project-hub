@@ -116,8 +116,8 @@ export function TaskCard({ task, projectId, onTaskUpdate }: TaskCardProps) {
         description: formData.description || undefined,
         status: formData.status,
         priority: formData.priority,
-        due_date: formData.due_date || undefined,
-        owner_id: formData.owner_id || undefined
+        dueDate: formData.due_date || undefined,
+        ownerId: formData.owner_id || undefined
       });
 
       if (!response.success) {
