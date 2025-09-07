@@ -33,10 +33,10 @@ const sidebarItems: Array<{
 }> = [
   { 
     id: 'overview', 
-    title: 'Dashboard', 
+    title: 'Analytics', 
     icon: BarChart3, 
     path: 'overview',
-    description: 'Project dashboard and insights',
+    description: 'Project analytics and insights',
     module: 'overview' as ModuleName
   },
   { 
@@ -191,13 +191,13 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
                     return (
                       <SidebarMenuItem key={item.id}>
                         <SidebarMenuButton asChild className="w-full">
-                            <NavLink 
-                              to={`/project/${projectId}/${item.path}`} 
-                              className={`flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                itemIsActive 
-                                  ? "bg-primary text-primary-foreground shadow-sm" 
-                                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                              }`}
+                          <NavLink 
+                            to={`/project/${projectId}/${item.path}`} 
+                            className={`flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                              itemIsActive 
+                                ? "bg-primary text-primary-foreground shadow-sm" 
+                                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                            }`}
                           >
                             <item.icon className="h-4 w-4 flex-shrink-0" />
                             <span className="truncate">{item.title}</span>
