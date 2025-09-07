@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Initialize auth state from localStorage
+  // Initialize auth state from localStorage and sync with Supabase
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -108,6 +108,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const sessionData = JSON.parse(storedSession);
             const userData = JSON.parse(storedUser);
+            
+            // Sync with Supabase client if session contains Supabase tokens
+            if (sessionData.access_token && sessionData.refresh_token) {
+              const { supabase } = await import('@/integrations/supabase/client');
+              
+              // Set the session in Supabase client
+              await supabase.auth.setSession({
+                access_token: sessionData.access_token,
+                refresh_token: sessionData.refresh_token
+              });
+            }
             
             setSession(sessionData);
             setUser(userData);
@@ -149,6 +160,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const sessionData = response.data.session;
         const userData = response.data.user;
         
+        // Sync with Supabase client if session contains Supabase tokens
+        if (sessionData.access_token && sessionData.refresh_token) {
+          const { supabase } = await import('@/integrations/supabase/client');
+          
+          // Set the session in Supabase client
+          await supabase.auth.setSession({
+            access_token: sessionData.access_token,
+            refresh_token: sessionData.refresh_token
+          });
+        }
+        
         setSession(sessionData);
         setUser(userData);
         
@@ -183,16 +205,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Update local state with the response
       if (response.data?.session) {
-        setSession(response.data.session);
-        setUser(response.data.user);
+        const sessionData = response.data.session;
+        const userData = response.data.user;
+        
+        // Sync with Supabase client if session contains Supabase tokens
+        if (sessionData.access_token && sessionData.refresh_token) {
+          const { supabase } = await import('@/integrations/supabase/client');
+          
+          // Set the session in Supabase client
+          await supabase.auth.setSession({
+            access_token: sessionData.access_token,
+            refresh_token: sessionData.refresh_token
+          });
+        }
+        
+        setSession(sessionData);
+        setUser(userData);
         
         // Store session in localStorage
-        localStorage.setItem('auth_session', JSON.stringify(response.data.session));
-        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+        localStorage.setItem('auth_session', JSON.stringify(sessionData));
+        localStorage.setItem('auth_user', JSON.stringify(userData));
         
         // Fetch user role
-        if (response.data.user?.id) {
-          fetchUserRole(response.data.user.id);
+        if (userData?.id) {
+          fetchUserRole(userData.id);
         }
       }
 
@@ -210,6 +246,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await apiClient.logout();
       } catch (err) {
         console.log('API logout failed, continuing with cleanup');
+      }
+      
+      // Sign out from Supabase client as well
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.log('Supabase logout failed, continuing with cleanup');
       }
       
       // Clean up local state
