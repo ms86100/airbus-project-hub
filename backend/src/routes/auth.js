@@ -168,33 +168,17 @@ router.post('/register', async (req, res) => {
         [userId, lowerEmail, hashedPassword, new Date(), new Date(), new Date()]
       );
 
-      // Attempt to populate extended auth.users columns when present (Supabase-like schema)
-      await client.query(`
-        DO $$
-        BEGIN
-          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='auth' AND table_name='users' AND column_name='aud') THEN
-            UPDATE auth.users SET aud = 'authenticated' WHERE id = $1;
-          END IF;
-          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='auth' AND table_name='users' AND column_name='role') THEN
-            UPDATE auth.users SET role = 'authenticated' WHERE id = $1;
-          END IF;
-          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='auth' AND table_name='users' AND column_name='raw_app_meta_data') THEN
-            UPDATE auth.users SET raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb WHERE id = $1;
-          END IF;
-          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='auth' AND table_name='users' AND column_name='raw_user_meta_data') THEN
-            UPDATE auth.users SET raw_user_meta_data = jsonb_build_object('full_name', $2) WHERE id = $1;
-          END IF;
-          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='auth' AND table_name='users' AND column_name='confirmed_at') THEN
-            UPDATE auth.users SET confirmed_at = COALESCE(confirmed_at, NOW()) WHERE id = $1;
-          END IF;
-          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='auth' AND table_name='users' AND column_name='is_sso_user') THEN
-            UPDATE auth.users SET is_sso_user = FALSE WHERE id = $1;
-          END IF;
-          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='auth' AND table_name='users' AND column_name='is_anonymous') THEN
-            UPDATE auth.users SET is_anonymous = FALSE WHERE id = $1;
-          END IF;
-        END $$;
-      `, [userId, fullName || email]);
+      // Populate extended auth.users columns when present (best-effort, ignore if columns are missing)
+      const safeUpdate = async (sql, params) => {
+        try { await client.query(sql, params); } catch (_) { /* ignore missing columns */ }
+      };
+      await safeUpdate('UPDATE auth.users SET aud = $2 WHERE id = $1', [userId, 'authenticated']);
+      await safeUpdate('UPDATE auth.users SET role = $2 WHERE id = $1', [userId, 'authenticated']);
+      await safeUpdate('UPDATE auth.users SET raw_app_meta_data = $2::jsonb WHERE id = $1', [userId, JSON.stringify({ provider: 'email', providers: ['email'] })]);
+      await safeUpdate('UPDATE auth.users SET raw_user_meta_data = jsonb_build_object(\'full_name\', $2) WHERE id = $1', [userId, fullName || email]);
+      await safeUpdate('UPDATE auth.users SET confirmed_at = COALESCE(confirmed_at, NOW()) WHERE id = $1', [userId]);
+      await safeUpdate('UPDATE auth.users SET is_sso_user = FALSE WHERE id = $1', [userId]);
+      await safeUpdate('UPDATE auth.users SET is_anonymous = FALSE WHERE id = $1', [userId]);
       
       // Do NOT insert into profiles here; handle_new_user trigger will create it
       // Assign default role if not already present
