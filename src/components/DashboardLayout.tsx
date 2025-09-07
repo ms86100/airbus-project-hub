@@ -72,7 +72,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full border border-border shadow-sm hover:shadow-md hover:bg-surface-alt">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src="/placeholder-avatar.jpg" alt={user?.email} />
+                        <AvatarImage src="/placeholder.svg" alt={user?.email} />
                         <AvatarFallback className="bg-gradient-primary text-brand-on-primary font-semibold text-sm">
                           {user?.email?.charAt(0).toUpperCase() || 'U'}
                         </AvatarFallback>

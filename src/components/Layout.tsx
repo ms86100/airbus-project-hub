@@ -64,7 +64,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-12 w-12 rounded-full border border-border shadow-sm hover:shadow-card">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src="/placeholder-avatar.jpg" alt={user?.email} />
+                    <AvatarImage src="/placeholder.svg" alt={user?.email} />
                     <AvatarFallback className="bg-gradient-primary text-brand-on-primary font-semibold">
                       {user?.email?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>

@@ -16,28 +16,30 @@ class BudgetApiService {
       'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q'
     };
 
-    // Check if supabase client is available
-    if (!supabase) {
-      try {
-        const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
-        if (storedAuth) {
-          const session = JSON.parse(storedAuth);
-          const token = session?.access_token || session?.token || session?.accessToken;
-          if (token) headers['Authorization'] = `Bearer ${token}`;
+    // Prefer app's session token from localStorage (auth-service)
+    try {
+      const storedAuth = localStorage.getItem('auth_session') || localStorage.getItem('app_session');
+      if (storedAuth) {
+        const session = JSON.parse(storedAuth);
+        const token = session?.access_token || session?.token || session?.accessToken;
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+          return headers;
         }
-      } catch (e) {
-        console.warn('Failed to parse local session for token');
       }
-      return headers;
+    } catch (e) {
+      console.warn('Failed to parse local session for token');
     }
-    
-    const session = await supabase.auth.getSession();
-    const token = session.data.session?.access_token;
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
+
+    // Fallback to Supabase session if available
+    try {
+      if (supabase) {
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      }
+    } catch {}
+
     return headers;
   }
 

@@ -510,9 +510,8 @@ class ApiClient {
     });
   }
 
-  // User Service Methods
   async getUserRole(userId: string): Promise<ApiResponse<{ role: string | null }>> {
-    return this.makeRequest(`/users/${userId}/role`, { method: 'GET' });
+    return this.makeRequest(`/auth-service/users/${userId}/role`, { method: 'GET' });
   }
 
   // Access Control Service Methods (consolidated)
@@ -608,7 +607,7 @@ class ApiClient {
 
   // Profile management
   async getProfile(userId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/auth-service/profiles/${userId}`);
+    return this.makeRequest(`/auth-service/users/${userId}/profile`);
   }
 
   // Capacity Service Methods (extended)  
