@@ -53,6 +53,8 @@ export function AppSidebar() {
   const { selectedProjectId, isProjectSelected } = useProjectContext()
   const navigate = useNavigate()
   
+  console.log('🔍 AppSidebar - isProjectSelected:', isProjectSelected, 'selectedProjectId:', selectedProjectId, 'currentPath:', currentPath);
+  
   const navigation = isProjectSelected && selectedProjectId 
     ? getProjectNavigation(selectedProjectId) 
     : dashboardNavigation

@@ -19,10 +19,14 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
 
   // Auto-detect project from URL
   useEffect(() => {
+    console.log('🔍 ProjectContext - Current path:', location.pathname);
     const projectMatch = location.pathname.match(/\/project\/([^\/]+)/);
+    console.log('🔍 ProjectContext - Project match:', projectMatch);
     if (projectMatch) {
+      console.log('🔍 ProjectContext - Setting project ID:', projectMatch[1]);
       setSelectedProjectId(projectMatch[1]);
     } else if (!location.pathname.startsWith('/project/')) {
+      console.log('🔍 ProjectContext - Clearing project ID');
       setSelectedProjectId(null);
     }
   }, [location.pathname]);
