@@ -80,19 +80,9 @@ const ProjectOverview = () => {
   const [loading, setLoading] = useState(true);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
-  // Define module tabs with their permissions
+  // Define module tabs with their permissions - only show Overview/Analytics
   const moduleTabsConfig = [
     { value: 'overview', label: 'Overview', module: 'overview' as ModuleName },
-    { value: 'budget', label: 'Budget', module: 'budget' as ModuleName },
-    { value: 'tasks', label: 'Tasks & Milestones', module: 'tasks_milestones' as ModuleName },
-    { value: 'roadmap', label: 'Roadmap', module: 'roadmap' as ModuleName },
-    { value: 'kanban', label: 'Kanban', module: 'kanban' as ModuleName },
-    { value: 'stakeholders', label: 'Stakeholders', module: 'stakeholders' as ModuleName },
-    { value: 'risks', label: 'Risk Register', module: 'risk_register' as ModuleName },
-    { value: 'discussions', label: 'Discussions', module: 'discussions' as ModuleName },
-    { value: 'backlog', label: 'Task Backlog', module: 'task_backlog' as ModuleName },
-    { value: 'capacity', label: 'Team Capacity', module: 'team_capacity' as ModuleName },
-    { value: 'retrospectives', label: 'Retrospectives', module: 'retrospectives' as ModuleName },
   ];
 
   // Filter tabs based on permissions
@@ -307,85 +297,6 @@ const ProjectOverview = () => {
                 </TabsContent>
               )}
 
-              {canRead('tasks_milestones') && (
-                <TabsContent value="tasks" className="p-0">
-                  <div className="h-[700px] w-full overflow-y-auto">
-                    <StatusManagementView projectId={id!} />
-                  </div>
-                </TabsContent>
-              )}
-
-              {canRead('roadmap') && (
-                <TabsContent value="roadmap" className="p-0">
-                  <div className="h-[700px] w-full">
-                    <RoadmapView />
-                  </div>
-                </TabsContent>
-              )}
-
-              {canRead('kanban') && (
-                <TabsContent value="kanban" className="p-0">
-                  <div className="h-[700px] w-full">
-                    <KanbanView projectId={id!} />
-                  </div>
-                </TabsContent>
-              )}
-
-              {canRead('stakeholders') && (
-                <TabsContent value="stakeholders" className="p-0">
-                  <div className="h-[700px] w-full">
-                    <StakeholdersManagement projectId={id!} />
-                  </div>
-                </TabsContent>
-              )}
-
-              {canRead('risk_register') && (
-                <TabsContent value="risks" className="p-0">
-                  <div className="h-[700px] w-full overflow-y-auto">
-                    <RiskRegisterView projectId={id!} />
-                  </div>
-                </TabsContent>
-              )}
-
-              {canRead('discussions') && (
-                <TabsContent value="discussions" className="p-0">
-                  <div className="h-[700px] w-full overflow-y-auto">
-                    <DiscussionLog projectId={id!} projectName={project.name} />
-                  </div>
-                </TabsContent>
-              )}
-
-              {canRead('task_backlog') && (
-                <TabsContent value="backlog" className="p-0">
-                  <div className="h-[700px] w-full overflow-y-auto">
-                    <TaskBacklog projectId={id!} />
-                  </div>
-                </TabsContent>
-              )}
-
-              {canRead('team_capacity') && (
-                <TabsContent value="capacity" className="p-0">
-                  <div className="h-[700px] w-full overflow-y-auto">
-                    <TeamCapacityTracker projectId={id!} />
-                  </div>
-                </TabsContent>
-              )}
-
-              {canRead('retrospectives') && (
-                <TabsContent value="retrospectives" className="p-0">
-                  <div className="h-[700px] w-full overflow-y-auto">
-                    <RetrospectiveView projectId={id!} />
-                  </div>
-                </TabsContent>
-              )}
-
-              {canRead('budget') && (
-                <TabsContent value="budget" className="p-0">
-                  <div className="h-[700px] w-full overflow-y-auto">
-                    <ProjectBudgetManagement projectId={id!} />
-                  </div>
-                </TabsContent>
-              )}
             </Tabs>
           </div>
         </div>

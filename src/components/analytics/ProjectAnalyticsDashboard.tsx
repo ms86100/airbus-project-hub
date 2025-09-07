@@ -101,12 +101,16 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
       setLoading(true);
       
       // Fetch analytics via API client (handles auth)
+      console.log('Fetching analytics for project:', projectId);
       const resp = await apiClient.getProjectOverviewAnalytics(projectId);
+      console.log('Analytics API response:', resp);
+      
       if (!resp.success) {
         throw new Error(resp.error || 'Analytics request failed');
       }
 
       const apiData = resp.data;
+      console.log('Analytics data received:', apiData);
 
       // Build analytics data from real API response with "not available" fallbacks
       const finalAnalyticsData: ProjectAnalyticsData = {
