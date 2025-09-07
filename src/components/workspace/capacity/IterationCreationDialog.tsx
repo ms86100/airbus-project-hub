@@ -72,7 +72,7 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
       const startDate = new Date(iterationForm.start_date);
       const endDate = new Date(iterationForm.end_date);
       const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Include both start and end dates
       const weeks = Math.ceil(diffDays / 7);
       setCalculatedWeeks(weeks);
     } else {

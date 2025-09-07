@@ -1008,6 +1008,12 @@ class ApiClient {
     });
   }
 
+  async deleteIteration(iterationId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/capacity-service/capacity/${iterationId}?type=iteration`, {
+      method: 'DELETE'
+    });
+  }
+
   async getIterationDetails(iterationId: string): Promise<ApiResponse<any>> {
     if (this.isLocalBackend) {
       // Not supported on local backend; return basic structure

@@ -49,6 +49,10 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   const [iterationDialogOpen, setIterationDialogOpen] = useState(false);
   const [trackerDialogOpen, setTrackerDialogOpen] = useState(false);
   const [newlyCreatedTeamId, setNewlyCreatedTeamId] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
+  const [iterationDeleteConfirmOpen, setIterationDeleteConfirmOpen] = useState(false);
+  const [iterationToDelete, setIterationToDelete] = useState<Iteration | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -119,9 +123,6 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
     toast({ title: 'Info', description: 'Team editing feature coming soon' });
   };
 
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
-
   const handleDeleteTeam = (team: Team) => {
     setTeamToDelete(team);
     setDeleteConfirmOpen(true);
@@ -144,6 +145,31 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
     } finally {
       setDeleteConfirmOpen(false);
       setTeamToDelete(null);
+    }
+  };
+
+  const handleDeleteIteration = (iteration: Iteration) => {
+    setIterationToDelete(iteration);
+    setIterationDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteIteration = async () => {
+    if (!iterationToDelete) return;
+    
+    try {
+      const response = await apiClient.deleteIteration(iterationToDelete.id);
+      if (response.success) {
+        await fetchIterations(); // Refresh iterations list
+        toast({ title: 'Success', description: 'Iteration deleted successfully' });
+      } else {
+        throw new Error(response.error || 'Failed to delete iteration');
+      }
+    } catch (error) {
+      console.error('Error deleting iteration:', error);
+      toast({ title: 'Error', description: 'Failed to delete iteration', variant: 'destructive' });
+    } finally {
+      setIterationDeleteConfirmOpen(false);
+      setIterationToDelete(null);
     }
   };
 
@@ -339,7 +365,34 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleEditTeam(team)}
+                            onClick={() => {
+                              console.log('🔍 Edit Availability clicked for team:', team.team_name);
+                              
+                              // Check if team has existing iteration
+                              const teamIteration = iterations.find(it => it.team_id === team.id);
+                              
+                              // ALWAYS create a temporary iteration for consistent UI behavior
+                              const tempIteration = {
+                                id: `temp-${team.id}`,
+                                name: `${team.team_name} Availability`,
+                                type: 'capacity_tracker' as const,
+                                project_id: projectId,
+                                team_id: team.id,
+                                team_name: team.team_name,
+                                start_date: new Date().toISOString().split('T')[0],
+                                end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                weeks_count: 3,
+                                created_at: new Date().toISOString(),
+                                // Store the real iteration ID for API calls if it exists
+                                hasRealIteration: !!teamIteration,
+                                realIterationId: teamIteration?.id,
+                                // @ts-ignore - force edit mode
+                                viewMode: false
+                              };
+                              
+                              console.log('✅ Setting temp iteration for availability matrix:', tempIteration);
+                              setSelectedIteration(tempIteration);
+                            }}
                           >
                             Edit
                           </Button>
@@ -406,10 +459,10 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                  <div className="flex items-center justify-between">
                                    <div className="flex-1">
                                      <div className="flex items-center gap-3 mb-2">
-                                       <h3 className="font-semibold">
-                                         {iteration.name} ({iteration.weeks_count} weeks)
-                                       </h3>
-                                       <Badge variant="outline">{iteration.type}</Badge>
+                                        <h3 className="font-semibold">
+                                          {iteration.name}
+                                        </h3>
+                                        <Badge variant="outline">{iteration.weeks_count} weeks</Badge>
                                      </div>
                                      <div className="text-sm text-muted-foreground space-y-1">
                                        <p>Team: {iteration.team_name}</p>
@@ -424,19 +477,26 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                         <Users className="h-4 w-4 mr-2" />
                                         View Availability
                                       </Button>
-                                      <Button
-                                        onClick={() => handleEditAvailability(iteration)}
-                                        variant="outline"
-                                      >
-                                        <Users className="h-4 w-4 mr-2" />
-                                        Edit Availability
-                                      </Button>
-                                    </div>
-                                 </div>
-                               </CardContent>
-                             </Card>
-                           ))}
-                </div>
+                                       <Button
+                                         onClick={() => handleEditAvailability(iteration)}
+                                         variant="outline"
+                                       >
+                                         <Users className="h-4 w-4 mr-2" />
+                                         Edit Availability
+                                       </Button>
+                                       <Button
+                                         onClick={() => handleDeleteIteration(iteration)}
+                                         variant="destructive"
+                                         size="sm"
+                                       >
+                                         Delete
+                                       </Button>
+                                     </div>
+                                   </div>
+                                 </CardContent>
+                               </Card>
+                             ))}
+                           </div>
               )}
             </CardContent>
           </Card>
@@ -503,6 +563,23 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteTeam} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={iterationDeleteConfirmOpen} onOpenChange={setIterationDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Iteration</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{iterationToDelete?.name}"? This action cannot be undone and will remove all associated availability data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteIteration} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
