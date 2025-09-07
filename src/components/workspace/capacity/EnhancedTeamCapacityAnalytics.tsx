@@ -239,8 +239,8 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
 
   // Generate charts data
   const iterationComparison = iterationData.map(iter => ({
-    name: iter.name,
-    team: iter.team_name,
+    name: iter.name || 'Unknown Iteration',
+    team: iter.team_name || 'Unknown Team',
     capacity: Math.round(iter.avg_availability),
     members: iter.total_members,
     weeks: iter.weeks.length,
@@ -432,14 +432,14 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie
-                      data={iterationComparison}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="members"
-                      label={({name, members}) => `${name}: ${members}`}
+                     <Pie
+                       data={iterationComparison}
+                       cx="50%"
+                       cy="50%"
+                       outerRadius={80}
+                       fill="#8884d8"
+                       dataKey="members"
+                       label={({name, members}) => `${name || 'Unknown'}: ${members || 0}`}
                     >
                       {iterationComparison.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

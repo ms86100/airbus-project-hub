@@ -276,7 +276,10 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No budget data available</p>
+                  <>
+                    <p className="text-2xl font-bold text-green-700">$0</p>
+                    <p className="text-xs text-green-500">No budget set</p>
+                  </>
                 )}
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
@@ -300,7 +303,10 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Team data is not available</p>
+                  <>
+                    <p className="text-2xl font-bold text-purple-700">0%</p>
+                    <p className="text-xs text-purple-500">No team data</p>
+                  </>
                 )}
               </div>
               <Users className="h-8 w-8 text-purple-500" />
@@ -324,7 +330,10 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Task data is not available</p>
+                  <>
+                    <p className="text-2xl font-bold text-amber-700">0%</p>
+                    <p className="text-xs text-amber-500">No tasks created</p>
+                  </>
                 )}
               </div>
               <CheckCircle className="h-8 w-8 text-amber-500" />
