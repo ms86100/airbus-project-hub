@@ -71,6 +71,7 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
 
   const fetchStakeholders = async () => {
     try {
+      console.log('fetchStakeholders called for project:', projectId);
       setLoading(true);
       const response = await apiClient.getStakeholders(projectId);
       
@@ -236,9 +237,15 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
             <h1 className="text-2xl font-semibold text-foreground">Stakeholders</h1>
             <p className="text-sm text-muted-foreground">Manage project stakeholders and team members</p>
           </div>
-          <Dialog open={isAddingStakeholder} onOpenChange={setIsAddingStakeholder}>
+          <Dialog open={isAddingStakeholder} onOpenChange={(open) => {
+            console.log('Dialog onOpenChange:', open);
+            setIsAddingStakeholder(open);
+          }}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={() => {
+                console.log('Add stakeholder button clicked');
+                setIsAddingStakeholder(true);
+              }}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add Stakeholder
               </Button>
