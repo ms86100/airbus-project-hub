@@ -166,8 +166,8 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
           </Button>
         </div>
 
-        {/* Main Navigation Section */}
-        <div className="py-6">
+        {/* Main Navigation Section - Hidden per user request */}
+        <div className="py-6" style={{ display: 'none' }}>
           <SidebarGroup>
             <SidebarGroupLabel className="px-6 mb-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Main Navigation
