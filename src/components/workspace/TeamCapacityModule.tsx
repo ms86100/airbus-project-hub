@@ -227,12 +227,14 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   };
 
   if (selectedIteration) {
-    console.log('🎯 Rendering availability component with iteration:', selectedIteration);
+    console.log('🚨 RENDERING AvailabilityMatrix with selectedIteration:', selectedIteration);
     
     // @ts-ignore - check for view mode
     const isViewMode = selectedIteration.viewMode === true;
+    console.log('🚨 isViewMode:', isViewMode);
     
     if (isViewMode) {
+      console.log('🚨 Rendering AvailabilityView');
       return (
         <AvailabilityView
           iteration={selectedIteration}
@@ -252,6 +254,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
       );
     }
     
+    console.log('🚨 Rendering AvailabilityMatrix in EDIT mode');
     return (
       <AvailabilityMatrix
         iteration={selectedIteration}
@@ -388,34 +391,36 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              console.log('🔍 Edit Availability clicked for team:', team.team_name);
-                              
-                              // Check if team has existing iteration
-                              const teamIteration = iterations.find(it => it.team_id === team.id);
-                              
-                              // ALWAYS create a temporary iteration for consistent UI behavior
-                              const tempIteration = {
-                                id: `temp-${team.id}`,
-                                name: `${team.team_name} Availability`,
-                                type: 'capacity_tracker' as const,
-                                project_id: projectId,
-                                team_id: team.id,
-                                team_name: team.team_name,
-                                start_date: new Date().toISOString().split('T')[0],
-                                end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                weeks_count: 3,
-                                created_at: new Date().toISOString(),
-                                // Store the real iteration ID for API calls if it exists
-                                hasRealIteration: !!teamIteration,
-                                realIterationId: teamIteration?.id,
-                                // @ts-ignore - force edit mode
-                                viewMode: false
-                              };
-                              
-                              console.log('✅ Setting temp iteration for availability matrix:', tempIteration);
-                              setSelectedIteration(tempIteration);
-                            }}
+                             onClick={() => {
+                               console.log('🚨 TEAM EDIT BUTTON CLICKED for team:', team.team_name);
+                               console.log('🚨 Current selectedIteration:', selectedIteration);
+                               
+                               // Check if team has existing iteration
+                               const teamIteration = iterations.find(it => it.team_id === team.id);
+                               
+                               // ALWAYS create a temporary iteration for consistent UI behavior
+                               const tempIteration = {
+                                 id: `temp-${team.id}`,
+                                 name: `${team.team_name} Availability`,
+                                 type: 'capacity_tracker' as const,
+                                 project_id: projectId,
+                                 team_id: team.id,
+                                 team_name: team.team_name,
+                                 start_date: new Date().toISOString().split('T')[0],
+                                 end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                 weeks_count: 3,
+                                 created_at: new Date().toISOString(),
+                                 // Store the real iteration ID for API calls if it exists
+                                 hasRealIteration: !!teamIteration,
+                                 realIterationId: teamIteration?.id,
+                                 // @ts-ignore - force edit mode
+                                 viewMode: false
+                               };
+                               
+                               console.log('🚨 Setting temp iteration for availability matrix:', tempIteration);
+                               setSelectedIteration(tempIteration);
+                               console.log('🚨 selectedIteration should now be set!');
+                             }}
                           >
                             Edit
                           </Button>
@@ -506,10 +511,12 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                          View Availability
                                        </Button>
                                         <Button
-                                          onClick={() => {
-                                            console.log('✏️ Edit Availability clicked for iteration:', iteration);
-                                            handleEditAvailability(iteration);
-                                          }}
+                                           onClick={() => {
+                                             console.log('🚨 ITERATION EDIT AVAILABILITY BUTTON CLICKED for iteration:', iteration);
+                                             console.log('🚨 Current selectedIteration:', selectedIteration);
+                                             handleEditAvailability(iteration);
+                                             console.log('🚨 handleEditAvailability called!');
+                                           }}
                                           variant="outline"
                                         >
                                           <Users className="h-4 w-4 mr-2" />
