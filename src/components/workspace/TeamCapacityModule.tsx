@@ -10,7 +10,7 @@ import { apiClient } from '@/services/api';
 import { TeamCreationDialog } from './capacity/TeamCreationDialog';
 import { IterationCreationDialog } from './capacity/IterationCreationDialog';
 import { AvailabilityMatrix } from './capacity/AvailabilityMatrix';
-import { TeamCapacityAnalytics } from './capacity/TeamCapacityAnalytics';
+import { EnhancedTeamCapacityAnalytics } from './capacity/EnhancedTeamCapacityAnalytics';
 import { TeamCapacityTrackerDialog } from './capacity/TeamCapacityTrackerDialog';
 
 interface Team {
@@ -387,11 +387,11 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <TeamCapacityAnalytics
-            projectId={projectId}
-            teams={teams}
-            iterations={iterations}
-          />
+            <EnhancedTeamCapacityAnalytics 
+              projectId={projectId}
+              teams={teams}
+              iterations={iterations}
+            />
         </TabsContent>
       </Tabs>
 

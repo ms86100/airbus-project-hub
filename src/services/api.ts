@@ -1028,20 +1028,30 @@ class ApiClient {
   }
 
   async getDailyAttendance(availabilityId: string): Promise<ApiResponse<any[]>> {
-    if (this.isLocalBackend) {
-      return { success: false, error: 'Not supported on local backend' } as ApiResponse<any[]>;
-    }
-    return this.makeRequest(`/capacity-service/availability/${availabilityId}/daily`, { method: 'GET' });
+    const ep = this.resolveEndpoint(
+      `/capacity-service/availability/${availabilityId}/daily`,
+      `/capacity-service/availability/${availabilityId}/daily`
+    );
+    return this.makeRequest(ep, { method: 'GET' });
   }
 
   async saveDailyAttendance(memberId: string, weekId: string, attendanceData: any[]): Promise<ApiResponse<any>> {
-    if (this.isLocalBackend) {
-      return { success: false, error: 'Not supported on local backend' } as ApiResponse<any>;
-    }
-    return this.makeRequest(`/capacity-service/members/${memberId}/weeks/${weekId}/attendance`, {
+    const ep = this.resolveEndpoint(
+      `/capacity-service/members/${memberId}/weeks/${weekId}/attendance`,
+      `/capacity-service/members/${memberId}/weeks/${weekId}/attendance`
+    );
+    return this.makeRequest(ep, {
       method: 'POST',
       body: JSON.stringify({ attendance: attendanceData }),
     });
+  }
+
+  async getIterationAnalytics(iterationId: string): Promise<ApiResponse<any>> {
+    const ep = this.resolveEndpoint(
+      `/capacity-service/iterations/${iterationId}/analytics`,
+      `/capacity-service/iterations/${iterationId}/analytics`
+    );
+    return this.makeRequest(ep, { method: 'GET' });
   }
 }
 
