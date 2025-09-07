@@ -1117,7 +1117,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                   <div>
                     <h4 className="text-lg font-semibold mb-3">Team Members</h4>
                     <div className="grid gap-3">
-                      {viewingIteration.members?.map(member => (
+                      {(viewingIteration.members || []).map(member => (
                         <Card key={member.id} className="p-4">
                           <div className="flex items-center justify-between">
                             <div>
@@ -1146,7 +1146,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                     <h4 className="text-lg font-semibold mb-3">Work Mode Distribution</h4>
                     <div className="grid grid-cols-3 gap-4">
                       {['office', 'wfh', 'hybrid'].map(mode => {
-                        const count = viewingIteration.members?.filter(m => m.work_mode === mode).length || 0;
+                        const count = (viewingIteration.members || []).filter(m => m.work_mode === mode).length;
                         return (
                           <Card key={mode} className="p-4 text-center">
                             <div className="text-2xl font-bold">{count}</div>
@@ -1377,7 +1377,7 @@ export function TeamCapacityTracker({ projectId }: TeamCapacityTrackerProps) {
                   
                   {iteration.members && iteration.members.length > 0 ? (
                     <div className="space-y-4">
-                      {iteration.members.map(member => (
+                      {(iteration.members || []).map(member => (
                         <Card key={member.id} className="p-4">
                           <div className="flex items-center justify-between">
                             <div>
