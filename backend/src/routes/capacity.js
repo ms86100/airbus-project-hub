@@ -443,4 +443,83 @@ router.post('/iterations/:iterationId/availability', verifyToken, async (req, re
   }
 });
 
+// GET /capacity-service/availability/:availabilityId/daily
+router.get('/availability/:availabilityId/daily', verifyToken, async (req, res) => {
+  try {
+    const { availabilityId } = req.params;
+    
+    // Create table if not exists
+    await query(`
+      CREATE TABLE IF NOT EXISTS public.daily_attendance (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        availability_id VARCHAR(255) NOT NULL,
+        date DATE NOT NULL,
+        day_of_week VARCHAR(20) NOT NULL,
+        status CHAR(1) NOT NULL CHECK (status IN ('P', 'A')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE(availability_id, date)
+      );
+    `);
+    
+    const attendanceResult = await query(
+      'SELECT date, day_of_week, status FROM public.daily_attendance WHERE availability_id = $1 ORDER BY date',
+      [availabilityId]
+    );
+    
+    sendResponse(res, createSuccessResponse(attendanceResult.rows));
+  } catch (error) {
+    console.error('Get daily attendance error:', error);
+    sendResponse(res, createErrorResponse('Failed to fetch daily attendance', 'FETCH_ERROR', 500));
+  }
+});
+
+// POST /capacity-service/members/:memberId/weeks/:weekId/attendance
+router.post('/members/:memberId/weeks/:weekId/attendance', verifyToken, async (req, res) => {
+  try {
+    const { memberId, weekId } = req.params;
+    const { attendance } = req.body;
+    
+    if (!Array.isArray(attendance)) {
+      return sendResponse(res, createErrorResponse('Attendance data must be an array', 'INVALID_DATA', 400));
+    }
+    
+    // Create table if not exists
+    await query(`
+      CREATE TABLE IF NOT EXISTS public.daily_attendance (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        availability_id VARCHAR(255) NOT NULL,
+        date DATE NOT NULL,
+        day_of_week VARCHAR(20) NOT NULL,
+        status CHAR(1) NOT NULL CHECK (status IN ('P', 'A')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE(availability_id, date)
+      );
+    `);
+    
+    // Use a combined key for availability_id
+    const availabilityId = `${memberId}-${weekId}`;
+    
+    // Delete existing attendance for this member and week
+    await query('DELETE FROM public.daily_attendance WHERE availability_id = $1', [availabilityId]);
+    
+    // Insert new attendance records
+    for (const record of attendance) {
+      await query(`
+        INSERT INTO public.daily_attendance (availability_id, date, day_of_week, status)
+        VALUES ($1, $2, $3, $4)
+      `, [availabilityId, record.date, record.day_of_week, record.status]);
+    }
+    
+    sendResponse(res, createSuccessResponse({ 
+      message: 'Daily attendance saved successfully',
+      records: attendance.length 
+    }));
+  } catch (error) {
+    console.error('Save daily attendance error:', error);
+    sendResponse(res, createErrorResponse('Failed to save daily attendance', 'SAVE_ERROR', 500));
+  }
+});
+
 module.exports = router;

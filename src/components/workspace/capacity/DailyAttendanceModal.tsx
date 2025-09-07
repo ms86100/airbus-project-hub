@@ -52,11 +52,10 @@ export const DailyAttendanceModal: React.FC<DailyAttendanceModalProps> = ({
   useEffect(() => {
     if (week) {
       generateWeekDays();
-      if (availabilityId) {
-        fetchExistingAttendance();
-      }
+      // Always try to fetch existing attendance using memberId and weekId
+      fetchExistingAttendance();
     }
-  }, [week, availabilityId]);
+  }, [week, memberId, weekId]);
 
   const generateWeekDays = () => {
     if (!week) return;
@@ -82,7 +81,9 @@ export const DailyAttendanceModal: React.FC<DailyAttendanceModalProps> = ({
 
   const fetchExistingAttendance = async () => {
     try {
-      const response = await apiClient.getDailyAttendance(availabilityId!);
+      // Use combined key as availability ID
+      const availabilityId = `${memberId}-${weekId}`;
+      const response = await apiClient.getDailyAttendance(availabilityId);
       if (response.success) {
         const existingAttendance: Record<string, 'P' | 'A'> = {};
         (response.data || []).forEach((day: DailyAttendance) => {
