@@ -44,7 +44,7 @@ const App = () => (
                   <Route path="/project/:id/risks" element={<ProjectOverview />} />
                   <Route path="/project/:id/discussions" element={<ProjectOverview />} />
                   <Route path="/project/:id/backlog" element={<ProjectOverview />} />
-                  <Route path="/project/:id/team-capacity" element={<TeamCapacity />} />
+                  <Route path="/project/:id/team-capacity" element={<ProjectOverview />} />
                   <Route path="/project/:id/retrospectives" element={<Retrospectives />} />
                   <Route path="/project/:id/access-control" element={<AccessControl />} />
                   <Route path="/retrospectives" element={<Retrospectives />} />
