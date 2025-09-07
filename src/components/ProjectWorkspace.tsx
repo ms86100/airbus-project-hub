@@ -37,18 +37,26 @@ const ProjectWorkspace = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full flex-col">
         {/* Header */}
-        <header className="h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-          <div className="container flex h-14 items-center justify-between px-6">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger className="h-8 w-8" />
-              <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-primary"></div>
-                <span className="font-semibold text-foreground">Professional Project Management</span>
+        <header className="h-16 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50">
+          <div className="flex h-16 items-center justify-between px-6">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger className="h-6 w-6" />
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                  <div className="w-4 h-4 bg-primary-foreground rounded-sm"></div>
+                </div>
+                <div>
+                  <h1 className="text-lg font-semibold text-foreground">ProjectFlow</h1>
+                  <p className="text-xs text-muted-foreground">Enterprise Platform</p>
+                </div>
+              </div>
+              <div className="ml-8">
+                <h2 className="text-base font-medium text-foreground">Professional Project Management</h2>
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" className="text-primary font-medium">
+            <div className="flex items-center gap-3">
+              <Button variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
                 User
               </Button>
               
@@ -56,8 +64,8 @@ const ProjectWorkspace = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                      <AvatarFallback className="bg-muted text-muted-foreground text-sm">
+                        S
                       </AvatarFallback>
                     </Avatar>
                   </Button>
