@@ -36,10 +36,10 @@ const App = () => (
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/project/:id" element={<ProjectOverview />} />
                   <Route path="/project/:id/edit" element={<EditProject />} />
+                  <Route path="/project/:id/:module" element={<ProjectWorkspace />} />
                   <Route path="/retrospectives" element={<Retrospectives />} />
                   <Route path="/team-capacity" element={<TeamCapacity />} />
                   <Route path="/access-control" element={<AccessControl />} />
-                  <Route path="/project/:id/:module" element={<ProjectWorkspace />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
