@@ -238,7 +238,7 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
           </div>
           <Dialog open={isAddingStakeholder} onOpenChange={setIsAddingStakeholder}>
             <DialogTrigger asChild>
-              <Button onClick={() => setIsAddingStakeholder(true)}>
+              <Button>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add Stakeholder
               </Button>
