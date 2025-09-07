@@ -505,25 +505,35 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                 <CardTitle>Spend by Category</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={budgetAnalytics.spendByCategory}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {budgetAnalytics.spendByCategory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Amount']} />
-                  </PieChart>
-                </ResponsiveContainer>
+                {budgetAnalytics.spendByCategory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={budgetAnalytics.spendByCategory}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {budgetAnalytics.spendByCategory.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Amount']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    <div className="text-center">
+                      <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium">No spending data available</p>
+                      <p className="text-sm">Start tracking expenses to see category breakdown</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -532,16 +542,26 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                 <CardTitle>Budget vs Spend Trend</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={budgetAnalytics.burnRate}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
-                    <Line type="monotone" dataKey="planned" stroke="#94a3b8" strokeDasharray="5 5" />
-                    <Line type="monotone" dataKey="actual" stroke="#2563eb" strokeWidth={3} />
-                  </LineChart>
-                </ResponsiveContainer>
+                {budgetAnalytics.burnRate.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={budgetAnalytics.burnRate}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
+                      <Line type="monotone" dataKey="planned" stroke="#94a3b8" strokeDasharray="5 5" />
+                      <Line type="monotone" dataKey="actual" stroke="#2563eb" strokeWidth={3} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    <div className="text-center">
+                      <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium">No trend data available</p>
+                      <p className="text-sm">Budget spending over time will appear here</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -554,16 +574,26 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                 <CardTitle>Team Capacity Trend</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={teamPerformance.capacityTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="week" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="planned" fill="#94a3b8" />
-                    <Bar dataKey="actual" fill="#2563eb" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {teamPerformance.capacityTrend.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={teamPerformance.capacityTrend}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="week" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="planned" fill="#94a3b8" />
+                      <Bar dataKey="actual" fill="#2563eb" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    <div className="text-center">
+                      <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium">No capacity trend data available</p>
+                      <p className="text-sm">Team capacity planning data will appear here</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -572,25 +602,35 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                 <CardTitle>Top Performers</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {teamPerformance.topPerformers.map((performer, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-primary">{index + 1}</span>
+                {teamPerformance.topPerformers.length > 0 ? (
+                  <div className="space-y-4">
+                    {teamPerformance.topPerformers.map((performer, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-semibold text-primary">{index + 1}</span>
+                          </div>
+                          <div>
+                            <p className="font-medium">{performer.name}</p>
+                            <p className="text-sm text-muted-foreground">{performer.tasksCompleted} tasks completed</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{performer.name}</p>
-                          <p className="text-sm text-muted-foreground">{performer.tasksCompleted} tasks completed</p>
+                        <div className="text-right">
+                          <p className="font-semibold text-green-600">{performer.efficiency}%</p>
+                          <p className="text-xs text-muted-foreground">efficiency</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-green-600">{performer.efficiency}%</p>
-                        <p className="text-xs text-muted-foreground">efficiency</p>
-                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    <div className="text-center">
+                      <Award className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium">No performance data available</p>
+                      <p className="text-sm">Complete tasks to see top performers</p>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -603,24 +643,34 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                 <CardTitle>Task Status Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={taskAnalytics.tasksByStatus}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                      label={({ status, count }) => `${status}: ${count}`}
-                    >
-                      {taskAnalytics.tasksByStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                {taskAnalytics.tasksByStatus.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={taskAnalytics.tasksByStatus}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="count"
+                        label={({ status, count }) => `${status}: ${count}`}
+                      >
+                        {taskAnalytics.tasksByStatus.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    <div className="text-center">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium">No task status data available</p>
+                      <p className="text-sm">Task distribution by status will appear here</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -629,16 +679,26 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
                 <CardTitle>Productivity Trend</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={taskAnalytics.productivityTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="completed" fill="#22c55e" />
-                    <Bar dataKey="created" fill="#3b82f6" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {taskAnalytics.productivityTrend.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={taskAnalytics.productivityTrend}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="completed" fill="#22c55e" />
+                      <Bar dataKey="created" fill="#3b82f6" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    <div className="text-center">
+                      <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium">No productivity trend available</p>
+                      <p className="text-sm">Task completion trends will appear here</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
