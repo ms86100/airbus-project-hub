@@ -26,11 +26,17 @@ const dashboardNavigation = [
 ]
 
 const getProjectNavigation = (projectId: string) => [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Projects", url: "/projects", icon: FolderOpen },
-  { title: "Team Capacity", url: "/team-capacity", icon: BarChart3 },
-  { title: "Retrospectives", url: "/retrospectives", icon: RotateCcw },
-  { title: "Access Control", url: "/access-control", icon: Shield },
+  { title: "Analytics", url: `/project/${projectId}/analytics`, icon: BarChart3 },
+  { title: "Budget", url: `/project/${projectId}/budget`, icon: BarChart3 },
+  { title: "Tasks & Milestones", url: `/project/${projectId}/tasks`, icon: Calendar },
+  { title: "Roadmap", url: `/project/${projectId}/roadmap`, icon: Map },
+  { title: "Kanban", url: `/project/${projectId}/kanban`, icon: Kanban },
+  { title: "Stakeholders", url: `/project/${projectId}/stakeholders`, icon: Users },
+  { title: "Risk Register", url: `/project/${projectId}/risks`, icon: AlertTriangle },
+  { title: "Discussions", url: `/project/${projectId}/discussions`, icon: MessageSquare },
+  { title: "Task Backlog", url: `/project/${projectId}/backlog`, icon: Archive },
+  { title: "Team Capacity", url: `/project/${projectId}/capacity`, icon: BarChart3 },
+  { title: "Retrospectives", url: `/project/${projectId}/retrospective`, icon: RotateCcw },
 ]
 
 const settings = [
