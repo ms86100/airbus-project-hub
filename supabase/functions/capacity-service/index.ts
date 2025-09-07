@@ -184,6 +184,99 @@ Deno.serve(async (req) => {
         );
       }
 
+      // GET /iterations/:iterationId/availability
+      if (pathParts[0] === 'iterations' && pathParts[2] === 'availability') {
+        const iterationId = pathParts[1];
+        
+        // Get iteration with weeks
+        const { data: iteration, error: iterationError } = await supabase
+          .from('iterations')
+          .select(`
+            *,
+            iteration_weeks (
+              id,
+              week_index,
+              week_start,
+              week_end
+            )
+          `)
+          .eq('id', iterationId)
+          .single();
+
+        if (iterationError) {
+          return new Response(
+            JSON.stringify({ success: false, error: iterationError.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        // Get team members with proper name handling
+        const { data: teamMembers, error: membersError } = await supabase
+          .from('team_members')
+          .select('*')
+          .eq('team_id', iteration.team_id);
+
+        if (membersError) {
+          return new Response(
+            JSON.stringify({ success: false, error: membersError.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        // Get team name
+        const { data: team } = await supabase
+          .from('teams')
+          .select('name')
+          .eq('id', iteration.team_id)
+          .single();
+
+        // Get availability data for each member and week
+        const availability = [];
+        for (const member of teamMembers || []) {
+          // Use display_name with fallback to other name fields
+          const memberName = member.display_name || member.member_name || member.name || 'Unknown Member';
+          
+          for (const week of iteration.iteration_weeks || []) {
+            const { data: weekAvailability } = await supabase
+              .from('member_weekly_availability')
+              .select('*')
+              .eq('team_member_id', member.id)
+              .eq('iteration_week_id', week.id)
+              .single();
+
+            availability.push({
+              team_member_id: member.id,
+              member_name: memberName,
+              iteration_week_id: week.id,
+              week_index: week.week_index,
+              week_start: week.week_start,
+              week_end: week.week_end,
+              availability_percent: weekAvailability?.availability_percent || 100,
+              leaves: weekAvailability?.leaves || 0,
+              effective_capacity: weekAvailability?.effective_capacity || 0
+            });
+          }
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              iteration: {
+                ...iteration,
+                team_name: team?.name || 'Unknown Team'
+              },
+              team_members: (teamMembers || []).map(member => ({
+                ...member,
+                display_name: member.display_name || member.member_name || member.name || 'Unknown Member'
+              })),
+              availability
+            }
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // GET /iterations/:iterationId
       if (pathParts[0] === 'iterations' && pathParts.length === 2) {
         const iterationId = pathParts[1];

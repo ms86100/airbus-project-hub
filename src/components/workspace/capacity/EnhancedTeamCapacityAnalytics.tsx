@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Team {
   id: string;
-  team_name: string;
+  name: string;
   member_count?: number;
 }
 
@@ -182,7 +182,7 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
           analytics.push({
             id: iteration.id,
             name: iteration.name,
-            team_name: iteration.team_name || teams.find(t => t.id === iteration.team_id)?.team_name || 'Unknown Team',
+            team_name: iteration.team_name || teams.find(t => t.id === iteration.team_id)?.name || 'Unknown Team',
             weeks,
             total_capacity: totalCapacity,
             avg_availability: avgAvailability,
@@ -199,7 +199,7 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
           analytics.push({
             id: iteration.id,
             name: iteration.name,
-            team_name: iteration.team_name || team?.team_name || 'Unknown Team',
+            team_name: iteration.team_name || team?.name || 'Unknown Team',
             weeks: [],
             total_capacity: 0,
             avg_availability: 0,

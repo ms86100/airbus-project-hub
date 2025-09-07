@@ -11,7 +11,7 @@ import { apiClient } from '@/services/api';
 
 interface Team {
   id: string;
-  team_name: string;
+  name: string;
   description?: string;
 }
 
@@ -141,7 +141,7 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
         type: 'iteration' as 'iteration' | 'sprint' | 'cycle',
         project_id: response.data.iteration.project_id,
         team_id: response.data.iteration.team_id,
-        team_name: teams.find(t => t.id === iterationForm.team_id)?.team_name || '',
+        team_name: teams.find(t => t.id === iterationForm.team_id)?.name || '',
         start_date: response.data.iteration.start_date,
         end_date: response.data.iteration.end_date,
         weeks_count: calculatedWeeks,
@@ -255,7 +255,7 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
               <SelectContent className="bg-background border-border z-50">
                 {teams.length > 0 ? teams.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
-                    {team.team_name}
+                    {team.name}
                   </SelectItem>
                 )) : (
                   <div className="px-3 py-2 text-sm text-muted-foreground">
