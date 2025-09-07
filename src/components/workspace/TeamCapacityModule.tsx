@@ -418,10 +418,21 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
         projectId={projectId}
         teams={teams}
         onTrackerCreated={(iteration) => {
+          console.log('🎯 TeamCapacityTracker created, setting selectedIteration:', iteration);
+          
+          // Mark as real iteration so AvailabilityMatrix can save
+          const realIter = {
+            ...iteration,
+            hasRealIteration: true,
+            realIterationId: iteration.id,
+          };
+          
           handleIterationCreated(iteration);
           setTrackerDialogOpen(false);
           // Navigate to the availability matrix
-          setSelectedIteration(iteration);
+          setSelectedIteration(realIter);
+          
+          console.log('🎯 Set selectedIteration to:', realIter);
         }}
       />
 

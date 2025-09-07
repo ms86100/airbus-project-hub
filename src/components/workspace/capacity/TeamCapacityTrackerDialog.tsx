@@ -112,12 +112,18 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
         
         console.log('Created iteration with team info:', createdIteration);
         
+        // Call the tracker created callback BEFORE closing dialog
         onTrackerCreated(createdIteration);
-        handleClose();
+        
         toast({ 
           title: 'Success', 
           description: 'Team capacity tracker created successfully!' 
         });
+        
+        // Close dialog after a short delay to ensure navigation happens
+        setTimeout(() => {
+          handleClose();
+        }, 100);
       } else {
         throw new Error(response.error || 'Failed to create capacity tracker');
       }
