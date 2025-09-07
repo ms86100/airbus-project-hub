@@ -185,7 +185,7 @@ router.post('/register', async (req, res) => {
       await updateIfCol('role', 'UPDATE auth.users SET role = $2 WHERE id = $1', [userId, 'authenticated']);
       await updateIfCol('raw_app_meta_data', 'UPDATE auth.users SET raw_app_meta_data = $2::jsonb WHERE id = $1', [userId, JSON.stringify({ provider: 'email', providers: ['email'] })]);
       await updateIfCol('raw_user_meta_data', "UPDATE auth.users SET raw_user_meta_data = jsonb_build_object('full_name', $2::text) WHERE id = $1", [userId, fullName || email]);
-      await updateIfCol('confirmed_at', 'UPDATE auth.users SET confirmed_at = COALESCE(confirmed_at, NOW()) WHERE id = $1', [userId]);
+      // Skip confirmed_at updates: some deployments use generated columns we must not modify
       await updateIfCol('is_super_admin', 'UPDATE auth.users SET is_super_admin = FALSE WHERE id = $1', [userId]);
       await updateIfCol('is_sso_user', 'UPDATE auth.users SET is_sso_user = FALSE WHERE id = $1', [userId]);
       await updateIfCol('is_anonymous', 'UPDATE auth.users SET is_anonymous = FALSE WHERE id = $1', [userId]);
