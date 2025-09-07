@@ -12,7 +12,7 @@ import ProjectWizard from "./components/ProjectWizard";
 import ProjectOverview from "./pages/ProjectOverview";
 import EditProject from "./pages/EditProject";
 import Projects from "./pages/Projects";
-
+import ProjectWorkspace from "./components/ProjectWorkspace";
 import Retrospectives from "./pages/Retrospectives";
 import TeamCapacity from "./pages/TeamCapacity";
 import AccessControl from "./pages/AccessControl";
@@ -36,20 +36,10 @@ const App = () => (
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/project/:id" element={<ProjectOverview />} />
                   <Route path="/project/:id/edit" element={<EditProject />} />
-                  <Route path="/project/:id/budget" element={<ProjectOverview />} />
-                  <Route path="/project/:id/tasks" element={<ProjectOverview />} />
-                  <Route path="/project/:id/roadmap" element={<ProjectOverview />} />
-                  <Route path="/project/:id/kanban" element={<ProjectOverview />} />
-                  <Route path="/project/:id/stakeholders" element={<ProjectOverview />} />
-                  <Route path="/project/:id/risks" element={<ProjectOverview />} />
-                  <Route path="/project/:id/discussions" element={<ProjectOverview />} />
-                  <Route path="/project/:id/backlog" element={<ProjectOverview />} />
-                  <Route path="/project/:id/team-capacity" element={<TeamCapacity />} />
-                  <Route path="/project/:id/retrospectives" element={<Retrospectives />} />
-                  <Route path="/project/:id/access-control" element={<AccessControl />} />
                   <Route path="/retrospectives" element={<Retrospectives />} />
                   <Route path="/team-capacity" element={<TeamCapacity />} />
                   <Route path="/access-control" element={<AccessControl />} />
+                  <Route path="/project/:id/:module" element={<ProjectWorkspace />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
