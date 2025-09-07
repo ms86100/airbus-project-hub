@@ -279,10 +279,10 @@ export function YearlyGanttView({ projectId }: YearlyGanttViewProps) {
           </div>
 
           {/* Calendar Header */}
-          <div className="sticky top-0 bg-background border-b z-10">
+          <div className="sticky top-0 bg-background border-b border-border/30 z-10">
             <div className="grid gap-px" style={{ gridTemplateColumns: '300px 1fr' }}>
               {/* Task Header */}
-              <div className="bg-primary/5 p-4 border-r">
+              <div className="bg-primary/5 p-4 border-r border-border/30">
                 <div className="font-medium text-sm text-muted-foreground">Task Name</div>
               </div>
               
@@ -292,7 +292,7 @@ export function YearlyGanttView({ projectId }: YearlyGanttViewProps) {
                   {monthsInYear.map((month, index) => (
                     <div 
                       key={index} 
-                      className="p-4 text-center font-medium text-primary bg-primary/10 border-r last:border-r-0"
+                      className="p-4 text-center font-medium text-primary bg-primary/10 border-r border-border/30 last:border-r-0"
                       style={{ minWidth: '100px' }}
                     >
                       {format(month, 'MMM')}
@@ -314,8 +314,8 @@ export function YearlyGanttView({ projectId }: YearlyGanttViewProps) {
                 {groupedYearlyTasks.map((group, groupIndex) => (
                   <div key={group.milestone.id}>
                     {/* Milestone Header */}
-                    <div className="grid gap-px bg-muted/30" style={{ gridTemplateColumns: '300px 1fr' }}>
-                      <div className="p-3 border-r bg-background">
+                    <div className="grid gap-px bg-muted/30 border-b border-border/20" style={{ gridTemplateColumns: '300px 1fr' }}>
+                        <div className="p-3 border-r border-border/20 bg-background">
                         <div className="flex items-center gap-2">
                           <div className="h-2 w-2 rounded-full bg-primary" />
                           <span className="font-medium text-sm">{group.milestone.name}</span>
@@ -327,9 +327,9 @@ export function YearlyGanttView({ projectId }: YearlyGanttViewProps) {
                     
                     {/* Tasks */}
                     {group.tasks.map((task, taskIndex) => (
-                      <div key={task.id} className="grid gap-px hover:bg-muted/20" style={{ gridTemplateColumns: '300px 1fr' }}>
+                      <div key={task.id} className="grid gap-px hover:bg-muted/20 border-b border-border/10" style={{ gridTemplateColumns: '300px 1fr' }}>
                         {/* Task Info */}
-                        <div className="p-3 border-r bg-background">
+                        <div className="p-3 border-r border-border/20 bg-background">
                           <div className="space-y-1">
                             <div className="font-medium text-sm truncate" title={task.title}>
                               {task.title}
@@ -353,12 +353,12 @@ export function YearlyGanttView({ projectId }: YearlyGanttViewProps) {
                         </div>
                         
                         {/* Timeline */}
-                        <div className="relative bg-background overflow-x-auto">
-                          <div className="h-16 relative" style={{ minWidth: `${monthsInYear.length * 100}px` }}>
-                            {/* Grid Lines */}
-                            <div className="absolute inset-0 grid gap-px" style={{ gridTemplateColumns: `repeat(${monthsInYear.length}, 1fr)` }}>
+                        <div className="relative bg-background overflow-x-auto border-l">
+                          <div className="h-16 relative border-b border-border/20" style={{ minWidth: `${monthsInYear.length * 100}px` }}>
+                            {/* Month Grid Lines */}
+                            <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${monthsInYear.length}, 1fr)` }}>
                               {monthsInYear.map((_, monthIndex) => (
-                                <div key={monthIndex} className="border-r border-border/20 last:border-r-0" />
+                                <div key={monthIndex} className="border-r border-border/30 h-full bg-muted/5" />
                               ))}
                             </div>
                             
