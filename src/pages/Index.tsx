@@ -11,12 +11,17 @@ const Index = () => {
     console.log('👤 Current user:', user?.email || 'No user');
     console.log('⏳ Loading state:', loading);
     
-    // Only redirect if not already on auth page and no user found after loading
-    if (!loading && !user) {
-      console.log('🔄 No user detected, redirecting to auth');
-      // Use window.location to avoid Router context issues during auth state
-      window.location.href = '/auth';
-    }
+    // Add a small delay to prevent race conditions with auth state
+    const timer = setTimeout(() => {
+      // Only redirect if not already on auth page and no user found after loading
+      if (!loading && !user && window.location.pathname !== '/auth') {
+        console.log('🔄 No user detected after delay, redirecting to auth');
+        // Use window.location to avoid Router context issues during auth state
+        window.location.href = '/auth';
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [user, loading]);
 
   if (loading) {

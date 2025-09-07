@@ -14,9 +14,17 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const { signIn, signUp } = useApiAuth();
+  const { signIn, signUp, user } = useApiAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Redirect authenticated users away from auth page
+  React.useEffect(() => {
+    if (user) {
+      console.log('✅ User is already authenticated, redirecting to dashboard');
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +46,11 @@ const Auth = () => {
         });
       } else {
         console.log('=== LOGIN SUCCESS ===');
-        // Navigate to home page after successful login
-        navigate('/');
+        // Add a small delay to ensure auth state is set before navigation
+        setTimeout(() => {
+          console.log('🔄 Navigating to dashboard after successful login');
+          navigate('/', { replace: true });
+        }, 100);
       }
     } catch (err) {
       console.error('=== LOGIN EXCEPTION ===', err);
