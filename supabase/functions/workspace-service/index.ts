@@ -558,7 +558,10 @@ Deno.serve(async (req) => {
 
       const { data: history, error } = await supabase
         .from('task_status_history')
-        .select('*')
+        .select(`
+          *,
+          profiles!task_status_history_changed_by_fkey(full_name)
+        `)
         .eq('task_id', taskId)
         .order('created_at', { ascending: false });
 
@@ -567,7 +570,13 @@ Deno.serve(async (req) => {
         return createErrorResponse('Failed to fetch task history', 'FETCH_ERROR');
       }
 
-      return createSuccessResponse(history || []);
+      // Transform the data to include user_name for backward compatibility
+      const transformedHistory = (history || []).map(entry => ({
+        ...entry,
+        user_name: entry.profiles?.full_name || 'Unknown User'
+      }));
+
+      return createSuccessResponse(transformedHistory);
     }
 
     // GET /workspace-service/projects/:id/milestones
