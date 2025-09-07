@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -245,25 +246,21 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
 
           <div>
             <Label htmlFor="team-select">Team *</Label>
-            <Select 
+            <SimpleSelect 
               value={iterationForm.team_id} 
               onValueChange={(value) => setIterationForm({ ...iterationForm, team_id: value })}
+              placeholder="Select a team"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a team" />
-              </SelectTrigger>
-              <SelectContent className="z-[1000]">
-                {teams.length > 0 ? teams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
-                    {team.name}
-                  </SelectItem>
-                )) : (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                    Loading teams...
-                  </div>
-                )}
-              </SelectContent>
-            </Select>
+              {teams.length > 0 ? teams.map((team) => (
+                <SimpleSelectItem key={team.id} value={team.id}>
+                  {team.name}
+                </SimpleSelectItem>
+              )) : (
+                <SimpleSelectItem value="">
+                  Loading teams...
+                </SimpleSelectItem>
+              )}
+            </SimpleSelect>
             {teams.length === 0 && (
               <p className="text-sm text-muted-foreground mt-1">
                 No teams available. Create a team first.
