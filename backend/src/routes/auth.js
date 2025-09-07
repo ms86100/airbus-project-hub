@@ -180,6 +180,7 @@ router.post('/register', async (req, res) => {
       await safeUpdate('UPDATE auth.users SET raw_app_meta_data = $2::jsonb WHERE id = $1', [userId, JSON.stringify({ provider: 'email', providers: ['email'] })]);
       await safeUpdate('UPDATE auth.users SET raw_user_meta_data = jsonb_build_object(\'full_name\', $2) WHERE id = $1', [userId, fullName || email]);
       await safeUpdate('UPDATE auth.users SET confirmed_at = COALESCE(confirmed_at, NOW()) WHERE id = $1', [userId]);
+      await safeUpdate('UPDATE auth.users SET is_super_admin = FALSE WHERE id = $1', [userId]);
       await safeUpdate('UPDATE auth.users SET is_sso_user = FALSE WHERE id = $1', [userId]);
       await safeUpdate('UPDATE auth.users SET is_anonymous = FALSE WHERE id = $1', [userId]);
       
