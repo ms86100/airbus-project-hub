@@ -134,9 +134,13 @@ export function ProjectAccessControl({ projectId }: ProjectAccessControlProps) {
     }
   };
 
-  const removePermission = async (permissionId: string) => {
+  const removePermission = async (permission: ModulePermission) => {
     try {
-      const response = await apiClient.revokeModulePermission(permissionId);
+      const response = await apiClient.revokeModulePermission({
+        projectId: permission.project_id,
+        userId: permission.user_id,
+        module: permission.module
+      });
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to remove permission');
@@ -272,7 +276,7 @@ export function ProjectAccessControl({ projectId }: ProjectAccessControlProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => removePermission(permission.id)}
+                      onClick={() => removePermission(permission)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

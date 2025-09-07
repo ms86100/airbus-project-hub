@@ -126,9 +126,13 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
     }
   };
 
-  const removePermission = async (permissionId: string) => {
+  const removePermission = async (permission: ModulePermission) => {
     try {
-      const response = await apiClient.revokeModulePermission(permissionId);
+      const response = await apiClient.revokeModulePermission({
+        projectId: projectId,
+        userId: permission.user_id,
+        module: permission.module
+      });
 
       if (!response.success) {
         toast({
@@ -277,7 +281,7 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => removePermission(permission.id)}
+                              onClick={() => removePermission(permission)}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
