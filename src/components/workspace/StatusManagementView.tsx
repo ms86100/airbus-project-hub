@@ -397,12 +397,25 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
   const handleEditTask = (task: Task) => {
     console.log('Edit task clicked:', task);
     setEditingTask(task);
+    
+    // Format date for HTML date input (YYYY-MM-DD)
+    let formattedDate = '';
+    if (task.due_date) {
+      try {
+        const date = new Date(task.due_date);
+        formattedDate = date.toISOString().split('T')[0];
+      } catch (e) {
+        console.log('Date formatting error:', e);
+        formattedDate = '';
+      }
+    }
+    
     setEditFormData({
       title: task.title,
       description: task.description || '',
       status: task.status,
       priority: task.priority,
-      due_date: task.due_date || '',
+      due_date: formattedDate,
       owner_id: task.owner_id || ''
     });
     console.log('Edit form data set:', {
@@ -410,8 +423,9 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
       description: task.description || '',
       status: task.status,
       priority: task.priority,
-      due_date: task.due_date || '',
-      owner_id: task.owner_id || ''
+      due_date: formattedDate,
+      owner_id: task.owner_id || '',
+      originalDate: task.due_date
     });
   };
 
@@ -425,11 +439,11 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
     try {
       const payload = {
         title: editFormData.title,
-        description: editFormData.description?.trim() || null,
+        description: editFormData.description?.trim() || undefined,
         status: editFormData.status,
         priority: editFormData.priority,
-        due_date: editFormData.due_date || null,
-        owner_id: editFormData.owner_id || null,
+        due_date: editFormData.due_date || undefined,
+        owner_id: editFormData.owner_id || undefined,
       };
       console.log('Sending update payload:', payload);
       const response = await apiClient.updateTask(editingTask.id, payload);
