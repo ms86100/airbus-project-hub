@@ -15,11 +15,14 @@ const generateTokens = (user) => {
     email: user.email
   };
   
-  const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+  const jwtSecret = process.env.JWT_SECRET || 'dev_jwt_secret_change_me';
+  const refreshSecret = process.env.REFRESH_TOKEN_SECRET || 'dev_refresh_secret_change_me';
+
+  const accessToken = jwt.sign(payload, jwtSecret, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
   
-  const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+  const refreshToken = jwt.sign(payload, refreshSecret, {
     expiresIn: '30d'
   });
   
