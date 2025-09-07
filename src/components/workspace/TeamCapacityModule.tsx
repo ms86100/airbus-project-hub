@@ -227,7 +227,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
   };
 
   if (selectedIteration) {
-    // Always render AvailabilityMatrix - no view/edit mode complexity
+    console.log('RENDERING AvailabilityMatrix with iteration:', selectedIteration);
     return (
       <AvailabilityMatrix
         iteration={selectedIteration}
@@ -361,20 +361,20 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             size="sm"
                             variant="outline"
                              onClick={() => {
-                               // Simple: Just create iteration and navigate to AvailabilityMatrix
-                               const editIteration = {
-                                 id: `team-${team.id}`,
-                                 name: `${team.team_name} Capacity`,
+                               // Simple direct navigation - exactly what user wants
+                               const teamIteration = {
+                                 id: team.id,
+                                 name: team.team_name,
                                  type: 'capacity_tracker' as const,
                                  project_id: projectId,
                                  team_id: team.id,
                                  team_name: team.team_name,
                                  start_date: new Date().toISOString().split('T')[0],
-                                 end_date: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 week
+                                 end_date: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                                  weeks_count: 1,
                                  created_at: new Date().toISOString()
                                };
-                               setSelectedIteration(editIteration);
+                               setSelectedIteration(teamIteration);
                              }}
                           >
                             Edit
@@ -466,10 +466,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                          View Availability
                                        </Button>
                                         <Button
-                                           onClick={() => {
-                                             // Simple: Just navigate to AvailabilityMatrix
-                                             setSelectedIteration(iteration);
-                                           }}
+                                           onClick={() => setSelectedIteration(iteration)}
                                           variant="outline"
                                         >
                                           <Users className="h-4 w-4 mr-2" />
