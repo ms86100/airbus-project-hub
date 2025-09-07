@@ -395,8 +395,17 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
   };
 
   const handleEditTask = (task: Task) => {
+    console.log('Edit task clicked:', task);
     setEditingTask(task);
     setEditFormData({
+      title: task.title,
+      description: task.description || '',
+      status: task.status,
+      priority: task.priority,
+      due_date: task.due_date || '',
+      owner_id: task.owner_id || ''
+    });
+    console.log('Edit form data set:', {
       title: task.title,
       description: task.description || '',
       status: task.status,
@@ -407,7 +416,11 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
   };
 
   const handleUpdateTask = async () => {
-    if (!editingTask) return;
+    console.log('Update task called with:', editFormData);
+    if (!editingTask) {
+      console.log('No editing task found');
+      return;
+    }
 
     try {
       const payload = {
@@ -418,7 +431,9 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
         due_date: editFormData.due_date || null,
         owner_id: editFormData.owner_id || null,
       };
+      console.log('Sending update payload:', payload);
       const response = await apiClient.updateTask(editingTask.id, payload);
+      console.log('Update response:', response);
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to update task');
