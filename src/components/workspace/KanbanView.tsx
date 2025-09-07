@@ -48,6 +48,7 @@ interface StatusHistoryEntry {
   old_status: string | null;
   new_status: string;
   changed_at: string;
+  created_at?: string;
   changed_by: string;
   notes?: string;
   user_name?: string;
@@ -571,7 +572,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
                         </div>
                         <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                           <Clock className="h-3 w-3" />
-                          {format(new Date(entry.changed_at), 'MMM dd, yyyy at h:mm a')}
+                          {format(new Date((entry.changed_at || entry.created_at) as string), 'PPp')}
                           <User className="h-3 w-3 ml-2" />
                           <span>{entry.user_name || 'Unknown User'}</span>
                         </div>

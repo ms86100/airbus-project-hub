@@ -466,6 +466,27 @@ Deno.serve(async (req) => {
         console.error('Error updating task:', error);
         return createErrorResponse('Failed to update task', 'UPDATE_ERROR');
       }
+      // If status changed, log it explicitly to history with the acting user
+      try {
+        const oldStatus = task.status;
+        const newStatus = updatedTask.status;
+        if (typeof taskData.status !== 'undefined' && oldStatus !== newStatus) {
+          const { error: histErr } = await supabaseAuth
+            .from('task_status_history')
+            .insert({
+              task_id: taskId,
+              old_status: oldStatus,
+              new_status: newStatus,
+              changed_by: user.id,
+            });
+          if (histErr) {
+            console.error('Failed to insert task_status_history:', histErr);
+          }
+        }
+      } catch (e) {
+        console.error('Unexpected error while logging status history:', e);
+      }
+
       return createSuccessResponse({ message: 'Task updated successfully', task: updatedTask });
     }
 
