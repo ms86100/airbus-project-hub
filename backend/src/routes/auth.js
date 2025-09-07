@@ -103,8 +103,8 @@ router.post('/register', async (req, res) => {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     
-    // Use existing profile id if present to avoid duplicates; otherwise generate new id
-    const userId = existingProfile.rows[0]?.id || uuidv4();
+    // Always create a fresh auth user; profile will be created by trigger
+    const userId = uuidv4();
     
     // Start transaction
     const client = await require('../config/database').getClient();
@@ -112,25 +112,12 @@ router.post('/register', async (req, res) => {
     try {
       await client.query('BEGIN');
       
-      // Create auth user record for this email/id
       await client.query(
         'INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)',
         [userId, lowerEmail, hashedPassword, new Date(), new Date(), new Date()]
       );
       
-      // Ensure profile exists (insert or update name if provided)
-      if (existingProfile.rows.length === 0) {
-        await client.query(
-          'INSERT INTO profiles (id, email, full_name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)',
-          [userId, lowerEmail, fullName || email, new Date(), new Date()]
-        );
-      } else if (fullName) {
-        await client.query(
-          'UPDATE profiles SET full_name = COALESCE($2, full_name), updated_at = $3 WHERE id = $1',
-          [userId, fullName, new Date()]
-        );
-      }
-      
+      // Do NOT insert into profiles here; handle_new_user trigger will create it
       // Assign default role if not already present
       const role = lowerEmail === process.env.ADMIN_EMAIL ? 'admin' : 'project_coordinator';
       await client.query(
