@@ -229,103 +229,114 @@ const ProjectsList = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-text-primary">Projects</h1>
-          <p className="text-text-muted">Manage your projects and track progress</p>
-        </div>
-        <div className="flex gap-2">
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Project
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create New Project</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
+      {/* Blue Header Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-lg p-8 text-white">
+        <h1 className="text-3xl font-bold mb-2">Welcome to Project Hub</h1>
+        <p className="text-blue-50 mb-6">Coordinate and track your assigned projects</p>
+        
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Project
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New Project</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Project Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter project name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Enter project description"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Project Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Enter project name"
-                  />
+                  <Label htmlFor="status">Status</Label>
+                  <SimpleSelect value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                      <SimpleSelectItem value="planning">Planning</SimpleSelectItem>
+                      <SimpleSelectItem value="active">Active</SimpleSelectItem>
+                      <SimpleSelectItem value="completed">Completed</SimpleSelectItem>
+                      <SimpleSelectItem value="cancelled">Cancelled</SimpleSelectItem>
+                  </SimpleSelect>
                 </div>
                 <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Enter project description"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="status">Status</Label>
-                    <SimpleSelect value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                        <SimpleSelectItem value="planning">Planning</SimpleSelectItem>
-                        <SimpleSelectItem value="active">Active</SimpleSelectItem>
-                        <SimpleSelectItem value="completed">Completed</SimpleSelectItem>
-                        <SimpleSelectItem value="cancelled">Cancelled</SimpleSelectItem>
-                    </SimpleSelect>
-                  </div>
-                  <div>
-                    <Label htmlFor="priority">Priority</Label>
-                    <SimpleSelect value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                        <SimpleSelectItem value="low">Low</SimpleSelectItem>
-                        <SimpleSelectItem value="medium">Medium</SimpleSelectItem>
-                        <SimpleSelectItem value="high">High</SimpleSelectItem>
-                    </SimpleSelect>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="start_date">Start Date</Label>
-                    <Input
-                      id="start_date"
-                      type="date"
-                      value={formData.start_date}
-                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="end_date">End Date</Label>
-                    <Input
-                      id="end_date"
-                      type="date"
-                      value={formData.end_date}
-                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleCreateProject}
-                    disabled={!formData.name.trim()}
-                    className="bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
-                  >
-                    Create Project
-                  </Button>
+                  <Label htmlFor="priority">Priority</Label>
+                  <SimpleSelect value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+                      <SimpleSelectItem value="low">Low</SimpleSelectItem>
+                      <SimpleSelectItem value="medium">Medium</SimpleSelectItem>
+                      <SimpleSelectItem value="high">High</SimpleSelectItem>
+                  </SimpleSelect>
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
-          
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="start_date">Start Date</Label>
+                  <Input
+                    id="start_date"
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="end_date">End Date</Label>
+                  <Input
+                    id="end_date"
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleCreateProject}
+                  disabled={!formData.name.trim()}
+                  className="bg-brand-primary hover:bg-brand-primary/90 text-brand-on-primary"
+                >
+                  Create Project
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Recent Projects Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-xl font-semibold">Recent Projects</h2>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Latest projects in the system
+          </div>
           <Button variant="outline" onClick={() => navigate('/create-project')}>
-            <FolderOpen className="h-4 w-4 mr-2" />
-            Use Project Wizard
+            View All Projects
           </Button>
         </div>
       </div>
+
+      {/* Projects Grid */}
 
       {projects.length === 0 ? (
         <Card>
