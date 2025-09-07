@@ -57,16 +57,12 @@ export function MonthlyGanttView({ projectId }: MonthlyGanttViewProps) {
     'blocked': 'hsl(var(--destructive))'
   };
 
-  // Task category colors (green shades for Airbus style)
-  const categoryColors = [
-    'hsl(150, 70%, 50%)', // Design green
-    'hsl(170, 60%, 45%)', // Teal
-    'hsl(190, 55%, 50%)', // Cyan  
-    'hsl(210, 65%, 55%)', // Blue
-    'hsl(230, 60%, 60%)', // Purple
-    'hsl(280, 55%, 55%)', // Magenta
-    'hsl(320, 60%, 50%)', // Pink
-    'hsl(350, 65%, 55%)', // Red
+  // Airbus color codes (repeat after 4)
+  const airbusColors = [
+    'hsl(210, 100%, 50%)', // Airbus Blue
+    'hsl(120, 60%, 45%)',  // Airbus Green  
+    'hsl(35, 100%, 50%)',  // Airbus Orange
+    'hsl(340, 80%, 50%)',  // Airbus Red
   ];
 
   useEffect(() => {
@@ -96,13 +92,16 @@ export function MonthlyGanttView({ projectId }: MonthlyGanttViewProps) {
     }
   };
 
-  // Filter tasks for the selected month
+  // Filter tasks for the selected month (based on created_at to due_date range)
   const monthlyTasks = useMemo(() => {
     return tasks.filter(task => {
-      if (!task.due_date && !task.created_at) return false;
+      if (!task.created_at) return false;
       
-      const taskDate = task.due_date ? parseISO(task.due_date) : parseISO(task.created_at);
-      return isWithinInterval(taskDate, { start: monthStart, end: monthEnd });
+      const taskStartDate = parseISO(task.created_at);
+      const taskEndDate = task.due_date ? parseISO(task.due_date) : taskStartDate;
+      
+      // Show task if it overlaps with the current month
+      return (taskStartDate <= monthEnd && taskEndDate >= monthStart);
     });
   }, [tasks, monthStart, monthEnd]);
 
@@ -137,20 +136,34 @@ export function MonthlyGanttView({ projectId }: MonthlyGanttViewProps) {
     return grouped.filter(group => group.tasks.length > 0);
   }, [milestones, monthlyTasks]);
 
-  const getTaskPosition = (task: Task, dayIndex: number) => {
-    if (!task.due_date && !task.created_at) return null;
+  const getTaskBarPosition = (task: Task) => {
+    if (!task.created_at) return null;
     
-    const taskDate = task.due_date ? parseISO(task.due_date) : parseISO(task.created_at);
-    const dayDate = daysInMonth[dayIndex];
+    const taskStartDate = parseISO(task.created_at);
+    const taskEndDate = task.due_date ? parseISO(task.due_date) : taskStartDate;
     
-    if (isSameDay(taskDate, dayDate)) {
-      return {
-        left: `${(dayIndex / daysInMonth.length) * 100}%`,
-        width: `${(1 / daysInMonth.length) * 100}%`
-      };
-    }
+    // Calculate start position within the month
+    const startOfMonthTime = monthStart.getTime();
+    const endOfMonthTime = monthEnd.getTime();
+    const monthDuration = endOfMonthTime - startOfMonthTime;
     
-    return null;
+    // Clamp dates to month boundaries
+    const clampedStartDate = new Date(Math.max(taskStartDate.getTime(), startOfMonthTime));
+    const clampedEndDate = new Date(Math.min(taskEndDate.getTime(), endOfMonthTime));
+    
+    if (clampedStartDate > clampedEndDate) return null;
+    
+    // Calculate position and width as percentage of month
+    const startOffset = clampedStartDate.getTime() - startOfMonthTime;
+    const duration = clampedEndDate.getTime() - clampedStartDate.getTime();
+    
+    const leftPercentage = (startOffset / monthDuration) * 100;
+    const widthPercentage = Math.max((duration / monthDuration) * 100, 1); // Minimum 1% width
+    
+    return {
+      left: `${leftPercentage}%`,
+      width: `${widthPercentage}%`
+    };
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -312,6 +325,8 @@ export function MonthlyGanttView({ projectId }: MonthlyGanttViewProps) {
                                 style={{ backgroundColor: statusColors[task.status as keyof typeof statusColors] || statusColors.not_started }}
                               />
                               <span className="capitalize">{task.status.replace('_', ' ')}</span>
+                              <span>•</span>
+                              <span>Start: {format(parseISO(task.created_at), 'MMM d')}</span>
                               {task.due_date && (
                                 <>
                                   <span>•</span>
@@ -333,15 +348,16 @@ export function MonthlyGanttView({ projectId }: MonthlyGanttViewProps) {
                             </div>
                             
                             {/* Task Bar */}
-                            {daysInMonth.map((day, dayIndex) => {
-                              const position = getTaskPosition(task, dayIndex);
+                            {(() => {
+                              const position = getTaskBarPosition(task);
                               if (!position) return null;
                               
-                              const taskColor = categoryColors[taskIndex % categoryColors.length];
+                              const taskColor = airbusColors[taskIndex % airbusColors.length];
+                              const startDate = parseISO(task.created_at);
+                              const endDate = task.due_date ? parseISO(task.due_date) : startDate;
                               
                               return (
                                 <div
-                                  key={dayIndex}
                                   className="absolute top-1/2 -translate-y-1/2 rounded-sm shadow-sm flex items-center justify-center text-white text-xs font-medium"
                                   style={{
                                     left: position.left,
@@ -350,12 +366,12 @@ export function MonthlyGanttView({ projectId }: MonthlyGanttViewProps) {
                                     backgroundColor: taskColor,
                                     minWidth: '32px'
                                   }}
-                                  title={`${task.title} - ${format(day, 'MMM d')}`}
+                                  title={`${task.title} - ${format(startDate, 'MMM d')} to ${format(endDate, 'MMM d')}`}
                                 >
-                                  <div className="truncate px-1">{task.title.substring(0, 8)}</div>
+                                  <div className="truncate px-1">{task.title.substring(0, 12)}</div>
                                 </div>
                               );
-                            })}
+                            })()}
                           </div>
                         </div>
                       </div>
