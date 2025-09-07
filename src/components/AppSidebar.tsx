@@ -38,6 +38,7 @@ const getProjectNavigation = (projectId: string) => [
   { title: "Task Backlog", url: `/project/${projectId}/backlog`, icon: Archive },
   { title: "Team Capacity", url: `/project/${projectId}/capacity`, icon: BarChart3 },
   { title: "Retrospectives", url: `/project/${projectId}/retrospective`, icon: RotateCcw },
+  { title: "Access Control", url: `/project/${projectId}/access-control`, icon: Shield },
 ]
 
 const settings = [
