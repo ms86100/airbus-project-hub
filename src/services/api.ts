@@ -1126,6 +1126,15 @@ class ApiClient {
     );
     return this.makeRequest(ep, { method: 'GET' });
   }
+
+  // Maintenance: reset and seed demo data
+  async resetAndSeedDemo(keepTeams: boolean = true): Promise<ApiResponse<{ projects: { projectId: string; name: string }[] }>> {
+    const ep = this.resolveEndpoint('/seed-demo', '/seed-demo');
+    return this.makeRequest(ep, {
+      method: 'POST',
+      body: JSON.stringify({ keepTeams }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

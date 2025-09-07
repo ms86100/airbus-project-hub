@@ -236,7 +236,7 @@ const ProjectsList = () => {
         
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm">
+            <Button className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm mr-3">
               <Plus className="h-4 w-4 mr-2" />
               Create New Project
             </Button>

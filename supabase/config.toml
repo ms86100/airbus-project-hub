@@ -35,3 +35,6 @@ verify_jwt = true
 
 [functions.department-service]
 verify_jwt = true
+
+[functions.seed-demo]
+verify_jwt = true
