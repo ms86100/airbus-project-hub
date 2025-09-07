@@ -308,10 +308,19 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
             </p>
           </div>
         </div>
-        <Button onClick={saveAvailability} disabled={loading}>
-          <Save className="h-4 w-4 mr-2" />
-          Save Availability
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setEditMode(!editMode)}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            {editMode ? 'View Mode' : 'Edit Availability'}
+          </Button>
+          <Button onClick={saveAvailability} disabled={loading}>
+            <Save className="h-4 w-4 mr-2" />
+            Save Availability
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

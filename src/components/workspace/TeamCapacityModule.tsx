@@ -10,6 +10,7 @@ import { apiClient } from '@/services/api';
 import { TeamCreationDialog } from './capacity/TeamCreationDialog';
 import { IterationCreationDialog } from './capacity/IterationCreationDialog';
 import { AvailabilityMatrix } from './capacity/AvailabilityMatrix';
+import { AvailabilityView } from './capacity/AvailabilityView';
 import { EnhancedTeamCapacityAnalytics } from './capacity/EnhancedTeamCapacityAnalytics';
 import { TeamCapacityTrackerDialog } from './capacity/TeamCapacityTrackerDialog';
 
@@ -146,12 +147,62 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
     }
   };
 
+  const handleViewAvailability = (iteration: Iteration) => {
+    // Set to view-only mode with read-only flag
+    setSelectedIteration({
+      ...iteration,
+      // @ts-ignore flag as real for matrix with view mode
+      hasRealIteration: true,
+      // @ts-ignore
+      realIterationId: iteration.id,
+      // @ts-ignore
+      viewMode: true
+    });
+  };
+
+  const handleEditAvailability = (iteration: Iteration) => {
+    // Set to edit mode (full AvailabilityMatrix)
+    setSelectedIteration({
+      ...iteration,
+      // @ts-ignore flag as real for matrix
+      hasRealIteration: true,
+      // @ts-ignore
+      realIterationId: iteration.id,
+      // @ts-ignore
+      viewMode: false
+    });
+  };
+
   const openIterationMatrix = (iteration: Iteration) => {
     setSelectedIteration(iteration);
   };
 
   if (selectedIteration) {
-    console.log('🎯 Rendering AvailabilityMatrix with iteration:', selectedIteration);
+    console.log('🎯 Rendering availability component with iteration:', selectedIteration);
+    
+    // @ts-ignore - check for view mode
+    const isViewMode = selectedIteration.viewMode === true;
+    
+    if (isViewMode) {
+      return (
+        <AvailabilityView
+          iteration={selectedIteration}
+          onBack={() => {
+            console.log('🔙 Back button clicked from view, clearing selectedIteration');
+            setSelectedIteration(null);
+          }}
+          onEdit={() => {
+            console.log('✏️ Edit button clicked, switching to edit mode');
+            setSelectedIteration({
+              ...selectedIteration,
+              // @ts-ignore
+              viewMode: false
+            });
+          }}
+        />
+      );
+    }
+    
     return (
       <AvailabilityMatrix
         iteration={selectedIteration}
@@ -348,40 +399,43 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                   )}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {iterations.map((iteration) => (
-                    <Card key={iteration.id} className="hover:bg-muted/50 transition-colors">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold">{iteration.name}</h3>
-                              <Badge variant="outline">{iteration.type}</Badge>
-                              <Badge variant="secondary">{iteration.weeks_count} weeks</Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground space-y-1">
-                              <p>Team: {iteration.team_name}</p>
-                              <p>Duration: {iteration.start_date} to {iteration.end_date}</p>
-                            </div>
-                           </div>
-                           <div className="flex gap-2">
-                             <Button
-                               onClick={() => openIterationMatrix({
-                                 ...iteration,
-                                 // @ts-ignore flag as real for matrix
-                                 hasRealIteration: true,
-                                 // @ts-ignore
-                                 realIterationId: iteration.id,
-                               })}
-                               variant="outline"
-                             >
-                               View Availability
-                             </Button>
-                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                         <div className="space-y-4">
+                           {iterations.map((iteration) => (
+                             <Card key={iteration.id} className="hover:bg-muted/50 transition-colors">
+                               <CardContent className="p-4">
+                                 <div className="flex items-center justify-between">
+                                   <div className="flex-1">
+                                     <div className="flex items-center gap-3 mb-2">
+                                       <h3 className="font-semibold">
+                                         {iteration.name} ({iteration.weeks_count} weeks)
+                                       </h3>
+                                       <Badge variant="outline">{iteration.type}</Badge>
+                                     </div>
+                                     <div className="text-sm text-muted-foreground space-y-1">
+                                       <p>Team: {iteration.team_name}</p>
+                                       <p>Duration: {new Date(iteration.start_date).toLocaleDateString()} – {new Date(iteration.end_date).toLocaleDateString()}</p>
+                                     </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        onClick={() => handleViewAvailability(iteration)}
+                                        variant="outline"
+                                      >
+                                        <Users className="h-4 w-4 mr-2" />
+                                        View Availability
+                                      </Button>
+                                      <Button
+                                        onClick={() => handleEditAvailability(iteration)}
+                                        variant="outline"
+                                      >
+                                        <Users className="h-4 w-4 mr-2" />
+                                        Edit Availability
+                                      </Button>
+                                    </div>
+                                 </div>
+                               </CardContent>
+                             </Card>
+                           ))}
                 </div>
               )}
             </CardContent>
