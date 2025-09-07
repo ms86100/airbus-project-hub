@@ -5,16 +5,12 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://knivoexfpvqohsvpsziq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q";
 
-// Check if we're using local backend
-const isLocalBackend = import.meta.env.VITE_API_URL?.includes('localhost');
-
-// Create a mock client for local backend or real client for Supabase
-export const supabase = isLocalBackend ? 
-  null : // Disable Supabase client when using local backend
-  createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: {
-      storage: localStorage,
-      persistSession: true,
-      autoRefreshToken: true,
-    }
-  });
+// Always create a Supabase client in cloud environments
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  }
+});

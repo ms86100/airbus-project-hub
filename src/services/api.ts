@@ -32,21 +32,35 @@ class ApiClient {
 
   private async getAuthToken(): Promise<string | null> {
     try {
-      // For Supabase Edge Functions, use Supabase auth directly
+      // For Supabase Edge Functions, always use Supabase auth
       if (!this.isLocalBackend) {
         const { supabase } = await import('@/integrations/supabase/client');
-        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error('Supabase auth error:', error);
-          return null;
+        // First try to get current session
+        let { data: { session }, error } = await supabase.auth.getSession();
+        
+        // If no session or expired, try to refresh
+        if (!session || error) {
+          console.log('🔄 No valid session found, attempting refresh...');
+          const refreshResult = await supabase.auth.refreshSession();
+          
+          if (refreshResult.error) {
+            console.error('❌ Refresh failed:', refreshResult.error);
+            // If refresh fails, redirect to login
+            window.location.href = '/auth';
+            return null;
+          }
+          
+          session = refreshResult.data.session;
         }
         
         if (session?.access_token) {
-          console.log('🔐 Retrieved Supabase auth token');
+          console.log('🔐 Retrieved valid Supabase auth token');
           return session.access_token;
         } else {
-          console.warn('⚠️ No Supabase session found');
+          console.warn('⚠️ No valid session after refresh attempt');
+          // Redirect to login if no valid session
+          window.location.href = '/auth';
           return null;
         }
       }
@@ -145,18 +159,24 @@ class ApiClient {
       // For Supabase Edge Functions, refresh session via Supabase
       if (!this.isLocalBackend) {
         const { supabase } = await import('@/integrations/supabase/client');
+        
+        console.log('🔄 Attempting to refresh Supabase session...');
         const { data, error } = await supabase.auth.refreshSession();
         
         if (error) {
           console.error('Supabase refresh error:', error);
+          // If refresh fails completely, redirect to login
+          console.log('🚪 Redirecting to login due to refresh failure');
+          window.location.href = '/auth';
           return null;
         }
         
         if (data?.session?.access_token) {
-          console.log('🔄 Refreshed Supabase auth token');
+          console.log('✅ Successfully refreshed Supabase auth token');
           return data.session.access_token;
         }
         
+        console.warn('⚠️ Refresh successful but no valid token received');
         return null;
       }
 
@@ -190,6 +210,7 @@ class ApiClient {
       localStorage.removeItem('app_user');
       return null;
     } catch (e) {
+      console.error('Error in refreshToken:', e);
       return null;
     }
   }
@@ -549,7 +570,7 @@ class ApiClient {
 
   // User Service Methods
   async getUserRole(userId: string): Promise<ApiResponse<{ role: string | null }>> {
-    return this.makeRequest(`/users/${userId}/role`, { method: 'GET' });
+    return this.makeRequest(`/auth-service/users/${userId}/role`, { method: 'GET' });
   }
 
   // Access Control Service Methods (consolidated)
