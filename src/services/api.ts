@@ -11,21 +11,20 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    // Environment-agnostic API configuration
-    // Set VITE_API_URL=http://localhost:3001 for local backend
-    // Leave empty or set to Supabase URL for cloud backend
-    const apiUrl = import.meta.env.VITE_API_URL;
-    
+    // Determine environment: local Express vs Supabase Edge Functions
+    const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
+    const onLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+
     if (apiUrl && apiUrl.trim() !== '') {
-      // Local backend - use direct routes without service prefixes
       this.baseUrl = apiUrl;
-      this.isLocalBackend = true;
-      
-    } else {
-      // Force local backend for now - do not use Supabase
+      this.isLocalBackend = apiUrl.includes('localhost');
+    } else if (onLocalhost) {
       this.baseUrl = 'http://localhost:3001';
       this.isLocalBackend = true;
-      
+    } else {
+      // Cloud/preview: use Supabase Edge Functions
+      this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
+      this.isLocalBackend = false;
     }
   }
 
@@ -71,24 +70,21 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const token = await this.getAuthToken();
 
-    const doFetch = async (authToken?: string) => {
-      const actualEndpoint = this.getLocalEndpoint(endpoint);
-      
-      // FORCE localhost for ALL requests - NO SUPABASE
-      const baseUrl = 'http://localhost:3001';
-      
-      
-      const headers = {
-        'Content-Type': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
-        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-        ...options.headers,
-      } as Record<string, string>;
+      const doFetch = async (authToken?: string) => {
+        const actualEndpoint = this.getLocalEndpoint(endpoint);
+        const baseUrl = this.baseUrl;
+        
+        const headers = {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaXZvZXhmcHZxb2hzdnBzemlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMjgyOTgsImV4cCI6MjA3MTgwNDI5OH0.TfV3FF9FNYXVv_f5TTgne4-CrDWmN1xOed2ZIjzn96Q',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+          ...options.headers,
+        } as Record<string, string>;
 
-      const response = await fetch(`${baseUrl}${actualEndpoint}`, {
-        ...options,
-        headers,
-      });
+        const response = await fetch(`${baseUrl}${actualEndpoint}`, {
+          ...options,
+          headers,
+        });
 
       let result: any = null;
       try {
