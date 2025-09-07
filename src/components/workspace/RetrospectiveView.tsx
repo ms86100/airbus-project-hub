@@ -90,7 +90,7 @@ interface CardVote {
   created_at: string;
 }
 
-const FRAMEWORK_TEMPLATES = {
+export const FRAMEWORK_TEMPLATES = {
   classic: {
     name: "Classic",
     description: "A structured reflection on what worked, what didn't, and what to change.",
@@ -352,7 +352,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
               <Plus className="h-4 w-4 mr-2" />
               New Retrospective
             </Button>
-            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Retrospective</DialogTitle>
               </DialogHeader>

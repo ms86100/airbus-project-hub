@@ -19,6 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { RetrospectiveCard } from './RetrospectiveCard';
 import { InteractiveRetrospectiveCard } from './InteractiveRetrospectiveCard';
 import { InteractiveDroppableColumn } from './InteractiveDroppableColumn';
+import { FRAMEWORK_TEMPLATES } from './RetrospectiveView';
 
 interface InteractiveRetrospectiveBoardProps {
   retrospective: {
@@ -401,7 +402,9 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Retrospective Board
             </h1>
-            <p className="text-muted-foreground">Framework: {retrospective.framework}</p>
+            <p className="text-muted-foreground">
+              Framework: {FRAMEWORK_TEMPLATES[retrospective.framework]?.name || retrospective.framework}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
