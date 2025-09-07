@@ -101,7 +101,15 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
     console.log('🎯 Iteration created:', iteration);
     fetchIterations();
     setIterationDialogOpen(false);
-    setSelectedIteration(iteration);
+    // Mark as real iteration so AvailabilityMatrix can save
+    const realIter: Iteration = {
+      ...iteration,
+      // @ts-ignore add flags for matrix logic
+      hasRealIteration: true,
+      // @ts-ignore
+      realIterationId: iteration.id,
+    } as any;
+    setSelectedIteration(realIter);
     // Don't show the toast yet, wait for matrix to load
   };
 
@@ -357,7 +365,13 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                             </div>
                           </div>
                           <Button
-                            onClick={() => openIterationMatrix(iteration)}
+                            onClick={() => openIterationMatrix({
+                              ...iteration,
+                              // @ts-ignore flag as real for matrix
+                              hasRealIteration: true,
+                              // @ts-ignore
+                              realIterationId: iteration.id,
+                            })}
                             variant="outline"
                           >
                             Open Availability Matrix

@@ -183,11 +183,12 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
   };
 
   const saveAvailability = async () => {
-    // Check if this team has a real iteration for saving
-    if (!iteration.hasRealIteration) {
+    // Allow saving when we have a real iteration id
+    const isTemp = iteration.id?.startsWith('temp-');
+    if ((isTemp || !iteration.id) && !iteration.realIterationId) {
       toast({
         title: 'Create Iteration Required',
-        description: 'This team needs a proper iteration to save availability data. Use "Create Iteration" button first.',
+        description: "This team needs a proper iteration to save availability data. Use 'Create Iteration' button first.",
         variant: 'destructive'
       });
       return;
