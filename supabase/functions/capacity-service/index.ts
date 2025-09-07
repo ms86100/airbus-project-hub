@@ -236,23 +236,32 @@ Deno.serve(async (req) => {
       if (pathParts[0] === 'teams' && pathParts[2] === 'members') {
         const teamId = pathParts[1];
         
-        const { data: member, error } = await supabase
-          .from('team_members')
-          .insert({
-            team_id: teamId,
-            member_name: body.member_name ?? body.display_name ?? body.name,
-            role: body.role,
-            email: body.email,
-            work_mode: body.work_mode ?? 'office',
-            default_availability_percent: body.default_availability_percent ?? 100,
-            created_by: user.id
-          })
-          .select()
-          .single();
+        let member = null;
+        let lastError: any = null;
 
-        if (error) {
+        const nameValue = body.member_name ?? body.display_name ?? body.name;
+        const payloads = [
+          { team_id: teamId, member_name: nameValue, role: body.role ?? null, email: body.email ?? null },
+          { team_id: teamId, display_name: nameValue, role: body.role ?? null, email: body.email ?? null },
+          { team_id: teamId, name: nameValue, role: body.role ?? null, email: body.email ?? null },
+        ];
+
+        for (const payload of payloads) {
+          const { data, error } = await supabase
+            .from('team_members')
+            .insert(payload)
+            .select()
+            .maybeSingle();
+          if (!error && data) {
+            member = data;
+            break;
+          }
+          lastError = error;
+        }
+
+        if (!member) {
           return new Response(
-            JSON.stringify({ success: false, error: error.message }),
+            JSON.stringify({ success: false, error: lastError?.message || 'Failed to create member' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
           );
         }
