@@ -147,7 +147,7 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
         <Button 
           variant="outline" 
           size="sm"
-          onClick={() => navigate('/projects')}
+          onClick={() => navigate('/')}
           className="flex items-center gap-2 w-full justify-start"
         >
           <ArrowLeft className="h-4 w-4" />
