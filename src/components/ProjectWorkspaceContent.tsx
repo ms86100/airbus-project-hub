@@ -9,6 +9,7 @@ import { TaskBacklog } from '@/components/workspace/TaskBacklog';
 import { TeamCapacityModule } from '@/components/workspace/TeamCapacityModule';
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
 import { ProjectBudgetManagement } from '@/components/workspace/ProjectBudgetManagement';
+import { ProjectAnalyticsDashboard } from '@/components/analytics/ProjectAnalyticsDashboard';
 import { ModuleAccessWrapper } from '@/components/ModuleAccessWrapper';
 import { ModuleName } from '@/hooks/useModulePermissions';
 
@@ -22,7 +23,13 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
     switch (module) {
       case 'overview':
         return { 
-          component: <StatusManagementView projectId={projectId} />, 
+          component: <ProjectAnalyticsDashboard projectId={projectId} />, 
+          moduleName: 'overview' as ModuleName, 
+          requiredAccess: 'read' 
+        };
+      case 'analytics':
+        return { 
+          component: <ProjectAnalyticsDashboard projectId={projectId} />, 
           moduleName: 'overview' as ModuleName, 
           requiredAccess: 'read' 
         };
