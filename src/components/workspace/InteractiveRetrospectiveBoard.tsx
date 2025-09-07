@@ -105,13 +105,23 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
 
   useEffect(() => {
     if (retrospective.columns) {
-      setColumns(retrospective.columns);
+      const frameworkTemplate = FRAMEWORK_TEMPLATES[retrospective.framework];
+      if (frameworkTemplate) {
+        // Update column titles based on framework
+        const updatedColumns = retrospective.columns.map((col, index) => ({
+          ...col,
+          title: frameworkTemplate.columns[index] || col.title
+        }));
+        setColumns(updatedColumns);
+      } else {
+        setColumns(retrospective.columns);
+      }
       setLoading(false);
     } else {
       fetchRetrospectiveData();
     }
     fetchStakeholders();
-  }, [retrospective.id]);
+  }, [retrospective.id, retrospective.framework]);
 
   const fetchRetrospectiveData = async () => {
     try {
@@ -120,11 +130,13 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
         const retros = Array.isArray(response.data) ? response.data : [];
         const currentRetro = retros.find(r => r.id === retrospective.id);
         if (currentRetro?.columns) {
+          const frameworkTemplate = FRAMEWORK_TEMPLATES[retrospective.framework];
           // Sort columns by order and cards by order
           const sortedColumns = currentRetro.columns
             .sort((a, b) => a.column_order - b.column_order)
-            .map(col => ({
+            .map((col, index) => ({
               ...col,
+              title: frameworkTemplate?.columns[index] || col.title,
               cards: col.cards?.sort((a, b) => a.card_order - b.card_order) || []
             }));
           setColumns(sortedColumns);
@@ -390,7 +402,7 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-6">{/* Added margin-top to prevent touching navigation */}
       {/* Header */}
       <div className="flex items-center justify-between p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border">
         <div className="flex items-center gap-4">
