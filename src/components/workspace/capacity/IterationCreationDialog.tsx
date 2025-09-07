@@ -249,10 +249,10 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
               value={iterationForm.team_id} 
               onValueChange={(value) => setIterationForm({ ...iterationForm, team_id: value })}
             >
-              <SelectTrigger className="bg-background border-input z-50">
+              <SelectTrigger>
                 <SelectValue placeholder="Select a team" />
               </SelectTrigger>
-              <SelectContent className="bg-background border-border z-[3100]">
+              <SelectContent className="z-[1000]">
                 {teams.length > 0 ? teams.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
                     {team.name}

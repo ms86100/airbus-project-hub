@@ -25,6 +25,8 @@ interface Iteration {
 interface TeamMember {
   id: string;
   member_name: string;
+  name?: string;
+  display_name?: string;
   role?: string;
   email?: string;
 }
@@ -408,7 +410,7 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
                     <TableRow key={member.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{member.member_name || 'Unknown Member'}</div>
+                          <div className="font-medium">{member.member_name || member.name || member.display_name || 'Unknown Member'}</div>
                           {member.role && (
                             <Badge variant="outline" className="text-xs mt-1">
                               {member.role}
