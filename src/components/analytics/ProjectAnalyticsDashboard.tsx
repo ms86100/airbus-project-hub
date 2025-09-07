@@ -100,8 +100,8 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
     try {
       setLoading(true);
       
-      // Fetch real analytics data from Supabase functions
-      const response = await fetch(`https://knivoexfpvqohsvpsziq.supabase.co/functions/v1/analytics-service/projects/${projectId}/project-overview`, {
+      // Fetch real analytics data from your local API
+      const response = await fetch(`http://localhost:3001/analytics-service/projects/${projectId}/project-overview`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
           'Content-Type': 'application/json'
@@ -313,7 +313,7 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
       
       toast({
         title: 'Analytics Data',
-        description: 'Showing demo analytics data. Real data will load when analytics service is available.',
+        description: 'Using mock data. Your local analytics service needs to be running on localhost:3001.',
         variant: 'default'
       });
     } finally {
