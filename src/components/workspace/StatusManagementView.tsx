@@ -646,8 +646,9 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
               <div className="space-y-2">
                 <Label>Status</Label>
                 <SimpleSelect
-                  value={editFormData.status}
+                  value={editFormData.status || ""}
                   onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
+                  placeholder="Select status"
                 >
                   <SimpleSelectItem value="todo">To Do</SimpleSelectItem>
                   <SimpleSelectItem value="in_progress">In Progress</SimpleSelectItem>
@@ -658,8 +659,9 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
               <div className="space-y-2">
                 <Label>Priority</Label>
                 <SimpleSelect
-                  value={editFormData.priority}
+                  value={editFormData.priority || ""}
                   onValueChange={(value) => setEditFormData({ ...editFormData, priority: value })}
+                  placeholder="Select priority"
                 >
                   <SimpleSelectItem value="low">Low</SimpleSelectItem>
                   <SimpleSelectItem value="medium">Medium</SimpleSelectItem>
@@ -674,15 +676,22 @@ export function StatusManagementView({ projectId }: StatusManagementViewProps) {
                 <Label>Due Date</Label>
                 <Input
                   type="date"
-                  value={editFormData.due_date}
-                  onChange={(e) => setEditFormData({ ...editFormData, due_date: e.target.value })}
+                  value={editFormData.due_date || ""}
+                  onChange={(e) => {
+                    console.log('Date changed to:', e.target.value);
+                    setEditFormData({ ...editFormData, due_date: e.target.value });
+                  }}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Owner</Label>
                 <SimpleSelect
-                  value={editFormData.owner_id}
-                  onValueChange={(value) => setEditFormData({ ...editFormData, owner_id: value })}
+                  value={editFormData.owner_id || ""}
+                  onValueChange={(value) => {
+                    console.log('Owner changed to:', value);
+                    setEditFormData({ ...editFormData, owner_id: value === "" ? "" : value });
+                  }}
+                  placeholder="Select owner"
                 >
                   <SimpleSelectItem value="">No owner assigned</SimpleSelectItem>
                   {stakeholders.map(stakeholder => (
