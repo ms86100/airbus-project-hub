@@ -35,6 +35,7 @@ const MODULES = [
   { value: 'backlog', label: 'Task Backlog' },
   { value: 'capacity', label: 'Team Capacity' },
   { value: 'retrospective', label: 'Retrospectives' },
+  { value: 'access_control', label: 'Access Control' },
 ];
 
 export function AccessControlDialog({ projectId, trigger }: AccessControlDialogProps) {
