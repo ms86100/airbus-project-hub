@@ -110,7 +110,8 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
         // Update column titles based on framework
         const updatedColumns = retrospective.columns.map((col, index) => ({
           ...col,
-          title: frameworkTemplate.columns[index]?.title || col.title
+          title: frameworkTemplate.columns[index]?.title || col.title,
+          subtitle: frameworkTemplate.columns[index]?.subtitle || col.subtitle
         }));
         setColumns(updatedColumns);
       } else {
@@ -137,6 +138,7 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
             .map((col, index) => ({
               ...col,
               title: frameworkTemplate?.columns[index]?.title || col.title,
+              subtitle: frameworkTemplate?.columns[index]?.subtitle || col.subtitle,
               cards: col.cards?.sort((a, b) => a.card_order - b.card_order) || []
             }));
           setColumns(sortedColumns);
