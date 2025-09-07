@@ -70,8 +70,12 @@ export function ProjectAccessControl({ projectId }: ProjectAccessControlProps) {
         return;
       }
 
-      setPermissions(response.data || []);
+      // Ensure we always set an array, even if the API returns something else
+      const permissionsData = response.data;
+      setPermissions(Array.isArray(permissionsData) ? permissionsData : []);
     } catch (error) {
+      console.error('Error fetching permissions:', error);
+      setPermissions([]); // Ensure permissions is always an array
       toast({
         title: "Error",
         description: "Failed to fetch permissions",
@@ -254,7 +258,7 @@ export function ProjectAccessControl({ projectId }: ProjectAccessControlProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {permissions.map((permission) => (
+              {(permissions || []).map((permission) => (
                 <TableRow key={permission.id}>
                   <TableCell className="font-medium">{permission.user_email}</TableCell>
                   <TableCell>
