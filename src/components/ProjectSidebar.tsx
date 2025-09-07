@@ -166,11 +166,11 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
           </Button>
         </div>
 
-        {/* Project Navigation Section */}
+        {/* Main Navigation Section */}
         <div className="py-6">
           <SidebarGroup>
             <SidebarGroupLabel className="px-6 mb-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Project Navigation
+              Main Navigation
             </SidebarGroupLabel>
             
             <SidebarGroupContent className="px-3">
