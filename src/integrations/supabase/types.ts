@@ -101,7 +101,15 @@ export type Database = {
           threshold_value?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_budget_alert_rules_project_budget"
+            columns: ["project_budget_id"]
+            isOneToOne: false
+            referencedRelation: "project_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       budget_categories: {
         Row: {
@@ -143,7 +151,15 @@ export type Database = {
           project_budget_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_budget_categories_project_budget"
+            columns: ["project_budget_id"]
+            isOneToOne: false
+            referencedRelation: "project_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       budget_comments: {
         Row: {
@@ -167,7 +183,15 @@ export type Database = {
           project_budget_id?: string
           text?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_budget_comments_project_budget"
+            columns: ["project_budget_id"]
+            isOneToOne: false
+            referencedRelation: "project_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       budget_receipts: {
         Row: {
@@ -212,7 +236,15 @@ export type Database = {
           source?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_budget_receipts_project_budget"
+            columns: ["project_budget_id"]
+            isOneToOne: false
+            referencedRelation: "project_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       budget_spending: {
         Row: {
@@ -260,7 +292,15 @@ export type Database = {
           updated_at?: string
           vendor?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_budget_spending_category"
+            columns: ["budget_category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       budget_type_config: {
         Row: {
@@ -1819,6 +1859,7 @@ export type Database = {
         | "task_backlog"
         | "team_capacity"
         | "retrospectives"
+        | "budget"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1959,6 +2000,7 @@ export const Constants = {
         "task_backlog",
         "team_capacity",
         "retrospectives",
+        "budget",
       ],
     },
   },
