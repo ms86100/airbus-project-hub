@@ -36,8 +36,9 @@ const getProjectNavigation = (projectId: string) => [
   { title: "Risk Register", url: `/project/${projectId}/risks`, icon: AlertTriangle },
   { title: "Discussions", url: `/project/${projectId}/discussions`, icon: MessageSquare },
   { title: "Task Backlog", url: `/project/${projectId}/backlog`, icon: Archive },
-  { title: "Team Capacity", url: `/project/${projectId}/capacity`, icon: BarChart3 },
-  { title: "Retrospectives", url: `/project/${projectId}/retrospective`, icon: RotateCcw },
+  { title: "Team Capacity", url: `/project/${projectId}/team-capacity`, icon: BarChart3 },
+  { title: "Retrospectives", url: `/project/${projectId}/retrospectives`, icon: RotateCcw },
+  { title: "Access Control", url: `/project/${projectId}/access-control`, icon: Shield },
 ]
 
 const settings = [
