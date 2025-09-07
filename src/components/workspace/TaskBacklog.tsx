@@ -57,6 +57,7 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
@@ -279,6 +280,11 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
     return stakeholder?.name || 'Unknown';
   };
 
+  const filteredBacklogItems = backlogItems.filter(item =>
+    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -369,8 +375,18 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
         </Dialog>
       </div>
 
+      {/* Search */}
+      <div className="flex items-center gap-4">
+        <Input
+          placeholder="Search backlog items..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
       <div className="grid gap-4">
-        {backlogItems.map((item) => (
+        {filteredBacklogItems.map((item) => (
           <Card key={item.id}>
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -446,10 +462,12 @@ export function TaskBacklog({ projectId }: TaskBacklogProps) {
           </Card>
         ))}
         
-        {backlogItems.length === 0 && (
+        {filteredBacklogItems.length === 0 && (
           <Card>
             <CardContent className="text-center py-8">
-              <p className="text-muted-foreground">No backlog items yet. Create your first item to get started.</p>
+              <p className="text-muted-foreground">
+                {searchTerm ? 'No backlog items found matching your search.' : 'No backlog items yet. Create your first item to get started.'}
+              </p>
             </CardContent>
           </Card>
         )}

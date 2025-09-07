@@ -86,6 +86,7 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
   const [editingActionItem, setEditingActionItem] = useState<ActionItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('discussions');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Form states
   const [discussionForm, setDiscussionForm] = useState({
@@ -615,8 +616,23 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
         </TabsList>
 
         <TabsContent value="discussions">
+          {/* Search */}
+          <div className="flex items-center gap-4 mb-6">
+            <Input
+              placeholder="Search discussions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          
           <div className="grid gap-4">
-            {discussions.map((discussion) => (
+            {discussions
+              .filter(discussion =>
+                discussion.meeting_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                discussion.summary_notes?.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+              .map((discussion) => (
               <Card key={discussion.id} className="cursor-pointer hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -767,9 +783,22 @@ export function DiscussionLog({ projectId, projectName }: DiscussionLogProps) {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Search for action items */}
+                  <div className="flex items-center gap-4 mb-4">
+                    <Input
+                      placeholder="Search action items..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="max-w-sm"
+                    />
+                  </div>
+                  
                   <div className="space-y-2">
                     {actionItems
                       .filter(item => item.discussion_id === selectedDiscussion.id)
+                      .filter(item =>
+                        item.task_description.toLowerCase().includes(searchTerm.toLowerCase())
+                      )
                       .map((actionItem) => (
                         <div key={actionItem.id} className="flex items-center justify-between p-3 border rounded">
                           <div className="flex-1">

@@ -66,6 +66,7 @@ const statuses = ["Open", "In Progress", "Closed", "Monitoring"];
 export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
@@ -378,6 +379,13 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
       </div>
     );
   }
+
+  const filteredRisks = risks.filter(risk =>
+    risk.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    risk.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    risk.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    risk.owner?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 p-6">
@@ -769,23 +777,40 @@ export function RiskRegisterView({ projectId }: RiskRegisterViewProps) {
         </Dialog>
       </div>
 
-      {risks.length === 0 ? (
+      {/* Search */}
+      <div className="flex items-center gap-4">
+        <Input
+          placeholder="Search risks..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
+      {filteredRisks.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-xl font-semibold mb-2">No Risks Identified</p>
-            <p className="text-muted-foreground text-center mb-4">
-              Start building your risk register by adding potential project risks.
+            <p className="text-xl font-semibold mb-2">
+              {searchTerm ? 'No risks found' : 'No Risks Identified'}
             </p>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add First Risk
-            </Button>
+            <p className="text-muted-foreground text-center mb-4">
+              {searchTerm 
+                ? 'Try adjusting your search criteria'
+                : 'Start building your risk register by adding potential project risks.'
+              }
+            </p>
+            {!searchTerm && (
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Risk
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
-          {risks.map((risk) => (
+          {filteredRisks.map((risk) => (
             <Card key={risk.id} className="relative">
               <CardHeader>
                 <div className="flex items-start justify-between">
