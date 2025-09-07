@@ -200,10 +200,9 @@ Deno.serve(async (req) => {
     if (req.method === 'POST') {
       const body = await req.json();
 
-      // POST /capacity-service/projects/:projectId/teams
-      if (pathParts.includes('capacity-service') && pathParts.includes('projects') && pathParts.includes('teams')) {
-        const projectIdIndex = pathParts.indexOf('projects') + 1;
-        const projectId = pathParts[projectIdIndex];
+      // POST /projects/:projectId/teams
+      if (pathParts[0] === 'projects' && pathParts[2] === 'teams') {
+        const projectId = pathParts[1];
         
         const { data: team, error } = await supabase
           .from('teams')

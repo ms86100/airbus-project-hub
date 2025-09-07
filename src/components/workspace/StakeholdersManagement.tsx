@@ -71,7 +71,6 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
 
   const fetchStakeholders = async () => {
     try {
-      console.log('fetchStakeholders called for project:', projectId);
       setLoading(true);
       const response = await apiClient.getStakeholders(projectId);
       
@@ -237,115 +236,106 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
             <h1 className="text-2xl font-semibold text-foreground">Stakeholders</h1>
             <p className="text-sm text-muted-foreground">Manage project stakeholders and team members</p>
           </div>
-          <div>
-            <Dialog open={isAddingStakeholder} onOpenChange={(open) => {
-              console.log('Dialog onOpenChange:', open);
-              setIsAddingStakeholder(open);
-              if (!open) resetForm();
-            }}>
-              <DialogTrigger asChild>
-                <Button>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Stakeholder
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]" aria-describedby="stakeholder-dialog-description">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingStakeholder ? 'Edit Stakeholder' : 'Add New Stakeholder'}
-                  </DialogTitle>
-                  <div id="stakeholder-dialog-description" className="sr-only">
-                    Dialog for adding or editing stakeholder information including name, email, department, RACI level, and influence level.
-                  </div>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Name *</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Enter stakeholder name"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="Enter email address"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="department">Department</Label>
-                      <Input
-                        id="department"
-                        value={formData.department}
-                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                        placeholder="Enter department"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="raci">RACI Level</Label>
-                      <SimpleSelect
-                        value={formData.raci}
-                        onValueChange={(value) => setFormData({ ...formData, raci: value })}
-                        placeholder="Select RACI level"
-                      >
-                        {raciOptions.map(option => (
-                          <SimpleSelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SimpleSelectItem>
-                        ))}
-                      </SimpleSelect>
-                    </div>
-                  </div>
-                  
+          <Dialog open={isAddingStakeholder} onOpenChange={setIsAddingStakeholder}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setIsAddingStakeholder(true)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Stakeholder
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingStakeholder ? 'Edit Stakeholder' : 'Add New Stakeholder'}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="influence">Influence Level</Label>
+                    <Label htmlFor="name">Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Enter stakeholder name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="department">Department</Label>
+                    <Input
+                      id="department"
+                      value={formData.department}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      placeholder="Enter department"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="raci">RACI Level</Label>
                     <SimpleSelect
-                      value={formData.influence_level}
-                      onValueChange={(value) => setFormData({ ...formData, influence_level: value })}
-                      placeholder="Select influence level"
+                      value={formData.raci}
+                      onValueChange={(value) => setFormData({ ...formData, raci: value })}
+                      placeholder="Select RACI level"
                     >
-                      {influenceOptions.map(option => (
+                      {raciOptions.map(option => (
                         <SimpleSelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SimpleSelectItem>
                       ))}
                     </SimpleSelect>
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="notes">Notes</Label>
-                    <Textarea
-                      id="notes"
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Add any additional notes..."
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button type="button" variant="outline" onClick={resetForm}>
-                      Cancel
-                    </Button>
-                    <Button type="submit">
-                      {editingStakeholder ? 'Update' : 'Add'} Stakeholder
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="influence">Influence Level</Label>
+                  <SimpleSelect
+                    value={formData.influence_level}
+                    onValueChange={(value) => setFormData({ ...formData, influence_level: value })}
+                    placeholder="Select influence level"
+                  >
+                    {influenceOptions.map(option => (
+                      <SimpleSelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SimpleSelectItem>
+                    ))}
+                  </SimpleSelect>
+                </div>
+                
+                <div>
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Add any additional notes..."
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {editingStakeholder ? 'Update' : 'Add'} Stakeholder
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -371,14 +361,10 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
                 <p className="text-muted-foreground text-center mb-4">
                   Add stakeholders to track project participants and assign tasks.
                 </p>
-                <Dialog open={isAddingStakeholder} onOpenChange={setIsAddingStakeholder}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Stakeholder
-                    </Button>
-                  </DialogTrigger>
-                </Dialog>
+                <Button onClick={() => setIsAddingStakeholder(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Stakeholder
+                </Button>
               </CardContent>
             </Card>
           ) : (

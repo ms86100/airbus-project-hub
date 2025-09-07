@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, UserPlus, Mail, Building } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,11 +31,6 @@ export function StakeholdersView({ projectId }: StakeholdersViewProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
-  const navigate = useNavigate();
-
-  const handleAddStakeholder = () => {
-    navigate(`/project/${projectId}/stakeholders/manage`);
-  };
 
   useEffect(() => {
     fetchStakeholders();
@@ -103,7 +97,7 @@ export function StakeholdersView({ projectId }: StakeholdersViewProps) {
             <h1 className="text-2xl font-semibold text-foreground">Stakeholders</h1>
             <p className="text-sm text-muted-foreground">Project-specific stakeholder registry</p>
           </div>
-          <Button onClick={handleAddStakeholder}>
+          <Button>
             <UserPlus className="h-4 w-4 mr-2" />
             Add Stakeholder
           </Button>
@@ -132,7 +126,7 @@ export function StakeholdersView({ projectId }: StakeholdersViewProps) {
                 <p className="text-muted-foreground text-center mb-4">
                   Add stakeholders to track project participants and their roles.
                 </p>
-                <Button onClick={handleAddStakeholder}>
+                <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Stakeholder
                 </Button>

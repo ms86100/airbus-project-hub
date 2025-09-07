@@ -101,15 +101,7 @@ export type Database = {
           threshold_value?: number | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_budget_alert_rules_project_budget"
-            columns: ["project_budget_id"]
-            isOneToOne: false
-            referencedRelation: "project_budgets"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       budget_categories: {
         Row: {
@@ -151,15 +143,7 @@ export type Database = {
           project_budget_id?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_budget_categories_project_budget"
-            columns: ["project_budget_id"]
-            isOneToOne: false
-            referencedRelation: "project_budgets"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       budget_comments: {
         Row: {
@@ -183,15 +167,7 @@ export type Database = {
           project_budget_id?: string
           text?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_budget_comments_project_budget"
-            columns: ["project_budget_id"]
-            isOneToOne: false
-            referencedRelation: "project_budgets"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       budget_receipts: {
         Row: {
@@ -236,15 +212,7 @@ export type Database = {
           source?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_budget_receipts_project_budget"
-            columns: ["project_budget_id"]
-            isOneToOne: false
-            referencedRelation: "project_budgets"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       budget_spending: {
         Row: {
@@ -292,15 +260,7 @@ export type Database = {
           updated_at?: string
           vendor?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_budget_spending_category"
-            columns: ["budget_category_id"]
-            isOneToOne: false
-            referencedRelation: "budget_categories"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       budget_type_config: {
         Row: {
@@ -445,132 +405,34 @@ export type Database = {
           id: string
           iteration_id: string
           updated_at: string
-          week_end: string
-          week_index: number
-          week_start: string
+          week_end_date: string
+          week_number: number
+          week_start_date: string
         }
         Insert: {
           created_at?: string
           id?: string
           iteration_id: string
           updated_at?: string
-          week_end: string
-          week_index: number
-          week_start: string
+          week_end_date: string
+          week_number: number
+          week_start_date: string
         }
         Update: {
           created_at?: string
           id?: string
           iteration_id?: string
           updated_at?: string
-          week_end?: string
-          week_index?: number
-          week_start?: string
+          week_end_date?: string
+          week_number?: number
+          week_start_date?: string
         }
         Relationships: [
           {
             foreignKeyName: "iteration_weeks_iteration_id_fkey"
             columns: ["iteration_id"]
             isOneToOne: false
-            referencedRelation: "iterations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      iterations: {
-        Row: {
-          created_at: string
-          created_by: string
-          end_date: string
-          id: string
-          name: string
-          project_id: string
-          start_date: string
-          team_id: string
-          type: string
-          updated_at: string
-          weeks_count: number
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          end_date: string
-          id?: string
-          name: string
-          project_id: string
-          start_date: string
-          team_id: string
-          type: string
-          updated_at?: string
-          weeks_count: number
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          end_date?: string
-          id?: string
-          name?: string
-          project_id?: string
-          start_date?: string
-          team_id?: string
-          type?: string
-          updated_at?: string
-          weeks_count?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "iterations_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      member_weekly_availability: {
-        Row: {
-          availability_percent: number | null
-          created_at: string
-          effective_capacity: number | null
-          id: string
-          iteration_week_id: string
-          leaves: number | null
-          team_member_id: string
-          updated_at: string
-        }
-        Insert: {
-          availability_percent?: number | null
-          created_at?: string
-          effective_capacity?: number | null
-          id?: string
-          iteration_week_id: string
-          leaves?: number | null
-          team_member_id: string
-          updated_at?: string
-        }
-        Update: {
-          availability_percent?: number | null
-          created_at?: string
-          effective_capacity?: number | null
-          id?: string
-          iteration_week_id?: string
-          leaves?: number | null
-          team_member_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "member_weekly_availability_iteration_week_id_fkey"
-            columns: ["iteration_week_id"]
-            isOneToOne: false
-            referencedRelation: "iteration_weeks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "member_weekly_availability_team_member_id_fkey"
-            columns: ["team_member_id"]
-            isOneToOne: false
-            referencedRelation: "team_members"
+            referencedRelation: "team_capacity_iterations"
             referencedColumns: ["id"]
           },
         ]
@@ -1492,7 +1354,15 @@ export type Database = {
           updated_at?: string
           working_days?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_capacity_iterations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_capacity_members: {
         Row: {
@@ -1631,30 +1501,39 @@ export type Database = {
       team_members: {
         Row: {
           created_at: string
-          display_name: string
+          created_by: string
+          default_availability_percent: number | null
           email: string | null
           id: string
+          member_name: string
           role: string | null
+          skills: string[] | null
           team_id: string
           updated_at: string
           work_mode: string | null
         }
         Insert: {
           created_at?: string
-          display_name: string
+          created_by: string
+          default_availability_percent?: number | null
           email?: string | null
           id?: string
+          member_name: string
           role?: string | null
+          skills?: string[] | null
           team_id: string
           updated_at?: string
           work_mode?: string | null
         }
         Update: {
           created_at?: string
-          display_name?: string
+          created_by?: string
+          default_availability_percent?: number | null
           email?: string | null
           id?: string
+          member_name?: string
           role?: string | null
+          skills?: string[] | null
           team_id?: string
           updated_at?: string
           work_mode?: string | null
@@ -1675,8 +1554,8 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
-          name: string
           project_id: string
+          team_name: string
           updated_at: string
         }
         Insert: {
@@ -1684,8 +1563,8 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
-          name: string
           project_id: string
+          team_name: string
           updated_at?: string
         }
         Update: {
@@ -1693,8 +1572,8 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
-          name?: string
           project_id?: string
+          team_name?: string
           updated_at?: string
         }
         Relationships: []
@@ -1757,7 +1636,22 @@ export type Database = {
           team_member_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "weekly_availability_iteration_week_id_fkey"
+            columns: ["iteration_week_id"]
+            isOneToOne: false
+            referencedRelation: "iteration_weeks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_availability_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       weekly_member_availability: {
         Row: {
@@ -1794,6 +1688,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "weekly_member_availability_iteration_week_id_fkey"
+            columns: ["iteration_week_id"]
+            isOneToOne: false
+            referencedRelation: "iteration_weeks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "weekly_member_availability_team_member_id_fkey"
             columns: ["team_member_id"]
@@ -1918,7 +1819,6 @@ export type Database = {
         | "task_backlog"
         | "team_capacity"
         | "retrospectives"
-        | "budget"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2059,7 +1959,6 @@ export const Constants = {
         "task_backlog",
         "team_capacity",
         "retrospectives",
-        "budget",
       ],
     },
   },
