@@ -27,7 +27,7 @@ const dashboardNavigation = [
 
 const getProjectNavigation = (projectId: string) => [
   { title: "Dashboard", url: `/project/${projectId}`, icon: Home },
-  { title: "Project List", url: "/projects", icon: FolderOpen },
+  { title: "Project List", url: "/", icon: FolderOpen },
   { title: "Budget", url: `/project/${projectId}/budget`, icon: BarChart3 },
   { title: "Tasks & Milestones", url: `/project/${projectId}/tasks`, icon: Calendar },
   { title: "Roadmap", url: `/project/${projectId}/roadmap`, icon: Map },
