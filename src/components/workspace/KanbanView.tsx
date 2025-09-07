@@ -15,15 +15,11 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  closestCorners,
+  rectIntersection,
   useDroppable,
+  useDraggable,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+
 
 interface KanbanViewProps {
   projectId: string;
@@ -332,9 +328,8 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       listeners,
       setNodeRef,
       transform,
-      transition,
       isDragging,
-    } = useSortable({ 
+    } = useDraggable({ 
       id: task.id,
       data: {
         type: 'task',
@@ -343,8 +338,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     });
 
     const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
+      transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
       opacity: isDragging ? 0.5 : 1,
     };
 
@@ -473,7 +467,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
@@ -494,21 +488,18 @@ export function KanbanView({ projectId }: KanbanViewProps) {
 
         {/* Kanban Board */}
         <div className="flex-1 overflow-auto p-6">
-          {/* Wrap the entire board in SortableContext with all task IDs */}
-          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            <div className="grid grid-cols-4 gap-6 h-full">
-              {statusColumns.map((column) => {
-                const columnTasks = getTasksForStatus(column.key);
-                return (
-                  <DroppableColumn 
-                    key={column.key} 
-                    column={column} 
-                    tasks={columnTasks} 
-                  />
-                );
-              })}
-            </div>
-          </SortableContext>
+          <div className="grid grid-cols-4 gap-6 h-full">
+            {statusColumns.map((column) => {
+              const columnTasks = getTasksForStatus(column.key);
+              return (
+                <DroppableColumn 
+                  key={column.key} 
+                  column={column} 
+                  tasks={columnTasks} 
+                />
+              );
+            })}
+          </div>
         </div>
 
         {/* Drag Overlay */}
