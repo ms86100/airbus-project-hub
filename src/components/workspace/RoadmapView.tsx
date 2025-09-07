@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalendarDays, Calendar, Clock, User, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Settings, Plus } from 'lucide-react';
 import { MilestoneManagementDialog } from './MilestoneManagementDialog';
 import { MonthlyGanttView } from './MonthlyGanttView';
+import { YearlyGanttView } from './YearlyGanttView';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, addWeeks, addMonths, addYears, subWeeks, subMonths, subYears, isWithinInterval, parseISO, differenceInDays, addDays } from 'date-fns';
 
 interface Task {
@@ -394,9 +395,10 @@ export function RoadmapView() {
 
       {/* Tabbed Interface */}
       <Tabs defaultValue="timeline" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="timeline">Timeline View</TabsTrigger>
           <TabsTrigger value="monthly">Monthly View</TabsTrigger>
+          <TabsTrigger value="yearly">Yearly View</TabsTrigger>
         </TabsList>
         
         <TabsContent value="timeline" className="mt-6">
@@ -600,6 +602,10 @@ export function RoadmapView() {
         
         <TabsContent value="monthly" className="mt-6">
           <MonthlyGanttView projectId={id!} />
+        </TabsContent>
+        
+        <TabsContent value="yearly" className="mt-6">
+          <YearlyGanttView projectId={id!} />
         </TabsContent>
       </Tabs>
     </div>
