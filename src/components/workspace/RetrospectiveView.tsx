@@ -352,7 +352,7 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
               <Plus className="h-4 w-4 mr-2" />
               New Retrospective
             </Button>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Retrospective</DialogTitle>
               </DialogHeader>
@@ -376,8 +376,11 @@ export function RetrospectiveView({ projectId }: RetrospectiveViewProps) {
                     placeholder="Select framework"
                   >
                     {Object.entries(FRAMEWORK_TEMPLATES).map(([key, template]) => (
-                      <SimpleSelectItem key={key} value={key}>
-                        {template.name} - {template.description}
+                      <SimpleSelectItem key={key} value={key} className="text-xs">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{template.name}</span>
+                          <span className="text-muted-foreground text-xs">{template.description}</span>
+                        </div>
                       </SimpleSelectItem>
                     ))}
                   </SimpleSelect>
