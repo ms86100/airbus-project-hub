@@ -86,6 +86,34 @@ Deno.serve(async (req) => {
         );
       }
 
+      // GET /projects/:projectId/capacity
+      if (pathParts[0] === 'projects' && pathParts[2] === 'capacity' && pathParts.length === 3) {
+        const projectId = pathParts[1];
+
+        const { data: iterations, error } = await supabase
+          .from('iterations')
+          .select('*')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          return new Response(
+            JSON.stringify({ success: false, error: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        const summary = {
+          totalIterations: iterations?.length || 0,
+          totalCapacity: (iterations || []).reduce((acc: number, it: any) => acc + (it.weeks_count || 0), 0)
+        };
+
+        return new Response(
+          JSON.stringify({ success: true, data: { projectId, iterations: iterations || [], summary } }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // GET /teams/:teamId/members
       if (pathParts[0] === 'teams' && pathParts[2] === 'members') {
         const teamId = pathParts[1];
@@ -203,6 +231,114 @@ Deno.serve(async (req) => {
 
     if (req.method === 'POST') {
       const body = await req.json();
+
+      // POST /projects/:projectId/capacity (create iteration/member)
+      if (pathParts[0] === 'projects' && pathParts[2] === 'capacity' && pathParts.length === 3) {
+        const projectId = pathParts[1];
+        const opType = (body.type || '').toLowerCase();
+
+        if (opType === 'iteration') {
+          const name: string = body.iterationName || body.name || 'Iteration';
+          const startDateStr: string = body.startDate;
+          const endDateStr: string = body.endDate;
+          const teamId: string | null = body.teamId || null;
+
+          if (!startDateStr || !endDateStr) {
+            return new Response(
+              JSON.stringify({ success: false, error: 'startDate and endDate are required' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
+          }
+
+          const startDate = new Date(startDateStr);
+          const endDate = new Date(endDateStr);
+          const msInDay = 24 * 60 * 60 * 1000;
+          const days = Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / msInDay) + 1);
+          const weeksCount = Math.ceil(days / 7);
+
+          const { data: iteration, error: iterationError } = await supabase
+            .from('iterations')
+            .insert({
+              project_id: projectId,
+              team_id: teamId,
+              name,
+              type: 'iteration',
+              start_date: startDateStr,
+              end_date: endDateStr,
+              weeks_count: weeksCount,
+              created_by: user.id,
+            })
+            .select('*')
+            .single();
+
+          if (iterationError) {
+            return new Response(
+              JSON.stringify({ success: false, error: iterationError.message }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
+          }
+
+          // Generate iteration weeks
+          const weeks: any[] = [];
+          for (let i = 0; i < weeksCount; i++) {
+            const weekStart = new Date(startDate);
+            weekStart.setDate(weekStart.getDate() + i * 7);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            if (weekEnd > endDate) weekEnd.setTime(endDate.getTime());
+
+            weeks.push({
+              iteration_id: iteration.id,
+              week_index: i + 1,
+              week_start: weekStart.toISOString().split('T')[0],
+              week_end: weekEnd.toISOString().split('T')[0],
+            });
+          }
+          if (weeks.length) {
+            await supabase.from('iteration_weeks').insert(weeks);
+          }
+
+          return new Response(
+            JSON.stringify({ success: true, data: { message: 'Iteration created', iteration } }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (opType === 'member') {
+          // Minimal support: create a team member on provided teamId
+          const teamId: string | undefined = body.teamId;
+          const memberName: string = body.memberName || body.name || body.displayName;
+          if (!teamId || !memberName) {
+            return new Response(
+              JSON.stringify({ success: false, error: 'teamId and memberName are required for member creation' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
+          }
+
+          const { data: member, error } = await supabase
+            .from('team_members')
+            .insert({ team_id: teamId, member_name: memberName, role: body.role || null, email: body.email || null })
+            .select('*')
+            .maybeSingle();
+
+          if (error || !member) {
+            return new Response(
+              JSON.stringify({ success: false, error: error?.message || 'Failed to create member' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
+          }
+
+          return new Response(
+            JSON.stringify({ success: true, data: { message: 'Member created', member } }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unsupported capacity type' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
 
       // POST /projects/:projectId/teams
       if (pathParts[0] === 'projects' && pathParts[2] === 'teams') {
@@ -363,6 +499,84 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ success: true, message: 'Availability saved successfully' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    if (req.method === 'PUT') {
+      // PUT /projects/:projectId/capacity/:itemId (update iteration)
+      if (pathParts[0] === 'projects' && pathParts[2] === 'capacity' && pathParts.length === 4) {
+        const projectId = pathParts[1];
+        const itemId = pathParts[3];
+        const body = await req.json();
+
+        const name: string | undefined = body.iterationName || body.name;
+        const startDateStr: string | undefined = body.startDate;
+        const endDateStr: string | undefined = body.endDate;
+
+        // Recompute weeks if dates provided
+        let weeksCount: number | undefined;
+        if (startDateStr && endDateStr) {
+          const startDate = new Date(startDateStr);
+          const endDate = new Date(endDateStr);
+          const msInDay = 24 * 60 * 60 * 1000;
+          const days = Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / msInDay) + 1);
+          weeksCount = Math.ceil(days / 7);
+        }
+
+        const { data: iteration, error } = await supabase
+          .from('iterations')
+          .update({
+            name,
+            start_date: startDateStr,
+            end_date: endDateStr,
+            weeks_count: weeksCount,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', itemId)
+          .eq('project_id', projectId)
+          .select('*')
+          .maybeSingle();
+
+        if (error || !iteration) {
+          return new Response(
+            JSON.stringify({ success: false, error: error?.message || 'Failed to update iteration' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, data: { message: 'Iteration updated', iteration } }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    if (req.method === 'DELETE') {
+      // DELETE /projects/:projectId/capacity/:itemId?type=iteration
+      if (pathParts[0] === 'projects' && pathParts[2] === 'capacity' && pathParts.length === 4) {
+        const projectId = pathParts[1];
+        const itemId = pathParts[3];
+        const type = (new URL(req.url).searchParams.get('type') || '').toLowerCase();
+
+        if (type === 'iteration') {
+          await supabase.from('iteration_weeks').delete().eq('iteration_id', itemId);
+          const { error } = await supabase.from('iterations').delete().eq('id', itemId).eq('project_id', projectId);
+          if (error) {
+            return new Response(
+              JSON.stringify({ success: false, error: error.message }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
+          }
+          return new Response(
+            JSON.stringify({ success: true, data: { message: 'Iteration deleted' } }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unsupported delete type' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
     }
