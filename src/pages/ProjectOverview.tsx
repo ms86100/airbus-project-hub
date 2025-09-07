@@ -28,7 +28,6 @@ import { TeamCapacityTracker } from '@/components/workspace/TeamCapacityTracker'
 import { RetrospectiveView } from '@/components/workspace/RetrospectiveView';
 import { ProjectBudgetManagement } from '@/components/workspace/ProjectBudgetManagement';
 import { ProjectAnalyticsDashboard } from '@/components/analytics/ProjectAnalyticsDashboard';
-import { AccessControlDialog } from '@/components/access-control/AccessControlDialog';
 import { useModulePermissions, ModuleName } from '@/hooks/useModulePermissions';
 
 interface Project {
@@ -75,23 +74,6 @@ const ProjectOverview = () => {
   const { user } = useApiAuth();
   const { toast } = useToast();
   const { canRead } = useModulePermissions(id || '');
-  
-  // Get current module from URL
-  const currentPath = window.location.pathname;
-  const getCurrentModule = () => {
-    if (currentPath.includes('/budget')) return 'budget';
-    if (currentPath.includes('/tasks')) return 'tasks';
-    if (currentPath.includes('/roadmap')) return 'roadmap';
-    if (currentPath.includes('/kanban')) return 'kanban';
-    if (currentPath.includes('/stakeholders')) return 'stakeholders';
-    if (currentPath.includes('/risks')) return 'risks';
-    if (currentPath.includes('/discussions')) return 'discussions';
-    if (currentPath.includes('/backlog')) return 'backlog';
-    if (currentPath.includes('/team-capacity')) return 'capacity';
-    if (currentPath.includes('/retrospectives')) return 'retrospectives';
-    if (currentPath.includes('/access-control')) return 'access-control';
-    return 'overview';
-  };
 
   const [project, setProject] = useState<Project | null>(null);
   const [workspaceData, setWorkspaceData] = useState<any>(null);
@@ -100,7 +82,7 @@ const ProjectOverview = () => {
 
   // Define module tabs with their permissions
   const moduleTabsConfig = [
-    { value: 'overview', label: 'Dashboard', module: 'overview' as ModuleName },
+    { value: 'overview', label: 'Overview', module: 'overview' as ModuleName },
     { value: 'budget', label: 'Budget', module: 'budget' as ModuleName },
     { value: 'tasks', label: 'Tasks & Milestones', module: 'tasks_milestones' as ModuleName },
     { value: 'roadmap', label: 'Roadmap', module: 'roadmap' as ModuleName },
@@ -111,15 +93,12 @@ const ProjectOverview = () => {
     { value: 'backlog', label: 'Task Backlog', module: 'task_backlog' as ModuleName },
     { value: 'capacity', label: 'Team Capacity', module: 'team_capacity' as ModuleName },
     { value: 'retrospectives', label: 'Retrospectives', module: 'retrospectives' as ModuleName },
-    { value: 'access-control', label: 'Access Control', module: 'overview' as ModuleName },
   ];
 
   // Filter tabs based on permissions
   const allowedTabs = moduleTabsConfig.filter(tab => canRead(tab.module));
-  const currentModule = getCurrentModule();
 
   console.log('ProjectOverview - allowedTabs:', allowedTabs.map(t => t.label));
-  console.log('ProjectOverview - currentModule:', currentModule);
 
   useEffect(() => {
     if (id) {
@@ -306,7 +285,7 @@ const ProjectOverview = () => {
 
           {/* Tabs with permission-based visibility */}
           <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
-            <Tabs value={currentModule} className="w-full">
+            <Tabs defaultValue={allowedTabs.length > 0 ? allowedTabs[0].value : 'overview'} className="w-full">
               <div className="border-b border-border bg-muted/5">
                 <TabsList className="w-full h-auto p-0 bg-transparent">
                   {allowedTabs.map((tab) => (
@@ -404,16 +383,6 @@ const ProjectOverview = () => {
                 <TabsContent value="budget" className="p-0">
                   <div className="h-[700px] w-full overflow-y-auto">
                     <ProjectBudgetManagement projectId={id!} />
-                  </div>
-                </TabsContent>
-              )}
-
-              {canRead('overview') && (
-                <TabsContent value="access-control" className="p-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Access Control</h3>
-                    <p className="text-muted-foreground">Manage user permissions and access levels for this project.</p>
-                    <AccessControlDialog projectId={id!} />
                   </div>
                 </TabsContent>
               )}
