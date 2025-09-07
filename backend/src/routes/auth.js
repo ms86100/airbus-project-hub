@@ -120,7 +120,7 @@ router.post('/register', async (req, res) => {
         } catch (repairErr) {
           await client.query('ROLLBACK');
           console.error('Account repair error:', repairErr);
-          return sendResponse(res, createErrorResponse('Registration failed', 'REGISTRATION_ERROR', 500));
+          throw repairErr;
         } finally {
           client.release();
         }
@@ -246,7 +246,7 @@ router.post('/register', async (req, res) => {
       const origin = (req.headers?.origin || '').toLowerCase();
       const expose = process.env.NODE_ENV !== 'production' || host.includes('localhost') || host.includes('127.0.0.1') || origin.includes('localhost') || origin.includes('127.0.0.1');
       const errorMsg = expose
-        ? [error.detail, error.message, error.code, error.constraint, error.table].filter(Boolean).join(' | ')
+        ? [error.detail, error.message, error.code, error.constraint, error.table, error.stack].filter(Boolean).join(' | ')
         : 'Registration failed';
       sendResponse(res, createErrorResponse(errorMsg, 'REGISTRATION_ERROR', 500));
     }
