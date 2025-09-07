@@ -144,16 +144,6 @@ export function ProjectSidebar({ projectId }: ProjectSidebarProps) {
     <div className="w-64 bg-sidebar border-r border-border flex flex-col h-full">
       {/* Header Section */}
       <div className="p-6 border-b border-border">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <LayoutGrid className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">ProjectFlow</h1>
-            <p className="text-xs text-muted-foreground">Enterprise Platform</p>
-          </div>
-        </div>
-        
         <Button 
           variant="outline" 
           size="sm"
