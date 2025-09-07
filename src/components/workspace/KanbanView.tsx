@@ -20,7 +20,6 @@ import {
   useDraggable,
 } from '@dnd-kit/core';
 
-
 interface KanbanViewProps {
   projectId: string;
 }
@@ -242,8 +241,6 @@ export function KanbanView({ projectId }: KanbanViewProps) {
         description: `"${task.title}" moved to ${formatStatusForToast(newStatus)}`,
       });
 
-      
-
     } catch (error: any) {
       console.error('Error updating task status:', error);
       toast({
@@ -267,20 +264,15 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     setActiveTask(null);
 
     if (!over) {
-      
       return;
     }
 
     const taskId = active.id as string;
     const dropTargetId = over.id as string;
 
-    
-
     // Ensure we only accept valid status column IDs as drop targets
     const validStatuses = statusColumns.map(col => col.key);
     const newStatus = validStatuses.includes(dropTargetId) ? dropTargetId : null;
-
-    
 
     if (!newStatus) {
       console.error('Invalid drop target:', dropTargetId, 'Valid targets:', validStatuses);
@@ -294,11 +286,9 @@ export function KanbanView({ projectId }: KanbanViewProps) {
     }
 
     if (task.status === newStatus) {
-      
       return;
     }
 
-    
     updateTaskStatus(taskId, newStatus);
   };
 
@@ -435,7 +425,6 @@ export function KanbanView({ projectId }: KanbanViewProps) {
             minHeight: '200px',
           }}
         >
-          {/* Remove SortableContext wrapper - just render tasks directly */}
           {columnTasks.map((task) => (
             <DraggableTaskCard key={task.id} task={task} />
           ))}
