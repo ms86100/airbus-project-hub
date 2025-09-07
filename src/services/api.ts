@@ -521,7 +521,7 @@ class ApiClient {
 
   // Access Control Service Methods (consolidated)
   async getModulePermissions(projectId: string): Promise<ApiResponse<any[]>> {
-    return this.makeRequest(`/access-service/projects/${projectId}/permissions`, { method: 'GET' });
+    return this.makeRequest(`/access-service/projects/${projectId}/access`, { method: 'GET' });
   }
 
   async grantModulePermission(data: { projectId: string; userEmail: string; module: string; accessLevel: string }): Promise<ApiResponse<{ message: string; permission: any }>> {
