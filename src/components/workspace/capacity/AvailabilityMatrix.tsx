@@ -87,55 +87,58 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
   const fetchData = async () => {
     try {
       setLoading(true);
-      
       console.log('🔍 Fetching data for iteration:', iteration);
-      
-      // Validate iteration has team_id
+
       if (!iteration || !iteration.team_id) {
         console.error('❌ No team_id found in iteration:', iteration);
-        toast({ 
-          title: 'Error', 
-          description: 'Invalid iteration data - no team assigned.', 
-          variant: 'destructive' 
-        });
+        toast({ title: 'Error', description: 'Invalid iteration data - no team assigned.', variant: 'destructive' });
         return;
       }
-      
+
       // Fetch team members for the specific team
       console.log('🔍 Fetching team members for team_id:', iteration.team_id);
       const membersResponse = await apiClient.getTeamMembers(iteration.team_id);
       console.log('👥 Team members response:', membersResponse);
-      
+
       if (membersResponse.success && membersResponse.data) {
-        // Filter members to only show those assigned to this team
-        const teamMembers = membersResponse.data.filter(member => 
-          member.team_id === iteration.team_id || !member.team_id
-        );
+        const teamMembers = membersResponse.data.filter(member => member.team_id === iteration.team_id || !member.team_id);
         console.log('👥 Setting filtered team members:', teamMembers);
         setTeamMembers(teamMembers);
       } else {
         console.error('❌ Failed to fetch team members:', membersResponse.error);
-        toast({ 
-          title: 'Error', 
-          description: `Failed to fetch team members: ${membersResponse.error}`, 
-          variant: 'destructive' 
-        });
-        setTeamMembers([]); // Set empty array to prevent undefined issues
+        toast({ title: 'Error', description: `Failed to fetch team members: ${membersResponse.error}`, variant: 'destructive' });
+        setTeamMembers([]);
       }
 
-      // Generate weeks from iteration data if not available from backend
+      // Generate weeks from iteration data
       if (iteration.weeks_count && iteration.start_date) {
         const generatedWeeks = generateWeeksFromIteration(iteration);
         setWeeks(generatedWeeks);
       }
 
+      // Fetch saved weekly availability and prefill state
+      const iterationIdForApi = iteration.realIterationId || iteration.id;
+      if (iterationIdForApi) {
+        const waRes = await apiClient.getWeeklyAvailability(iterationIdForApi);
+        if (waRes.success && Array.isArray(waRes.data)) {
+          const map: Record<string, WeeklyAvailability> = {};
+          waRes.data.forEach((row: any) => {
+            const weekId = `week-${row.week_index}`;
+            const key = getAvailabilityKey(row.team_member_id, weekId);
+            map[key] = {
+              iteration_week_id: weekId,
+              team_member_id: row.team_member_id,
+              availability_percent: row.availability_percent,
+              calculated_days_present: row.days_present,
+              calculated_days_total: row.days_total,
+            } as WeeklyAvailability;
+          });
+          setAvailability(map);
+        }
+      }
     } catch (error) {
       console.error('❌ Error fetching data:', error);
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to load iteration data. Try again.', 
-        variant: 'destructive' 
-      });
+      toast({ title: 'Error', description: 'Failed to load iteration data. Try again.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -197,11 +200,28 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
     try {
       setLoading(true);
       
-      const availabilityList = Object.values(availability);
-      // Use real iteration ID for API calls when available
+      const availabilityList: any[] = [];
       const iterationIdForApi = iteration.realIterationId || iteration.id;
-      console.log('🔧 Using iteration ID for API call:', iterationIdForApi);
-      
+
+      // Build complete grid with defaults so backend always receives data
+      teamMembers.forEach((member) => {
+        weeks.forEach((week) => {
+          const key = getAvailabilityKey(member.id, week.id);
+          const percent = availability[key]?.availability_percent ?? 100;
+          availabilityList.push({
+            iteration_week_id: week.id,
+            team_member_id: member.id,
+            availability_percent: percent,
+            calculated_days_present: Math.round((percent / 100) * 5),
+            calculated_days_total: 5,
+          });
+        });
+      });
+
+      if (availabilityList.length === 0) {
+        throw new Error('No availability to save (no team members or weeks)');
+      }
+
       const response = await apiClient.saveWeeklyAvailability(iterationIdForApi, availabilityList);
       
       if (response.success) {

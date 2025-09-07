@@ -522,4 +522,41 @@ router.post('/members/:memberId/weeks/:weekId/attendance', verifyToken, async (r
   }
 });
 
+// GET /capacity-service/iterations/:iterationId/availability
+router.get('/iterations/:iterationId/availability', verifyToken, async (req, res) => {
+  try {
+    const { iterationId } = req.params;
+
+    // Ensure storage table exists (local backend convenience)
+    await query(`
+      CREATE TABLE IF NOT EXISTS public.team_member_weekly_availability (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        iteration_id UUID NOT NULL REFERENCES public.team_capacity_iterations(id) ON DELETE CASCADE,
+        week_index INT NOT NULL,
+        team_member_id VARCHAR(255) NOT NULL,
+        availability_percent INT NOT NULL DEFAULT 100,
+        days_present INT NOT NULL DEFAULT 0,
+        days_total INT NOT NULL DEFAULT 5,
+        created_by UUID NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE(iteration_id, week_index, team_member_id)
+      );
+    `);
+
+    const rowsRes = await query(
+      `SELECT iteration_id, week_index, team_member_id, availability_percent, days_present, days_total
+       FROM public.team_member_weekly_availability
+       WHERE iteration_id = $1
+       ORDER BY week_index ASC`,
+      [iterationId]
+    );
+
+    return sendResponse(res, createSuccessResponse(rowsRes.rows));
+  } catch (error) {
+    console.error('Fetch weekly availability error:', error);
+    return sendResponse(res, createErrorResponse('Failed to fetch weekly availability', 'FETCH_ERROR', 500));
+  }
+});
+
 module.exports = router;
