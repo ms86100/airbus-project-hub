@@ -276,19 +276,22 @@ const ProjectOverview = () => {
           {/* Tabs with permission-based visibility */}
           <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
             <Tabs defaultValue={allowedTabs.length > 0 ? allowedTabs[0].value : 'overview'} className="w-full">
-              <div className="border-b border-border bg-muted/5">
-                <TabsList className="w-full h-auto p-0 bg-transparent">
-                  {allowedTabs.map((tab) => (
-                    <TabsTrigger 
-                      key={tab.value}
-                      value={tab.value} 
-                      className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white"
-                    >
-                      {tab.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </div>
+              {/* Show tabs only when there's more than one allowed tab */}
+              {allowedTabs.length > 1 ? (
+                <div className="border-b border-border bg-muted/5">
+                  <TabsList className="w-full h-auto p-0 bg-transparent">
+                    {allowedTabs.map((tab) => (
+                      <TabsTrigger 
+                        key={tab.value}
+                        value={tab.value} 
+                        className="flex-1 data-[state=active]:bg-airbus-primary data-[state=active]:text-white"
+                      >
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
+              ) : null}
 
               {/* Only render tab content for modules the user has access to */}
               {canRead('overview') && (

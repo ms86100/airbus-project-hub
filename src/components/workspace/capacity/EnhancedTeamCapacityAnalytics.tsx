@@ -237,10 +237,10 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
     activeIterations: iterationData.filter(iter => iter.weeks.length > 0).length,
   };
 
-  // Generate charts data
-  const iterationComparison = iterationData.map(iter => ({
-    name: iter.name || 'Unknown Iteration',
-    team: iter.team_name || 'Unknown Team',
+  // Generate charts data with better fallback names
+  const iterationComparison = iterationData.map((iter, index) => ({
+    name: iter.name && iter.name.trim() !== '' ? iter.name : `Iteration ${index + 1}`,
+    team: iter.team_name && iter.team_name.trim() !== '' ? iter.team_name : 'Unassigned Team',
     capacity: Math.round(iter.avg_availability),
     members: iter.total_members,
     weeks: iter.weeks.length,
@@ -439,7 +439,7 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
                        outerRadius={80}
                        fill="#8884d8"
                        dataKey="members"
-                       label={({name, members}) => `${name || 'Unknown'}: ${members || 0}`}
+                       label={({name, members}) => `${name}: ${members || 0}`}
                     >
                       {iterationComparison.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
