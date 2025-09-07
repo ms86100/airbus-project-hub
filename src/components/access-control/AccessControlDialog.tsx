@@ -35,7 +35,6 @@ const MODULES = [
   { value: 'backlog', label: 'Task Backlog' },
   { value: 'capacity', label: 'Team Capacity' },
   { value: 'retrospective', label: 'Retrospectives' },
-  { value: 'access_control', label: 'Access Control' },
 ];
 
 export function AccessControlDialog({ projectId, trigger }: AccessControlDialogProps) {
@@ -126,13 +125,9 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
     }
   };
 
-  const removePermission = async (permission: ModulePermission) => {
+  const removePermission = async (permissionId: string) => {
     try {
-      const response = await apiClient.revokeModulePermission({
-        projectId: projectId,
-        userId: permission.user_id,
-        module: permission.module
-      });
+      const response = await apiClient.revokeModulePermission(permissionId);
 
       if (!response.success) {
         toast({
@@ -281,7 +276,7 @@ export function AccessControlDialog({ projectId, trigger }: AccessControlDialogP
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => removePermission(permission)}
+                              onClick={() => removePermission(permission.id)}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>

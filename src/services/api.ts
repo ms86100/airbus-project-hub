@@ -521,23 +521,18 @@ class ApiClient {
 
   // Access Control Service Methods (consolidated)
   async getModulePermissions(projectId: string): Promise<ApiResponse<any[]>> {
-    return this.makeRequest(`/projects/${projectId}/access`, { method: 'GET' });
+    return this.makeRequest(`/access-service/projects/${projectId}/permissions`, { method: 'GET' });
   }
 
   async grantModulePermission(data: { projectId: string; userEmail: string; module: string; accessLevel: string }): Promise<ApiResponse<{ message: string; permission: any }>> {
-    return this.makeRequest(`/projects/${data.projectId}/access`, {
+    return this.makeRequest(`/access-service/permissions/grant`, {
       method: 'POST',
-      body: JSON.stringify({
-        userEmail: data.userEmail,
-        module: data.module,
-        accessLevel: data.accessLevel
-      }),
+      body: JSON.stringify(data),
     });
   }
 
-  async revokeModulePermission(data: { projectId: string; userId: string; module?: string }): Promise<ApiResponse<{ message: string }>> {
-    const queryParams = data.module ? `?module=${data.module}` : '';
-    return this.makeRequest(`/projects/${data.projectId}/access/${data.userId}${queryParams}`, {
+  async revokeModulePermission(permissionId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest(`/access-service/permissions/${permissionId}/revoke`, {
       method: 'DELETE',
     });
   }

@@ -172,11 +172,7 @@ export default function AccessControl() {
         throw new Error('Permission not found');
       }
 
-      const response = await apiClient.revokeModulePermission({
-        projectId: permission.project_id || '', // Fallback for global permissions
-        userId: permission.user_id,
-        module: permission.module
-      });
+      const response = await apiClient.revokeModulePermission(permissionId);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to remove permission');
