@@ -37,7 +37,11 @@ Deno.serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const pathParts = url.pathname.split('/').filter(Boolean);
+    const normalizedPath = url.pathname
+      .replace(/^\/functions\/v1\/capacity-service/, '')
+      .replace(/^\/capacity-service/, '') || '/';
+    const pathParts = normalizedPath.split('/').filter(Boolean);
+    console.log(`[${req.method}] ${normalizedPath} - User: ${user.id}`);
 
     if (req.method === 'GET') {
       // GET /projects/:projectId/teams
@@ -236,9 +240,12 @@ Deno.serve(async (req) => {
           .from('team_members')
           .insert({
             team_id: teamId,
-            display_name: body.display_name,
+            member_name: body.member_name ?? body.display_name ?? body.name,
             role: body.role,
-            email: body.email
+            email: body.email,
+            work_mode: body.work_mode ?? 'office',
+            default_availability_percent: body.default_availability_percent ?? 100,
+            created_by: user.id
           })
           .select()
           .single();
