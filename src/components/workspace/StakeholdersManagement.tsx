@@ -238,19 +238,21 @@ export function StakeholdersManagement({ projectId }: StakeholdersManagementProp
             <p className="text-sm text-muted-foreground">Manage project stakeholders and team members</p>
           </div>
           <div>
-            <Button onClick={() => {
-              console.log('Add stakeholder button clicked, current state:', isAddingStakeholder);
-              setIsAddingStakeholder(true);
-              console.log('State set to true');
-            }}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Stakeholder
-            </Button>
-            
             <Dialog open={isAddingStakeholder} onOpenChange={(open) => {
               console.log('Dialog onOpenChange:', open);
               setIsAddingStakeholder(open);
+              if (!open) resetForm();
             }}>
+              <DialogTrigger asChild>
+                <Button onClick={() => {
+                  console.log('Add stakeholder button clicked, current state:', isAddingStakeholder);
+                  setIsAddingStakeholder(true);
+                  console.log('State set to true');
+                }}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Stakeholder
+                </Button>
+              </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                   <DialogTitle>
