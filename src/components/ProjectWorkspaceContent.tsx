@@ -2,6 +2,7 @@ import React from 'react';
 import { RoadmapView } from '@/components/workspace/RoadmapView';
 import { KanbanView } from '@/components/workspace/KanbanView';
 import { StakeholdersView } from '@/components/workspace/StakeholdersView';
+import { StakeholdersManagement } from '@/components/workspace/StakeholdersManagement';
 import { StatusManagementView } from '@/components/workspace/StatusManagementView';
 import { RiskRegisterView } from '@/components/workspace/RiskRegisterView';
 import { DiscussionLog } from '@/components/workspace/DiscussionLog';
@@ -51,6 +52,12 @@ export function ProjectWorkspaceContent({ projectId, currentModule = 'roadmap' }
           component: <StakeholdersView projectId={projectId} />, 
           moduleName: 'stakeholders' as ModuleName, 
           requiredAccess: 'read' 
+        };
+      case 'stakeholders/manage':
+        return { 
+          component: <StakeholdersManagement projectId={projectId} />, 
+          moduleName: 'stakeholders' as ModuleName, 
+          requiredAccess: 'write' 
         };
       case 'discussions':
         return { 
