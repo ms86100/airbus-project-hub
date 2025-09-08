@@ -46,9 +46,14 @@ const Auth = () => {
         });
       } else {
         console.log('=== LOGIN SUCCESS ===');
-        // Navigate immediately after successful login
         console.log('🔄 Navigating to dashboard after successful login');
-        navigate('/', { replace: true });
+        
+        // For Vercel deployments, use window.location instead of navigate to prevent loops
+        if (window.location.hostname.includes('vercel.app')) {
+          window.location.href = '/';
+        } else {
+          navigate('/', { replace: true });
+        }
       }
     } catch (err) {
       console.error('=== LOGIN EXCEPTION ===', err);

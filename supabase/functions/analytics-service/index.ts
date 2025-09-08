@@ -132,7 +132,7 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
     if (budgetsError) console.log('❌ Budgets error:', budgetsError);
     if (spendingError) console.log('❌ Spending error:', spendingError);
 
-    // Process tasks with correct status mapping
+    // Process tasks with correct status mapping and build enhanced analytics
     const tasksData = tasks || []
     const completedTasks = tasksData.filter(task => 
       task.status === 'completed' || task.status === 'done'
@@ -150,7 +150,31 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
       if (!task.due_date) return false
       return new Date() > new Date(task.due_date) && 
              !['completed', 'done'].includes(task.status)
-    }).length
+    })
+    
+    // Build tasks by owner data from available task data
+    const tasksByOwnerMap = tasksData.reduce((acc, task) => {
+      const owner = task.owner_id || 'Unassigned'
+      if (!acc[owner]) {
+        acc[owner] = { owner, total: 0, completed: 0, inProgress: 0, blocked: 0 }
+      }
+      acc[owner].total++
+      if (['completed', 'done'].includes(task.status)) acc[owner].completed++
+      else if (['in_progress', 'in progress'].includes(task.status)) acc[owner].inProgress++
+      else if (task.status === 'blocked') acc[owner].blocked++
+      return acc
+    }, {})
+    
+    const tasksByOwner = Object.values(tasksByOwnerMap) as Array<{ owner: string; total: number; completed: number; inProgress: number; blocked: number }>
+    
+    // Build overdue tasks list
+    const overdueTasksList = overdueTasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      owner: task.owner_id || 'Unassigned',
+      dueDate: task.due_date,
+      daysOverdue: Math.ceil((new Date().getTime() - new Date(task.due_date).getTime()) / (1000 * 3600 * 24))
+    }))
 
     // Process risks with proper scoring
     const risksData = risks || []
@@ -163,15 +187,19 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
       ['closed', 'mitigated'].includes(risk.status)
     ).length
 
-    // Process budget data
+    // Process budget data properly
     const budgetData = budgets?.[0] || { total_budget_allocated: 0, total_budget_received: 0 }
     const categories = budgetData.budget_categories || []
     
-    // Calculate total spent from budget_spending table
-    const totalSpent = budgetSpending?.reduce((sum, spending) => sum + (spending.amount || 0), 0) || 0
+    // Calculate budget allocations and spending
+    const totalAllocated = categories.reduce((sum, cat) => sum + (cat.budget_allocated || 0), 0) || budgetData.total_budget_allocated || 0
+    const totalSpent = categories.reduce((sum, cat) => {
+      const categorySpent = cat.budget_spending?.reduce((spentSum, spending) => spentSum + (spending.amount || 0), 0) || 0
+      return sum + categorySpent
+    }, 0) || 0
     
     console.log('💰 Budget analysis:', {
-      allocated: budgetData.total_budget_allocated,
+      allocated: totalAllocated,
       spent: totalSpent,
       categories: categories.length,
       spendingEntries: budgetSpending?.length || 0
@@ -194,8 +222,8 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
       ((milestones.filter(m => m.status === 'completed').length / milestones.length) * 100) : 
       (tasksData.length > 0 ? ((completedTasks / tasksData.length) * 100) : 100)
       
-    const budgetHealth = budgetData.total_budget_allocated > 0 ? 
-      Math.max(0, ((budgetData.total_budget_allocated - totalSpent) / budgetData.total_budget_allocated) * 100) : 100
+    const budgetHealth = totalAllocated > 0 ? 
+      Math.max(0, ((totalAllocated - totalSpent) / totalAllocated) * 100) : 100
       
     const riskHealth = risksData.length > 0 ? 
       Math.max(0, 100 - ((highRisks / risksData.length) * 100)) : 100
@@ -214,12 +242,12 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
         team: Math.round(teamHealth)
       },
       budgetAnalytics: {
-        totalAllocated: budgetData.total_budget_allocated || 0,
+        totalAllocated,
         totalSpent,
-        remainingBudget: Math.max(0, (budgetData.total_budget_allocated || 0) - totalSpent),
+        remainingBudget: Math.max(0, totalAllocated - totalSpent),
         spendByCategory: categories.length > 0 ? categories.map((cat, index) => ({
           name: cat.name || 'Unknown',
-          value: cat.amount_spent || 0,
+          value: cat.budget_spending?.reduce((sum, spend) => sum + (spend.amount || 0), 0) || 0,
           color: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]
         })) : [],
         burnRate: [] // Can be populated with historical data
@@ -227,7 +255,7 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
       taskAnalytics: {
         totalTasks: tasksData.length,
         completedTasks,
-        overdueTasks,
+        overdueTasks: overdueTasks.length,
         avgCompletionTime: 0, // Can calculate from task data
         tasksByStatus: tasksData.length > 0 ? [
           { status: 'Completed', count: completedTasks, color: '#22c55e' },
@@ -235,8 +263,8 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
           { status: 'Todo', count: todoTasks, color: '#f97316' },
           { status: 'Blocked', count: blockedTasks, color: '#ef4444' }
         ] : [],
-        tasksByOwner: [], // Would need join with profiles
-        overdueTasksList: [], // Can be populated from overdue tasks
+        tasksByOwner,
+        overdueTasksList,
         productivityTrend: [] // Historical data needed
       },
       teamPerformance: {
