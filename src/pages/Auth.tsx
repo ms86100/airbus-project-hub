@@ -46,11 +46,9 @@ const Auth = () => {
         });
       } else {
         console.log('=== LOGIN SUCCESS ===');
-        // Add a small delay to ensure auth state is set before navigation
-        setTimeout(() => {
-          console.log('🔄 Navigating to dashboard after successful login');
-          navigate('/', { replace: true });
-        }, 100);
+        // Navigate immediately after successful login
+        console.log('🔄 Navigating to dashboard after successful login');
+        navigate('/', { replace: true });
       }
     } catch (err) {
       console.error('=== LOGIN EXCEPTION ===', err);
