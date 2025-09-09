@@ -218,15 +218,18 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
     // Calculate budget allocations and spending correctly
     const totalAllocated = categories.reduce((sum, cat) => sum + (cat.budget_allocated || 0), 0) || budgetData.total_budget_allocated || 0
     
-    // Get spending data from budget_spending table
+    // Get spending data from budget_spending table with proper joins
     let totalSpent = 0
     let categorySpending = {}
+    let spendByCategory = []
+    let burnRate = []
     
     try {
       const { data: spendingData } = await supabase
         .from('budget_spending')
         .select(`
           amount,
+          date,
           budget_category_id,
           budget_categories!inner (
             id,
@@ -238,18 +241,41 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
           )
         `)
         .eq('budget_categories.project_budgets.project_id', projectId)
+        .order('date')
       
       if (spendingData) {
         totalSpent = spendingData.reduce((sum, spend) => sum + (spend.amount || 0), 0)
         
-        // Group spending by category
+        // Group spending by category for pie chart
+        const categoryMap = {}
         spendingData.forEach(spend => {
-          const catId = spend.budget_category_id
-          if (!categorySpending[catId]) {
-            categorySpending[catId] = 0
+          const categoryName = spend.budget_categories?.name || 'Unknown Category'
+          if (!categoryMap[categoryName]) {
+            categoryMap[categoryName] = { name: categoryName, value: 0, color: '#2563eb' }
           }
-          categorySpending[catId] += (spend.amount || 0)
+          categoryMap[categoryName].value += (spend.amount || 0)
         })
+        
+        spendByCategory = Object.values(categoryMap)
+        
+        // Create burn rate data for trend chart
+        const monthlySpending = {}
+        spendingData.forEach(spend => {
+          const month = new Date(spend.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' })
+          if (!monthlySpending[month]) {
+            monthlySpending[month] = { month, budget: 0, spent: 0 }
+          }
+          monthlySpending[month].spent += (spend.amount || 0)
+        })
+        
+        // Add budget allocation data to months
+        if (categories.length > 0) {
+          Object.keys(monthlySpending).forEach(month => {
+            monthlySpending[month].budget = totalAllocated / Object.keys(monthlySpending).length
+          })
+        }
+        
+        burnRate = Object.values(monthlySpending)
       }
     } catch (error) {
       console.log('❌ Error fetching spending data:', error)
@@ -302,12 +328,8 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
         totalAllocated,
         totalSpent,
         remainingBudget: Math.max(0, totalAllocated - totalSpent),
-        spendByCategory: categories.length > 0 ? categories.map((cat, index) => ({
-          name: cat.name || 'Unknown',
-          value: categorySpending[cat.id] || 0,
-          color: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]
-        })).filter(item => item.value > 0) : [],
-        burnRate: [] // Can be populated with historical data
+        spendByCategory,
+        burnRate
       },
       taskAnalytics: {
         totalTasks: tasksData.length,
