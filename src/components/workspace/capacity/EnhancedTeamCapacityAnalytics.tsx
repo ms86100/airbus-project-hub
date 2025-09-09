@@ -266,7 +266,7 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
           : 0;
 
         return {
-          name: member.member_name,
+          name: member.member_name || 'Unknown Member',
           availability: Math.round(avgAvailability),
           totalDays: memberWeeks.reduce((sum, m) => sum + (m?.days_total || 0), 0),
           presentDays: memberWeeks.reduce((sum, m) => sum + (m?.days_present || 0), 0),

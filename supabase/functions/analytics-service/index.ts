@@ -152,26 +152,50 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
              !['completed', 'done'].includes(task.status)
     })
     
+    // Get user names for task owners
+    const userIds = [...new Set(tasksData.map(task => task.owner_id).filter(Boolean))]
+    let userNames = {}
+    
+    if (userIds.length > 0) {
+      try {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds)
+        
+        if (profiles) {
+          userNames = profiles.reduce((acc, profile) => {
+            acc[profile.id] = profile.full_name || profile.email || 'Unknown User'
+            return acc
+          }, {})
+        }
+      } catch (error) {
+        console.log('❌ Error fetching user profiles:', error)
+      }
+    }
+
     // Build tasks by owner data from available task data
     const tasksByOwnerMap = tasksData.reduce((acc, task) => {
-      const owner = task.owner_id || 'Unassigned'
-      if (!acc[owner]) {
-        acc[owner] = { owner, total: 0, completed: 0, inProgress: 0, blocked: 0 }
+      const ownerId = task.owner_id || 'unassigned'
+      const ownerName = task.owner_id ? (userNames[task.owner_id] || 'Unknown User') : 'Unassigned'
+      
+      if (!acc[ownerId]) {
+        acc[ownerId] = { owner: ownerName, total: 0, completed: 0, inProgress: 0, blocked: 0 }
       }
-      acc[owner].total++
-      if (['completed', 'done'].includes(task.status)) acc[owner].completed++
-      else if (['in_progress', 'in progress'].includes(task.status)) acc[owner].inProgress++
-      else if (task.status === 'blocked') acc[owner].blocked++
+      acc[ownerId].total++
+      if (['completed', 'done'].includes(task.status)) acc[ownerId].completed++
+      else if (['in_progress', 'in progress'].includes(task.status)) acc[ownerId].inProgress++
+      else if (task.status === 'blocked') acc[ownerId].blocked++
       return acc
     }, {})
     
     const tasksByOwner = Object.values(tasksByOwnerMap) as Array<{ owner: string; total: number; completed: number; inProgress: number; blocked: number }>
     
-    // Build overdue tasks list
+    // Build overdue tasks list with proper user names
     const overdueTasksList = overdueTasks.map(task => ({
       id: task.id,
       title: task.title,
-      owner: task.owner_id || 'Unassigned',
+      owner: task.owner_id ? (userNames[task.owner_id] || 'Unknown User') : 'Unassigned',
       dueDate: task.due_date,
       daysOverdue: Math.ceil((new Date().getTime() - new Date(task.due_date).getTime()) / (1000 * 3600 * 24))
     }))
@@ -191,12 +215,45 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
     const budgetData = budgets?.[0] || { total_budget_allocated: 0, total_budget_received: 0 }
     const categories = budgetData.budget_categories || []
     
-    // Calculate budget allocations and spending
+    // Calculate budget allocations and spending correctly
     const totalAllocated = categories.reduce((sum, cat) => sum + (cat.budget_allocated || 0), 0) || budgetData.total_budget_allocated || 0
-    const totalSpent = categories.reduce((sum, cat) => {
-      const categorySpent = cat.budget_spending?.reduce((spentSum, spending) => spentSum + (spending.amount || 0), 0) || 0
-      return sum + categorySpent
-    }, 0) || 0
+    
+    // Get spending data from budget_spending table
+    let totalSpent = 0
+    let categorySpending = {}
+    
+    try {
+      const { data: spendingData } = await supabase
+        .from('budget_spending')
+        .select(`
+          amount,
+          budget_category_id,
+          budget_categories!inner (
+            id,
+            name,
+            project_budget_id,
+            project_budgets!inner (
+              project_id
+            )
+          )
+        `)
+        .eq('budget_categories.project_budgets.project_id', projectId)
+      
+      if (spendingData) {
+        totalSpent = spendingData.reduce((sum, spend) => sum + (spend.amount || 0), 0)
+        
+        // Group spending by category
+        spendingData.forEach(spend => {
+          const catId = spend.budget_category_id
+          if (!categorySpending[catId]) {
+            categorySpending[catId] = 0
+          }
+          categorySpending[catId] += (spend.amount || 0)
+        })
+      }
+    } catch (error) {
+      console.log('❌ Error fetching spending data:', error)
+    }
     
     console.log('💰 Budget analysis:', {
       allocated: totalAllocated,
@@ -247,9 +304,9 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
         remainingBudget: Math.max(0, totalAllocated - totalSpent),
         spendByCategory: categories.length > 0 ? categories.map((cat, index) => ({
           name: cat.name || 'Unknown',
-          value: cat.budget_spending?.reduce((sum, spend) => sum + (spend.amount || 0), 0) || 0,
+          value: categorySpending[cat.id] || 0,
           color: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]
-        })) : [],
+        })).filter(item => item.value > 0) : [],
         burnRate: [] // Can be populated with historical data
       },
       taskAnalytics: {

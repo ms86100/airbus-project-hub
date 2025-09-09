@@ -258,6 +258,7 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
     }
   };
 
+
   const handleCreateActionItem = (card: RetrospectiveCard) => {
     setSelectedCard(card);
     setActionItemForm({
@@ -280,14 +281,15 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
       });
 
       if (actionResponse.success) {
-        // Automatically create task in backlog
+        // Automatically create task in backlog with "From Retrospective" tag
         const backlogData = {
           title: actionItemForm.what_task,
           description: `${actionItemForm.how_approach ? actionItemForm.how_approach + '\n\n' : ''}Created from retrospective action item.\n\nOriginal card: "${selectedCard.text}"\nWhen: ${actionItemForm.when_sprint}\nWho: ${actionItemForm.who_responsible}`,
           priority: 'medium',
           source_type: 'retrospective',
           source_id: actionResponse.data?.actionItem?.id,
-          owner_id: stakeholders.find(s => s.name === actionItemForm.who_responsible)?.id
+          owner_id: stakeholders.find(s => s.name === actionItemForm.who_responsible)?.id,
+          tags: ['From Retrospective'] // Add the retrospective tag
         };
 
         const backlogResponse = await apiClient.createBacklogItem(retrospective.project_id, backlogData);
