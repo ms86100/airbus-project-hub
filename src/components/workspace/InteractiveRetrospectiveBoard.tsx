@@ -258,7 +258,6 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
     }
   };
 
-
   const handleCreateActionItem = (card: RetrospectiveCard) => {
     setSelectedCard(card);
     setActionItemForm({
@@ -358,7 +357,6 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
 
     // Move card to new column
     try {
-      
       const response = await apiClient.moveRetrospectiveCard(cardId, newColumnId);
       if (response.success) {
         toast({
@@ -406,7 +404,7 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
   }
 
   return (
-    <div className="space-y-6 mt-6">{/* Added margin-top to prevent touching navigation */}
+    <div className="space-y-6 mt-6">
       {/* Header */}
       <div className="flex items-center justify-between p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border">
         <div className="flex items-center gap-4">
