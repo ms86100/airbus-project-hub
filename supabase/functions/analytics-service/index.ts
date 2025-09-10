@@ -152,12 +152,14 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
              !['completed', 'done'].includes(task.status)
     })
     
-    // Get user names for task owners
+    // Get user names for task owners - check both profiles and team members
     const userIds = [...new Set(tasksData.map(task => task.owner_id).filter(Boolean))]
     let userNames = {}
     
     if (userIds.length > 0) {
       try {
+        console.log('🔍 Looking up user names for IDs:', userIds)
+        
         // Try profiles table first
         const { data: profiles } = await supabase
           .from('profiles')
@@ -165,33 +167,82 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
           .in('id', userIds)
         
         if (profiles && profiles.length > 0) {
-          userNames = profiles.reduce((acc, profile) => {
-            acc[profile.id] = profile.full_name || profile.email || 'Unknown User'
-            return acc
-          }, {})
+          profiles.forEach(profile => {
+            userNames[profile.id] = profile.full_name || profile.email || 'Unknown User'
+          })
+          console.log('📋 Found in profiles:', Object.keys(userNames))
         }
         
-        // For missing users, try auth.users via RPC or edge function call
+        // Check remaining IDs in team_members table for the current project
         const missingUserIds = userIds.filter(id => !userNames[id])
         if (missingUserIds.length > 0) {
-          // Try to get user emails from auth metadata if available
-          for (const userId of missingUserIds) {
-            const { data: userData } = await supabase.auth.admin.getUserById(userId)
-            if (userData?.user) {
-              userNames[userId] = userData.user.user_metadata?.full_name || 
-                                 userData.user.email || 
-                                 `User ${userId.slice(0, 8)}...`
-            } else {
-              userNames[userId] = `User ${userId.slice(0, 8)}...`
+          console.log('🔍 Checking team members for missing IDs:', missingUserIds)
+          
+          const { data: teamMembers } = await supabase
+            .from('team_members')
+            .select('id, display_name, email')
+            .in('id', missingUserIds)
+          
+          if (teamMembers && teamMembers.length > 0) {
+            teamMembers.forEach(member => {
+              userNames[member.id] = member.display_name || member.email || 'Team Member'
+            })
+            console.log('👥 Found in team members:', teamMembers.map(m => m.display_name))
+          }
+          
+          // Also check team_capacity_members by member_name for current project  
+          const stillMissingIds = missingUserIds.filter(id => !userNames[id])
+          if (stillMissingIds.length > 0) {
+            const { data: capacityMembers } = await supabase
+              .from('team_capacity_members')
+              .select('id, member_name')
+              .in('id', stillMissingIds)
+            
+            if (capacityMembers && capacityMembers.length > 0) {
+              capacityMembers.forEach(member => {
+                userNames[member.id] = member.member_name || 'Team Member'
+              })
+              console.log('👥 Found in capacity members:', capacityMembers.map(m => m.member_name))
+            }
+          }
+          
+          // Check project team members by joining through teams table
+          const finalMissingIds = missingUserIds.filter(id => !userNames[id])
+          if (finalMissingIds.length > 0) {
+            const { data: projectTeamMembers } = await supabase
+              .from('team_members')
+              .select(`
+                id, 
+                display_name, 
+                email,
+                teams!inner(project_id)
+              `)
+              .eq('teams.project_id', projectId)
+              .in('id', finalMissingIds)
+            
+            if (projectTeamMembers && projectTeamMembers.length > 0) {
+              projectTeamMembers.forEach(member => {
+                userNames[member.id] = member.display_name || member.email || 'Team Member'
+              })
+              console.log('👥 Found in project team members:', projectTeamMembers.map(m => m.display_name))
             }
           }
         }
+        
+        // Final fallback for any still missing users - create readable names
+        const stillMissingIds = userIds.filter(id => !userNames[id])
+        stillMissingIds.forEach((id, index) => {
+          // Create meaningful names for unknown users instead of random IDs
+          userNames[id] = `Project Member ${index + 1}`
+          console.log('❌ No name found for user ID, using fallback:', id, '→', userNames[id])
+        })
+        
       } catch (error) {
-        console.log('❌ Error fetching user profiles:', error)
+        console.log('❌ Error fetching user names:', error)
         // Fallback for any missing users
         userIds.forEach(id => {
           if (!userNames[id]) {
-            userNames[id] = `User ${id.slice(0, 8)}...`
+            userNames[id] = 'Unknown User'
           }
         })
       }
