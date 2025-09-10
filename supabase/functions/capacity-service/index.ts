@@ -586,6 +586,8 @@ Deno.serve(async (req) => {
             availability_percent: Number(avail.availability_percent) || 100,
             leaves: Number(avail.leaves) || 0,
             effective_capacity: Number(avail.effective_capacity) || 0,
+            calculated_days_present: Number(avail.calculated_days_present) || Math.max(0, 5 - (Number(avail.leaves) || 0)),
+            calculated_days_total: Number(avail.calculated_days_total) || 5,
             updated_at: new Date().toISOString()
           };
           
