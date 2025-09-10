@@ -129,7 +129,7 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
                 const r = weekRows.find(w => w.team_member_id === member.id) || {};
                 return {
                   member_id: member.id,
-                  member_name: member.display_name || member.member_name || 'Unknown',
+                  member_name: member.display_name || member.member_name || member.name || 'Unknown',
                   availability_percent: Number(r.availability_percent ?? 100),
                   days_present: Number(r.days_present ?? 5),
                   days_total: Number(r.days_total ?? 5),

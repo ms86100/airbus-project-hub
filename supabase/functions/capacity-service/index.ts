@@ -570,11 +570,39 @@ Deno.serve(async (req) => {
       if (pathParts[0] === 'iterations' && pathParts[2] === 'availability') {
         const iterationId = pathParts[1];
         
-        // Insert or update availability data
-        const availabilityData = body.availability.map((avail: any) => ({
-          ...avail,
-          updated_at: new Date().toISOString()
-        }));
+        // Validate that availability data exists
+        if (!body.availability || !Array.isArray(body.availability)) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Availability data is required and must be an array' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+        
+        // Clean and validate availability data
+        const availabilityData = body.availability.map((avail: any) => {
+          const cleanedData: any = {
+            iteration_week_id: avail.iteration_week_id,
+            team_member_id: avail.team_member_id,
+            availability_percent: Number(avail.availability_percent) || 100,
+            leaves: Number(avail.leaves) || 0,
+            effective_capacity: Number(avail.effective_capacity) || 0,
+            updated_at: new Date().toISOString()
+          };
+          
+          // Only include notes if it exists and is not empty
+          if (avail.notes && avail.notes.trim()) {
+            cleanedData.notes = avail.notes.trim();
+          }
+          
+          return cleanedData;
+        }).filter(avail => avail.iteration_week_id && avail.team_member_id);
+
+        if (availabilityData.length === 0) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'No valid availability data provided' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
 
         const { error } = await supabase
           .from('member_weekly_availability')
@@ -583,6 +611,7 @@ Deno.serve(async (req) => {
           });
 
         if (error) {
+          console.error('Availability save error:', error);
           return new Response(
             JSON.stringify({ success: false, error: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }

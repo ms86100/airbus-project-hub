@@ -156,26 +156,47 @@ const WeeklyAvailabilityManager: React.FC<WeeklyAvailabilityManagerProps> = ({
     try {
       setLoading(true);
       
-      // Create weeks and availability data
+      // Prepare availability data for all weeks
+      const allAvailabilityData = [];
+      
       for (const week of weeks) {
-        const weekData = {
-          iteration_id: iterationId,
-          week_number: week.week_number,
-          week_start_date: week.week_start_date,
-          week_end_date: week.week_end_date
-        };
+        const weekAvailability = availability[week.id] || {};
         
-        // Save week data and member availability
-        const weekAvailabilityData = Object.values(availability[week.id] || {});
-        
-        // This would be implemented to save to the API
+        Object.values(weekAvailability).forEach((memberAvail: WeeklyAvailability) => {
+          if (memberAvail.team_member_id) {
+            allAvailabilityData.push({
+              iteration_week_id: week.id,
+              team_member_id: memberAvail.team_member_id,
+              availability_percent: memberAvail.availability_percent || 100,
+              leaves: memberAvail.leaves || 0,
+              effective_capacity: ((5 - (memberAvail.leaves || 0)) * ((memberAvail.availability_percent || 100) / 100)),
+              notes: memberAvail.notes || ''
+            });
+          }
+        });
       }
       
-      toast({ title: 'Success', description: 'Weekly availability saved successfully' });
-      onSave?.();
+      if (allAvailabilityData.length === 0) {
+        toast({ title: 'Warning', description: 'No availability data to save', variant: 'destructive' });
+        return;
+      }
+      
+      // Save to API
+      const response = await apiClient.saveWeeklyAvailability(iterationId, allAvailabilityData);
+      
+      if (response.success) {
+        toast({ title: 'Success', description: 'Weekly availability saved successfully' });
+        onSave?.();
+      } else {
+        throw new Error(response.error || 'Failed to save availability');
+      }
     } catch (error) {
-      console.error('Error saving weekly availability:', error);
-      toast({ title: 'Error', description: 'Failed to save weekly availability', variant: 'destructive' });
+      console.error('Error saving availability:', error);
+      toast({ 
+        title: 'Error', 
+        description: error instanceof Error ? error.message : 'Failed to save weekly availability', 
+        variant: 'destructive' 
+      });
     } finally {
       setLoading(false);
     }

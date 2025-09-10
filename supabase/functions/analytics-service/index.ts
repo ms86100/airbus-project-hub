@@ -158,19 +158,42 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
     
     if (userIds.length > 0) {
       try {
+        // Try profiles table first
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, full_name, email')
           .in('id', userIds)
         
-        if (profiles) {
+        if (profiles && profiles.length > 0) {
           userNames = profiles.reduce((acc, profile) => {
             acc[profile.id] = profile.full_name || profile.email || 'Unknown User'
             return acc
           }, {})
         }
+        
+        // For missing users, try auth.users via RPC or edge function call
+        const missingUserIds = userIds.filter(id => !userNames[id])
+        if (missingUserIds.length > 0) {
+          // Try to get user emails from auth metadata if available
+          for (const userId of missingUserIds) {
+            const { data: userData } = await supabase.auth.admin.getUserById(userId)
+            if (userData?.user) {
+              userNames[userId] = userData.user.user_metadata?.full_name || 
+                                 userData.user.email || 
+                                 `User ${userId.slice(0, 8)}...`
+            } else {
+              userNames[userId] = `User ${userId.slice(0, 8)}...`
+            }
+          }
+        }
       } catch (error) {
         console.log('❌ Error fetching user profiles:', error)
+        // Fallback for any missing users
+        userIds.forEach(id => {
+          if (!userNames[id]) {
+            userNames[id] = `User ${id.slice(0, 8)}...`
+          }
+        })
       }
     }
 
