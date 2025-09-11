@@ -187,6 +187,7 @@ Deno.serve(async (req) => {
       // GET /iterations/:iterationId/availability
       if (pathParts[0] === 'iterations' && pathParts[2] === 'availability') {
         const iterationId = pathParts[1];
+        console.log(`[GET] /iterations/${iterationId}/availability - User: ${user.id}`);
         
         // Get iteration with weeks
         const { data: iteration, error: iterationError } = await supabase
@@ -273,6 +274,30 @@ Deno.serve(async (req) => {
               availability
             }
           }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // GET /iterations/:iterationId/weeks
+      if (pathParts[0] === 'iterations' && pathParts[2] === 'weeks') {
+        const iterationId = pathParts[1];
+        console.log(`[GET] /iterations/${iterationId}/weeks - User: ${user.id}`);
+        
+        const { data, error } = await supabase
+          .from('iteration_weeks')
+          .select('*')
+          .eq('iteration_id', iterationId)
+          .order('week_index');
+        
+        if (error) {
+          return new Response(
+            JSON.stringify({ success: false, error: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true, data: data || [] }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

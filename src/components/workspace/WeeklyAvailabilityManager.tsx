@@ -60,13 +60,38 @@ const WeeklyAvailabilityManager: React.FC<WeeklyAvailabilityManagerProps> = ({
 
   useEffect(() => {
     if (iterationId && teamId) {
-      generateWeeks();
-      fetchTeamMembers();
-      fetchWeeklyAvailability();
+      const fetchData = async () => {
+        await generateWeeks();
+        await fetchTeamMembers();
+        await fetchWeeklyAvailability();
+      };
+      fetchData();
     }
   }, [iterationId, teamId, startDate, endDate]);
 
-  const generateWeeks = () => {
+  const generateWeeks = async () => {
+    try {
+      // Fetch actual iteration weeks from the database
+      const response = await apiClient.getIterationWeeks(iterationId);
+      
+      if (response.success && response.data) {
+        const dbWeeks = response.data.map((week: any, index: number) => ({
+          id: week.id, // Use the actual UUID from database
+          week_number: week.week_index || (index + 1),
+          week_start_date: week.week_start,
+          week_end_date: week.week_end
+        }));
+        setWeeks(dbWeeks);
+        if (dbWeeks.length > 0) {
+          setSelectedWeek(dbWeeks[0].id);
+        }
+        return;
+      }
+    } catch (error) {
+      console.error('Error fetching iteration weeks:', error);
+    }
+    
+    // Fallback to generating weeks if database fetch fails
     const start = new Date(startDate);
     const end = new Date(endDate);
     const generatedWeeks: IterationWeek[] = [];
@@ -84,7 +109,7 @@ const WeeklyAvailabilityManager: React.FC<WeeklyAvailabilityManagerProps> = ({
       }
       
       generatedWeeks.push({
-        id: `week-${weekNumber}`,
+        id: `temp-week-${weekNumber}`, // Temporary ID for fallback
         week_number: weekNumber,
         week_start_date: currentStart.toISOString().split('T')[0],
         week_end_date: weekEnd.toISOString().split('T')[0]
@@ -163,12 +188,14 @@ const WeeklyAvailabilityManager: React.FC<WeeklyAvailabilityManagerProps> = ({
         const weekAvailability = availability[week.id] || {};
         
         Object.values(weekAvailability).forEach((memberAvail: WeeklyAvailability) => {
-          if (memberAvail.team_member_id) {
+          if (memberAvail.team_member_id && !week.id.startsWith('temp-week-')) {
             allAvailabilityData.push({
               iteration_week_id: week.id,
               team_member_id: memberAvail.team_member_id,
               availability_percent: memberAvail.availability_percent || 100,
               leaves: memberAvail.leaves || 0,
+              calculated_days_present: Math.max(0, 5 - (memberAvail.leaves || 0)),
+              calculated_days_total: 5,
               effective_capacity: ((5 - (memberAvail.leaves || 0)) * ((memberAvail.availability_percent || 100) / 100)),
               notes: memberAvail.notes || ''
             });

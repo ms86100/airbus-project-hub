@@ -1207,6 +1207,14 @@ class ApiClient {
     });
   }
 
+  async getIterationWeeks(iterationId: string): Promise<ApiResponse<any[]>> {
+    const ep = this.resolveEndpoint(
+      `/capacity-service/iterations/${iterationId}/weeks`,
+      `/capacity-service/iterations/${iterationId}/weeks`
+    );
+    return this.makeRequest(ep, { method: 'GET' });
+  }
+
   async getDailyAttendance(availabilityId: string): Promise<ApiResponse<any[]>> {
     const ep = this.resolveEndpoint(
       `/capacity-service/availability/${availabilityId}/daily`,
