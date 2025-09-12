@@ -671,7 +671,7 @@ class ApiClient {
 
   // Profile management
   async getProfile(userId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/auth-service/profiles/${userId}`);
+    return this.makeRequest(`/auth-service/users/${userId}/profile`);
   }
 
   // Capacity Service Methods (extended)  
