@@ -98,7 +98,7 @@ const Auth = () => {
               <Plane className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Project Hub</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Purple Cow</h1>
           <p className="text-white/80">Enterprise Project Management</p>
         </div>
 
