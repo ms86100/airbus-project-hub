@@ -225,10 +225,10 @@ const MilestoneGroupingStep: React.FC<MilestoneGroupingStepProps> = ({ projectDa
 
       {/* Milestone Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {projectData.milestones.map((milestone, index) => (
+        {projectData.milestones.map((milestone) => (
           <Card 
             key={milestone.id}
-            className={`${projectData.milestones.length > 1 && index > 0 ? 'min-h-[600px]' : 'h-fit'}`}
+            className="h-fit"
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, milestone.id)}
           >

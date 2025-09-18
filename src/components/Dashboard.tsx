@@ -200,7 +200,7 @@ const Dashboard = () => {
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-primary to-accent rounded-lg p-6 text-white">
         <h1 className="text-3xl font-bold mb-2">
-          Welcome to Purple Cow
+          Welcome to Project Hub
         </h1>
         <p className="text-white/90 mb-4">
           {userRole === 'admin' 

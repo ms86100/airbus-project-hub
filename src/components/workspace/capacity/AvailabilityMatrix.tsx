@@ -25,8 +25,6 @@ interface Iteration {
 interface TeamMember {
   id: string;
   member_name: string;
-  name?: string;
-  display_name?: string;
   role?: string;
   email?: string;
 }
@@ -110,60 +108,34 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
         setTeamMembers([]);
       }
 
-      // Fetch iteration weeks from backend to get real UUIDs
-      const iterationIdForApi = iteration.realIterationId || iteration.id;
-      let generatedWeeks: Week[] = [];
-
-      try {
-        const weeksRes = await apiClient.getIterationWeeks(iterationIdForApi);
-        if (weeksRes.success && Array.isArray(weeksRes.data) && weeksRes.data.length > 0) {
-          generatedWeeks = weeksRes.data.map((w: any) => ({
-            id: w.id,
-            week_index: w.week_index,
-            week_start: w.week_start,
-            week_end: w.week_end,
-          }));
-          setWeeks(generatedWeeks);
-        } else if (iteration.weeks_count && iteration.start_date) {
-          // Fallback to local generation (will not be used for saving if no UUIDs)
-          generatedWeeks = generateWeeksFromIteration(iteration);
-          setWeeks(generatedWeeks);
-        }
-      } catch (e) {
-        console.error('❌ Failed to fetch iteration weeks, using local generation as fallback', e);
-        if (iteration.weeks_count && iteration.start_date) {
-          generatedWeeks = generateWeeksFromIteration(iteration);
-          setWeeks(generatedWeeks);
-        }
+      // Generate weeks from iteration data
+      if (iteration.weeks_count && iteration.start_date) {
+        const generatedWeeks = generateWeeksFromIteration(iteration);
+        setWeeks(generatedWeeks);
       }
 
       // Fetch saved weekly availability and prefill state
+      const iterationIdForApi = iteration.realIterationId || iteration.id;
       if (iterationIdForApi) {
         const waRes = await apiClient.getWeeklyAvailability(iterationIdForApi);
-        const map: Record<string, WeeklyAvailability> = {};
-
-        if (waRes.success) {
-          // Handle both legacy array and new structured response
-          const availabilityRows = Array.isArray(waRes.data)
-            ? (waRes.data as any[])
-            : (((waRes.data as any)?.availability as any[]) || []);
-          availabilityRows.forEach((row: any) => {
-            // Prefer matching by iteration_week_id; fallback to week_index mapping
-            const weekId = row.iteration_week_id || generatedWeeks.find(w => w.week_index === row.week_index)?.id;
-            if (!weekId) return;
+        if (waRes.success && Array.isArray(waRes.data)) {
+          const map: Record<string, WeeklyAvailability> = {};
+          waRes.data.forEach((row: any) => {
+            
+            const weekId = `week-${row.week_index}`;
             const key = getAvailabilityKey(row.team_member_id, weekId);
             map[key] = {
               iteration_week_id: weekId,
               team_member_id: row.team_member_id,
               availability_percent: row.availability_percent || 100,
-              calculated_days_present: row.calculated_days_present || Math.round((row.availability_percent || 100) / 100 * 5),
-              calculated_days_total: row.calculated_days_total || 5,
+              calculated_days_present: row.days_present || Math.round((row.availability_percent || 100) / 100 * 5),
+              calculated_days_total: row.days_total || 5,
             } as WeeklyAvailability;
           });
-        }
-
-        if (Object.keys(map).length > 0) {
+          
           setAvailability(map);
+        } else {
+          
         }
       }
     } catch (error) {
@@ -229,18 +201,6 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
 
     try {
       setLoading(true);
-
-      // Ensure weeks have real UUIDs; otherwise saving will fail
-      const hasInvalidWeekIds = weeks.some(w => !/^[0-9a-fA-F-]{36}$/.test(w.id));
-      if (hasInvalidWeekIds) {
-        toast({
-          title: 'Setup Required',
-          description: 'Iteration weeks are not set up in the backend. Please recreate the iteration or contact admin.',
-          variant: 'destructive'
-        });
-        setLoading(false);
-        return;
-      }
       
       const availabilityList: any[] = [];
       const iterationIdForApi = iteration.realIterationId || iteration.id;
@@ -448,7 +408,7 @@ export const AvailabilityMatrix: React.FC<AvailabilityMatrixProps> = ({
                     <TableRow key={member.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{member.member_name || member.name || member.display_name || 'Unknown Member'}</div>
+                          <div className="font-medium">{member.member_name || 'Unknown Member'}</div>
                           {member.role && (
                             <Badge variant="outline" className="text-xs mt-1">
                               {member.role}

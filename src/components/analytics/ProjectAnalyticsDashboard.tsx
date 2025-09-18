@@ -323,24 +323,24 @@ export const ProjectAnalyticsDashboard: React.FC<ProjectAnalyticsDashboardProps>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              {taskAnalytics.tasksByStatus?.length > 0 && taskAnalytics.tasksByStatus.some(item => item.count > 0) ? (
+              {taskAnalytics.tasksByStatus?.length > 0 ? (
                 <RechartsPieChart>
                   <Pie
-                    data={taskAnalytics.tasksByStatus.filter(item => item.count > 0)}
+                    data={taskAnalytics.tasksByStatus}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ status, count }) => `${status}: ${count}`}
+                    label={({ status, count, percent }) => `${status}: ${count} (${(percent * 100).toFixed(0)}%)`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="count"
                   >
-                    {taskAnalytics.tasksByStatus.filter(item => item.count > 0).map((entry, index) => (
+                    {taskAnalytics.tasksByStatus.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value, name) => [value, 'Tasks']} />
-                  <Legend formatter={(value, entry: any) => `${entry.payload?.status || value} (${entry.payload?.count || 0})`} />
+                  <Tooltip />
+                  <Legend />
                 </RechartsPieChart>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-muted-foreground">

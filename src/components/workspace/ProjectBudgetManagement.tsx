@@ -491,7 +491,7 @@ export function ProjectBudgetManagement({ projectId }: ProjectBudgetManagementPr
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Amount Spent</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>

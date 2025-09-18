@@ -16,7 +16,7 @@ import { TeamCapacityTrackerDialog } from './capacity/TeamCapacityTrackerDialog'
 
 interface Team {
   id: string;
-  name: string;
+  team_name: string;
   description?: string;
   project_id: string;
   created_at: string;
@@ -94,7 +94,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
           const team = teams.find(t => t.id === iteration.team_id || t.id === iteration.teamId);
           return {
             ...iteration,
-            team_name: team?.name || iteration.team_name || 'No team assigned'
+            team_name: team?.team_name || iteration.team_name || 'No team assigned'
           };
         });
         
@@ -300,7 +300,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                     <Card key={team.id} className="hover:bg-muted/50 transition-colors">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-semibold">{team.name}</h3>
+                          <h3 className="font-semibold">{team.team_name}</h3>
                           <Badge variant="outline">{team.member_count || 0} members</Badge>
                         </div>
                         {team.description && (
@@ -319,11 +319,11 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                               // ALWAYS create a temporary iteration for consistent UI behavior
                               const tempIteration = {
                                 id: `temp-${team.id}`,
-                                name: `${team.name} Availability`,
+                                name: `${team.team_name} Availability`,
                                 type: 'capacity_tracker' as const,
                                 project_id: projectId,
                                 team_id: team.id,
-                                team_name: team.name,
+                                team_name: team.team_name,
                                 start_date: new Date().toISOString().split('T')[0],
                                 end_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                                 weeks_count: 3,
@@ -360,11 +360,11 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
                                
                                const iterationData = {
                                  id: `team-${team.id}`,
-                                 name: `${team.name} - Availability Matrix`,
+                                 name: `${team.team_name} - Availability Matrix`,
                                  type: 'capacity_tracker' as const,
                                  project_id: projectId,
                                  team_id: team.id, // CRITICAL: This is required by AvailabilityMatrix
-                                 team_name: team.name,
+                                 team_name: team.team_name,
                                  start_date: '2025-09-04',
                                  end_date: '2025-09-25',
                                  weeks_count: 3,
@@ -549,7 +549,7 @@ export const TeamCapacityModule: React.FC<TeamCapacityModuleProps> = ({ projectI
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Team</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete team "{teamToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete team "{teamToDelete?.team_name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

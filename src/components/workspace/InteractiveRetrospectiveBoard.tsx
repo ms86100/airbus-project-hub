@@ -280,15 +280,14 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
       });
 
       if (actionResponse.success) {
-        // Automatically create task in backlog with "From Retrospective" tag
+        // Automatically create task in backlog
         const backlogData = {
           title: actionItemForm.what_task,
           description: `${actionItemForm.how_approach ? actionItemForm.how_approach + '\n\n' : ''}Created from retrospective action item.\n\nOriginal card: "${selectedCard.text}"\nWhen: ${actionItemForm.when_sprint}\nWho: ${actionItemForm.who_responsible}`,
           priority: 'medium',
           source_type: 'retrospective',
           source_id: actionResponse.data?.actionItem?.id,
-          owner_id: stakeholders.find(s => s.name === actionItemForm.who_responsible)?.id,
-          tags: ['From Retrospective'] // Add the retrospective tag
+          owner_id: stakeholders.find(s => s.name === actionItemForm.who_responsible)?.id
         };
 
         const backlogResponse = await apiClient.createBacklogItem(retrospective.project_id, backlogData);
@@ -357,6 +356,7 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
 
     // Move card to new column
     try {
+      
       const response = await apiClient.moveRetrospectiveCard(cardId, newColumnId);
       if (response.success) {
         toast({
@@ -404,7 +404,7 @@ export function InteractiveRetrospectiveBoard({ retrospective, onBack }: Interac
   }
 
   return (
-    <div className="space-y-6 mt-6">
+    <div className="space-y-6 mt-6">{/* Added margin-top to prevent touching navigation */}
       {/* Header */}
       <div className="flex items-center justify-between p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg border">
         <div className="flex items-center gap-4">

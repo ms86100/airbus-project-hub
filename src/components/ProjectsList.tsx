@@ -231,12 +231,12 @@ const ProjectsList = () => {
     <div className="space-y-6">
       {/* Blue Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-lg p-8 text-white">
-        <h1 className="text-3xl font-bold mb-2">Welcome to Purple Cow</h1>
+        <h1 className="text-3xl font-bold mb-2">Welcome to Project Hub</h1>
         <p className="text-blue-50 mb-6">Coordinate and track your assigned projects</p>
         
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm mr-3">
+            <Button className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm">
               <Plus className="h-4 w-4 mr-2" />
               Create New Project
             </Button>
