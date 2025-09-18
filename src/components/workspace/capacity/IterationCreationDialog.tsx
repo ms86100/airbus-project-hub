@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SimpleSelect, SimpleSelectItem } from '@/components/ui/simple-select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +12,7 @@ import { apiClient } from '@/services/api';
 
 interface Team {
   id: string;
-  team_name: string;
+  name: string;
   description?: string;
 }
 
@@ -141,7 +142,7 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
         type: 'iteration' as 'iteration' | 'sprint' | 'cycle',
         project_id: response.data.iteration.project_id,
         team_id: response.data.iteration.team_id,
-        team_name: teams.find(t => t.id === iterationForm.team_id)?.team_name || '',
+        team_name: teams.find(t => t.id === iterationForm.team_id)?.name || '',
         start_date: response.data.iteration.start_date,
         end_date: response.data.iteration.end_date,
         weeks_count: calculatedWeeks,
@@ -245,25 +246,21 @@ export const IterationCreationDialog: React.FC<IterationCreationDialogProps> = (
 
           <div>
             <Label htmlFor="team-select">Team *</Label>
-            <Select 
+            <SimpleSelect 
               value={iterationForm.team_id} 
               onValueChange={(value) => setIterationForm({ ...iterationForm, team_id: value })}
+              placeholder="Select a team"
             >
-              <SelectTrigger className="bg-background border-input z-50">
-                <SelectValue placeholder="Select a team" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border-border z-50">
-                {teams.length > 0 ? teams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
-                    {team.team_name}
-                  </SelectItem>
-                )) : (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                    Loading teams...
-                  </div>
-                )}
-              </SelectContent>
-            </Select>
+              {teams.length > 0 ? teams.map((team) => (
+                <SimpleSelectItem key={team.id} value={team.id}>
+                  {team.name}
+                </SimpleSelectItem>
+              )) : (
+                <SimpleSelectItem value="">
+                  Loading teams...
+                </SimpleSelectItem>
+              )}
+            </SimpleSelect>
             {teams.length === 0 && (
               <p className="text-sm text-muted-foreground mt-1">
                 No teams available. Create a team first.

@@ -109,15 +109,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const sessionData = JSON.parse(storedSession);
             const userData = JSON.parse(storedUser);
             
-            // Sync with Supabase client if session contains Supabase tokens
+            // Only sync with Supabase if we have valid tokens
             if (sessionData.access_token && sessionData.refresh_token) {
-              const { supabase } = await import('@/integrations/supabase/client');
-              
-              // Set the session in Supabase client
-              await supabase.auth.setSession({
-                access_token: sessionData.access_token,
-                refresh_token: sessionData.refresh_token
-              });
+              try {
+                const { supabase } = await import('@/integrations/supabase/client');
+                
+                // Set the session in Supabase client
+                await supabase.auth.setSession({
+                  access_token: sessionData.access_token,
+                  refresh_token: sessionData.refresh_token
+                });
+              } catch (supabaseError) {
+                console.warn('Failed to sync with Supabase:', supabaseError);
+                // Don't block if Supabase sync fails
+              }
             }
             
             setSession(sessionData);
@@ -126,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             // Fetch fresh role if available
             if (userData.id) {
-              fetchUserRole(userData.id);
+              setTimeout(() => fetchUserRole(userData.id), 100);
             }
           } catch (error) {
             console.error('Error parsing stored auth:', error);

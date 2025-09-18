@@ -39,30 +39,14 @@ class ApiClient {
         // First try to get current session
         let { data: { session }, error } = await supabase.auth.getSession();
         
-        // If no session or expired, try to refresh
-        if (!session || error) {
-          console.log('🔄 No valid session found, attempting refresh...');
-          const refreshResult = await supabase.auth.refreshSession();
-          
-          if (refreshResult.error) {
-            console.error('❌ Refresh failed:', refreshResult.error);
-            // If refresh fails, redirect to login
-            window.location.href = '/auth';
-            return null;
-          }
-          
-          session = refreshResult.data.session;
+        // If session exists and is valid, return token
+        if (session?.access_token && !error) {
+          return session.access_token;
         }
         
-        if (session?.access_token) {
-          console.log('🔐 Retrieved valid Supabase auth token');
-          return session.access_token;
-        } else {
-          console.warn('⚠️ No valid session after refresh attempt');
-          // Redirect to login if no valid session
-          window.location.href = '/auth';
-          return null;
-        }
+        // If no session, don't attempt refresh - just return null
+        // This prevents infinite loops
+        return null;
       }
 
       // Use microservice-stored session tokens for local backend
@@ -132,11 +116,14 @@ class ApiClient {
 
       if (
         response.status === 401 ||
-        (result && (result.message === 'Invalid JWT' || result.code === 'INVALID_TOKEN' || result.code === 'UNAUTHORIZED'))
+        (result && (result.message === 'Invalid JWT' || result.code === 'INVALID_TOKEN' || result.code === 'UNAUTHORIZED' || result.message === 'Missing authorization header'))
       ) {
-        const refreshed = await this.refreshToken();
-        if (refreshed) {
-          ({ response, result } = await doFetch(refreshed));
+        // Only attempt refresh once to prevent loops
+        if (!token) {
+          const refreshed = await this.refreshToken();
+          if (refreshed) {
+            ({ response, result } = await doFetch(refreshed));
+          }
         }
       }
 
@@ -165,9 +152,16 @@ class ApiClient {
         
         if (error) {
           console.error('Supabase refresh error:', error);
-          // If refresh fails completely, redirect to login
+          // Clean up auth state and redirect to login
+          const cleanupAuth = () => {
+            localStorage.removeItem('auth_session');
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_role');
+            localStorage.removeItem('app_session');
+          };
+          cleanupAuth();
           console.log('🚪 Redirecting to login due to refresh failure');
-          window.location.href = '/auth';
+          setTimeout(() => window.location.href = '/auth', 100);
           return null;
         }
         
@@ -649,9 +643,20 @@ class ApiClient {
   }
 
   async updateTask(taskId: string, data: any): Promise<ApiResponse<any>> {
+    // Ensure proper field mapping for backend compatibility
+    const payload = {
+      title: data.title,
+      description: data.description,
+      status: data.status,
+      priority: data.priority,
+      due_date: data.dueDate || data.due_date, // Backend expects snake_case
+      owner_id: data.ownerId || data.owner_id,  // Backend expects snake_case
+      milestone_id: data.milestoneId || data.milestone_id // Backend expects snake_case
+    };
+
     return this.makeRequest(`/workspace-service/tasks/${taskId}`, {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
   }
 
@@ -666,7 +671,7 @@ class ApiClient {
 
   // Profile management
   async getProfile(userId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/auth-service/profiles/${userId}`);
+    return this.makeRequest(`/auth-service/users/${userId}/profile`);
   }
 
   // Capacity Service Methods (extended)  
@@ -770,7 +775,109 @@ class ApiClient {
 
   // Analytics Service
   async getProjectOverviewAnalytics(projectId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/analytics-service/projects/${projectId}/project-overview`, { method: 'GET' });
+    try {
+      const response = await this.makeRequest(`/analytics-service/projects/${projectId}/project-overview`, {
+        method: 'GET',
+      });
+      
+      // Enhance the response with detailed task analytics if missing
+      if (response.success && response.data) {
+        const data = response.data as any;
+        
+        // Initialize taskAnalytics if missing
+        if (!data.taskAnalytics) {
+          data.taskAnalytics = {};
+        }
+        
+        // Enhance task analytics if tasksByOwner is missing
+        if (!data.taskAnalytics.tasksByOwner || data.taskAnalytics.tasksByOwner.length === 0) {
+          try {
+            const tasksResponse = await this.makeRequest(`/workspace-service/projects/${projectId}/tasks`, { method: 'GET' });
+            const stakeholdersResponse = await this.makeRequest(`/stakeholder-service/projects/${projectId}/stakeholders`, { method: 'GET' });
+            
+            if (tasksResponse.success && stakeholdersResponse.success) {
+              const tasks = (tasksResponse.data as any)?.tasks || [];
+              const stakeholders = (stakeholdersResponse.data as any)?.stakeholders || [];
+              
+              // Create tasksByOwner analytics
+              const tasksByOwner = stakeholders.map((stakeholder: any) => {
+                const userTasks = tasks.filter((task: any) => task.owner_id === stakeholder.id);
+                return {
+                  owner: stakeholder.name,
+                  total: userTasks.length,
+                  completed: userTasks.filter((task: any) => task.status === 'completed').length,
+                  inProgress: userTasks.filter((task: any) => task.status === 'in_progress').length,
+                  blocked: userTasks.filter((task: any) => task.status === 'on_hold').length
+                };
+              }).filter((owner: any) => owner.total > 0);
+              
+              // Add tasks without owners
+              const unassignedTasks = tasks.filter((task: any) => !task.owner_id);
+              if (unassignedTasks.length > 0) {
+                tasksByOwner.push({
+                  owner: 'Unassigned',
+                  total: unassignedTasks.length,
+                  completed: unassignedTasks.filter((task: any) => task.status === 'completed').length,
+                  inProgress: unassignedTasks.filter((task: any) => task.status === 'in_progress').length,
+                  blocked: unassignedTasks.filter((task: any) => task.status === 'on_hold').length
+                });
+              }
+              
+              // Create tasksByStatus if missing
+              if (!data.taskAnalytics.tasksByStatus || data.taskAnalytics.tasksByStatus.length === 0) {
+                const statusCounts = tasks.reduce((acc: any, task: any) => {
+                  acc[task.status] = (acc[task.status] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>);
+                
+                const statusColors: Record<string, string> = {
+                  'todo': '#94a3b8',
+                  'in_progress': '#3b82f6',
+                  'completed': '#10b981',
+                  'on_hold': '#f59e0b'
+                };
+                
+                data.taskAnalytics.tasksByStatus = Object.entries(statusCounts).map(([status, count]) => ({
+                  status: status.replace('_', ' '),
+                  count,
+                  color: statusColors[status] || '#6b7280'
+                }));
+              }
+              
+              // Create overdue tasks list
+              const today = new Date();
+              const overdueTasks = tasks.filter((task: any) => {
+                if (!task.due_date || task.status === 'completed') return false;
+                return new Date(task.due_date) < today;
+              }).map((task: any) => {
+                const dueDate = new Date(task.due_date);
+                const diffTime = today.getTime() - dueDate.getTime();
+                const daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const owner = stakeholders.find((s: any) => s.id === task.owner_id);
+                
+                return {
+                  id: task.id,
+                  title: task.title,
+                  owner: owner?.name || 'Unassigned',
+                  dueDate: task.due_date,
+                  daysOverdue
+                };
+              });
+              
+              data.taskAnalytics.tasksByOwner = tasksByOwner;
+              data.taskAnalytics.overdueTasksList = overdueTasks;
+            }
+          } catch (enhanceError) {
+            console.warn('Failed to enhance task analytics:', enhanceError);
+          }
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error in getProjectOverviewAnalytics:', error);
+      return { success: false, error: 'Failed to fetch analytics', code: 'ANALYTICS_ERROR' };
+    }
   }
 
   // Module access logging
@@ -1100,6 +1207,14 @@ class ApiClient {
     });
   }
 
+  async getIterationWeeks(iterationId: string): Promise<ApiResponse<any[]>> {
+    const ep = this.resolveEndpoint(
+      `/capacity-service/iterations/${iterationId}/weeks`,
+      `/capacity-service/iterations/${iterationId}/weeks`
+    );
+    return this.makeRequest(ep, { method: 'GET' });
+  }
+
   async getDailyAttendance(availabilityId: string): Promise<ApiResponse<any[]>> {
     const ep = this.resolveEndpoint(
       `/capacity-service/availability/${availabilityId}/daily`,
@@ -1125,6 +1240,15 @@ class ApiClient {
       `/capacity-service/iterations/${iterationId}/analytics`
     );
     return this.makeRequest(ep, { method: 'GET' });
+  }
+
+  // Maintenance: reset and seed demo data
+  async resetAndSeedDemo(keepTeams: boolean = true): Promise<ApiResponse<{ projects: { projectId: string; name: string }[] }>> {
+    const ep = this.resolveEndpoint('/seed-demo', '/seed-demo');
+    return this.makeRequest(ep, {
+      method: 'POST',
+      body: JSON.stringify({ keepTeams }),
+    });
   }
 }
 

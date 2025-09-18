@@ -530,31 +530,40 @@ export type Database = {
       member_weekly_availability: {
         Row: {
           availability_percent: number | null
+          calculated_days_present: number | null
+          calculated_days_total: number | null
           created_at: string
           effective_capacity: number | null
           id: string
           iteration_week_id: string
           leaves: number | null
+          notes: string | null
           team_member_id: string
           updated_at: string
         }
         Insert: {
           availability_percent?: number | null
+          calculated_days_present?: number | null
+          calculated_days_total?: number | null
           created_at?: string
           effective_capacity?: number | null
           id?: string
           iteration_week_id: string
           leaves?: number | null
+          notes?: string | null
           team_member_id: string
           updated_at?: string
         }
         Update: {
           availability_percent?: number | null
+          calculated_days_present?: number | null
+          calculated_days_total?: number | null
           created_at?: string
           effective_capacity?: number | null
           id?: string
           iteration_week_id?: string
           leaves?: number | null
+          notes?: string | null
           team_member_id?: string
           updated_at?: string
         }

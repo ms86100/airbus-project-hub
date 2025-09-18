@@ -80,7 +80,7 @@ export function AppSidebar() {
           </div>
           {!isCollapsed && (
             <div>
-              <h2 className="text-lg font-heading font-bold text-text-primary">ProjectFlow</h2>
+              <h2 className="text-lg font-heading font-bold text-text-primary">Purple Cow</h2>
               <p className="text-xs text-text-muted">Enterprise Platform</p>
             </div>
           )}

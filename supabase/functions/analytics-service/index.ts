@@ -132,7 +132,7 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
     if (budgetsError) console.log('❌ Budgets error:', budgetsError);
     if (spendingError) console.log('❌ Spending error:', spendingError);
 
-    // Process tasks with correct status mapping
+    // Process tasks with correct status mapping and build enhanced analytics
     const tasksData = tasks || []
     const completedTasks = tasksData.filter(task => 
       task.status === 'completed' || task.status === 'done'
@@ -150,7 +150,129 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
       if (!task.due_date) return false
       return new Date() > new Date(task.due_date) && 
              !['completed', 'done'].includes(task.status)
-    }).length
+    })
+    
+    // Get user names for task owners - check both profiles and team members
+    const userIds = [...new Set(tasksData.map(task => task.owner_id).filter(Boolean))]
+    let userNames = {}
+    
+    if (userIds.length > 0) {
+      try {
+        console.log('🔍 Looking up user names for IDs:', userIds)
+        
+        // Try profiles table first
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds)
+        
+        if (profiles && profiles.length > 0) {
+          profiles.forEach(profile => {
+            userNames[profile.id] = profile.full_name || profile.email || 'Unknown User'
+          })
+          console.log('📋 Found in profiles:', Object.keys(userNames))
+        }
+        
+        // Check remaining IDs in team_members table for the current project
+        const missingUserIds = userIds.filter(id => !userNames[id])
+        if (missingUserIds.length > 0) {
+          console.log('🔍 Checking team members for missing IDs:', missingUserIds)
+          
+          const { data: teamMembers } = await supabase
+            .from('team_members')
+            .select('id, display_name, email')
+            .in('id', missingUserIds)
+          
+          if (teamMembers && teamMembers.length > 0) {
+            teamMembers.forEach(member => {
+              userNames[member.id] = member.display_name || member.email || 'Team Member'
+            })
+            console.log('👥 Found in team members:', teamMembers.map(m => m.display_name))
+          }
+          
+          // Also check team_capacity_members by member_name for current project  
+          const stillMissingIds = missingUserIds.filter(id => !userNames[id])
+          if (stillMissingIds.length > 0) {
+            const { data: capacityMembers } = await supabase
+              .from('team_capacity_members')
+              .select('id, member_name')
+              .in('id', stillMissingIds)
+            
+            if (capacityMembers && capacityMembers.length > 0) {
+              capacityMembers.forEach(member => {
+                userNames[member.id] = member.member_name || 'Team Member'
+              })
+              console.log('👥 Found in capacity members:', capacityMembers.map(m => m.member_name))
+            }
+          }
+          
+          // Check project team members by joining through teams table
+          const finalMissingIds = missingUserIds.filter(id => !userNames[id])
+          if (finalMissingIds.length > 0) {
+            const { data: projectTeamMembers } = await supabase
+              .from('team_members')
+              .select(`
+                id, 
+                display_name, 
+                email,
+                teams!inner(project_id)
+              `)
+              .eq('teams.project_id', projectId)
+              .in('id', finalMissingIds)
+            
+            if (projectTeamMembers && projectTeamMembers.length > 0) {
+              projectTeamMembers.forEach(member => {
+                userNames[member.id] = member.display_name || member.email || 'Team Member'
+              })
+              console.log('👥 Found in project team members:', projectTeamMembers.map(m => m.display_name))
+            }
+          }
+        }
+        
+        // Final fallback for any still missing users - create readable names
+        const stillMissingIds = userIds.filter(id => !userNames[id])
+        stillMissingIds.forEach((id, index) => {
+          // Create meaningful names for unknown users instead of random IDs
+          userNames[id] = `Project Member ${index + 1}`
+          console.log('❌ No name found for user ID, using fallback:', id, '→', userNames[id])
+        })
+        
+      } catch (error) {
+        console.log('❌ Error fetching user names:', error)
+        // Fallback for any missing users
+        userIds.forEach(id => {
+          if (!userNames[id]) {
+            userNames[id] = 'Unknown User'
+          }
+        })
+      }
+    }
+
+    // Build tasks by owner data from available task data
+    const tasksByOwnerMap = tasksData.reduce((acc, task) => {
+      const ownerId = task.owner_id || 'unassigned'
+      const ownerName = task.owner_id ? (userNames[task.owner_id] || 'Unknown User') : 'Unassigned'
+      
+      if (!acc[ownerId]) {
+        acc[ownerId] = { owner: ownerName, total: 0, completed: 0, inProgress: 0, blocked: 0 }
+      }
+      acc[ownerId].total++
+      if (['completed', 'done'].includes(task.status)) acc[ownerId].completed++
+      else if (['in_progress', 'in progress'].includes(task.status)) acc[ownerId].inProgress++
+      else if (task.status === 'blocked') acc[ownerId].blocked++
+      return acc
+    }, {})
+    
+    const tasksByOwner = Object.values(tasksByOwnerMap) as Array<{ owner: string; total: number; completed: number; inProgress: number; blocked: number }>
+    
+    // Build overdue tasks list with proper user names
+    const overdueTasksList = overdueTasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      owner: task.owner_id ? (userNames[task.owner_id] || 'Unknown User') : 'Unassigned',
+      dueDate: task.due_date,
+      daysOverdue: Math.ceil((new Date().getTime() - new Date(task.due_date).getTime()) / (1000 * 3600 * 24))
+    }))
 
     // Process risks with proper scoring
     const risksData = risks || []
@@ -163,15 +285,78 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
       ['closed', 'mitigated'].includes(risk.status)
     ).length
 
-    // Process budget data
+    // Process budget data properly
     const budgetData = budgets?.[0] || { total_budget_allocated: 0, total_budget_received: 0 }
     const categories = budgetData.budget_categories || []
     
-    // Calculate total spent from budget_spending table
-    const totalSpent = budgetSpending?.reduce((sum, spending) => sum + (spending.amount || 0), 0) || 0
+    // Calculate budget allocations and spending correctly
+    const totalAllocated = categories.reduce((sum, cat) => sum + (cat.budget_allocated || 0), 0) || budgetData.total_budget_allocated || 0
+    
+    // Get spending data from budget_spending table with proper joins
+    let totalSpent = 0
+    let categorySpending = {}
+    let spendByCategory = []
+    let burnRate = []
+    
+    try {
+      const { data: spendingData } = await supabase
+        .from('budget_spending')
+        .select(`
+          amount,
+          date,
+          budget_category_id,
+          budget_categories!inner (
+            id,
+            name,
+            project_budget_id,
+            project_budgets!inner (
+              project_id
+            )
+          )
+        `)
+        .eq('budget_categories.project_budgets.project_id', projectId)
+        .order('date')
+      
+      if (spendingData) {
+        totalSpent = spendingData.reduce((sum, spend) => sum + (spend.amount || 0), 0)
+        
+        // Group spending by category for pie chart
+        const categoryMap = {}
+        spendingData.forEach(spend => {
+          const categoryName = spend.budget_categories?.name || 'Unknown Category'
+          if (!categoryMap[categoryName]) {
+            categoryMap[categoryName] = { name: categoryName, value: 0, color: '#2563eb' }
+          }
+          categoryMap[categoryName].value += (spend.amount || 0)
+        })
+        
+        spendByCategory = Object.values(categoryMap)
+        
+        // Create burn rate data for trend chart
+        const monthlySpending = {}
+        spendingData.forEach(spend => {
+          const month = new Date(spend.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' })
+          if (!monthlySpending[month]) {
+            monthlySpending[month] = { month, budget: 0, spent: 0 }
+          }
+          monthlySpending[month].spent += (spend.amount || 0)
+        })
+        
+        // Add budget allocation data to months
+        if (categories.length > 0) {
+          Object.keys(monthlySpending).forEach(month => {
+            monthlySpending[month].budget = totalAllocated / Object.keys(monthlySpending).length
+          })
+        }
+        
+        burnRate = Object.values(monthlySpending)
+      }
+    } catch (error) {
+      console.log('❌ Error fetching spending data:', error)
+    }
     
     console.log('💰 Budget analysis:', {
-      allocated: budgetData.total_budget_allocated,
+      allocated: totalAllocated,
       spent: totalSpent,
       categories: categories.length,
       spendingEntries: budgetSpending?.length || 0
@@ -194,8 +379,8 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
       ((milestones.filter(m => m.status === 'completed').length / milestones.length) * 100) : 
       (tasksData.length > 0 ? ((completedTasks / tasksData.length) * 100) : 100)
       
-    const budgetHealth = budgetData.total_budget_allocated > 0 ? 
-      Math.max(0, ((budgetData.total_budget_allocated - totalSpent) / budgetData.total_budget_allocated) * 100) : 100
+    const budgetHealth = totalAllocated > 0 ? 
+      Math.max(0, ((totalAllocated - totalSpent) / totalAllocated) * 100) : 100
       
     const riskHealth = risksData.length > 0 ? 
       Math.max(0, 100 - ((highRisks / risksData.length) * 100)) : 100
@@ -214,20 +399,16 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
         team: Math.round(teamHealth)
       },
       budgetAnalytics: {
-        totalAllocated: budgetData.total_budget_allocated || 0,
+        totalAllocated,
         totalSpent,
-        remainingBudget: Math.max(0, (budgetData.total_budget_allocated || 0) - totalSpent),
-        spendByCategory: categories.length > 0 ? categories.map((cat, index) => ({
-          name: cat.name || 'Unknown',
-          value: cat.amount_spent || 0,
-          color: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]
-        })) : [],
-        burnRate: [] // Can be populated with historical data
+        remainingBudget: Math.max(0, totalAllocated - totalSpent),
+        spendByCategory,
+        burnRate
       },
       taskAnalytics: {
         totalTasks: tasksData.length,
         completedTasks,
-        overdueTasks,
+        overdueTasks: overdueTasks.length,
         avgCompletionTime: 0, // Can calculate from task data
         tasksByStatus: tasksData.length > 0 ? [
           { status: 'Completed', count: completedTasks, color: '#22c55e' },
@@ -235,8 +416,8 @@ async function getProjectOverviewAnalytics(supabase: any, projectId: string) {
           { status: 'Todo', count: todoTasks, color: '#f97316' },
           { status: 'Blocked', count: blockedTasks, color: '#ef4444' }
         ] : [],
-        tasksByOwner: [], // Would need join with profiles
-        overdueTasksList: [], // Can be populated from overdue tasks
+        tasksByOwner,
+        overdueTasksList,
         productivityTrend: [] // Historical data needed
       },
       teamPerformance: {

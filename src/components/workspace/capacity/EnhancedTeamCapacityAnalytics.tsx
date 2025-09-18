@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Team {
   id: string;
-  team_name: string;
+  name: string;
   member_count?: number;
 }
 
@@ -107,6 +107,8 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
           // Get team members for this iteration
           const membersResponse = await apiClient.getTeamMembers(iteration.team_id);
           const members = membersResponse.success ? membersResponse.data || [] : [];
+          
+          console.log('Team members response:', { teamId: iteration.team_id, members });
 
           // Get weekly availability data for this iteration
           // Weekly availability rows from API
@@ -127,7 +129,7 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
                 const r = weekRows.find(w => w.team_member_id === member.id) || {};
                 return {
                   member_id: member.id,
-                  member_name: member.member_name || 'Unknown',
+                  member_name: member.display_name || member.member_name || member.name || `Team Member ${members.indexOf(member) + 1}`,
                   availability_percent: Number(r.availability_percent ?? 100),
                   days_present: Number(r.days_present ?? 5),
                   days_total: Number(r.days_total ?? 5),
@@ -159,7 +161,7 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
 
               const weekMembers: MemberWeekData[] = members.map(member => ({
                 member_id: member.id,
-                member_name: member.member_name || 'Unknown',
+                member_name: member.display_name || member.member_name || member.name || `Team Member ${members.indexOf(member) + 1}`,
                 availability_percent: 100,
                 days_present: 5,
                 days_total: 5,
@@ -182,7 +184,7 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
           analytics.push({
             id: iteration.id,
             name: iteration.name,
-            team_name: iteration.team_name || teams.find(t => t.id === iteration.team_id)?.team_name || 'Unknown Team',
+            team_name: iteration.team_name || teams.find(t => t.id === iteration.team_id)?.name || 'Unknown Team',
             weeks,
             total_capacity: totalCapacity,
             avg_availability: avgAvailability,
@@ -199,7 +201,7 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
           analytics.push({
             id: iteration.id,
             name: iteration.name,
-            team_name: iteration.team_name || team?.team_name || 'Unknown Team',
+            team_name: iteration.team_name || team?.name || 'Unknown Team',
             weeks: [],
             total_capacity: 0,
             avg_availability: 0,
@@ -266,7 +268,7 @@ export const EnhancedTeamCapacityAnalytics: React.FC<EnhancedTeamCapacityAnalyti
           : 0;
 
         return {
-          name: member.member_name,
+          name: member.member_name || 'Unknown Member',
           availability: Math.round(avgAvailability),
           totalDays: memberWeeks.reduce((sum, m) => sum + (m?.days_total || 0), 0),
           presentDays: memberWeeks.reduce((sum, m) => sum + (m?.days_present || 0), 0),

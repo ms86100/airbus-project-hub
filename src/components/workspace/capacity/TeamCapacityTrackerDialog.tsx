@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 interface Team {
   id: string;
-  team_name: string;
+  name: string;
   description?: string;
   member_count?: number;
 }
@@ -104,7 +104,7 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
         const createdIteration = {
           ...response.data,
           team_id: form.team_id, // Ensure team_id is included
-          team_name: teams.find(t => t.id === form.team_id)?.team_name || 'Unknown Team'
+          team_name: teams.find(t => t.id === form.team_id)?.name || 'Unknown Team'
         };
         
         
@@ -171,7 +171,7 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       <div className="flex items-center justify-between w-full">
-                        <span>{team.team_name}</span>
+                        <span>{team.name}</span>
                         <span className="text-xs text-muted-foreground ml-2">
                           {team.member_count || 0} members
                         </span>
@@ -186,7 +186,7 @@ export const TeamCapacityTrackerDialog: React.FC<TeamCapacityTrackerDialogProps>
           {selectedTeam && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Selected Team: {selectedTeam.team_name}</CardTitle>
+                <CardTitle className="text-lg">Selected Team: {selectedTeam.name}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-muted-foreground space-y-1">

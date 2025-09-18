@@ -46,11 +46,14 @@ const Auth = () => {
         });
       } else {
         console.log('=== LOGIN SUCCESS ===');
-        // Add a small delay to ensure auth state is set before navigation
-        setTimeout(() => {
-          console.log('🔄 Navigating to dashboard after successful login');
+        console.log('🔄 Navigating to dashboard after successful login');
+        
+        // For Vercel deployments, use window.location instead of navigate to prevent loops
+        if (window.location.hostname.includes('vercel.app')) {
+          window.location.href = '/';
+        } else {
           navigate('/', { replace: true });
-        }, 100);
+        }
       }
     } catch (err) {
       console.error('=== LOGIN EXCEPTION ===', err);
@@ -95,7 +98,7 @@ const Auth = () => {
               <Plane className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Project Hub</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Purple Cow</h1>
           <p className="text-white/80">Enterprise Project Management</p>
         </div>
 
