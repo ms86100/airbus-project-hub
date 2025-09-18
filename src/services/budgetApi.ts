@@ -60,19 +60,7 @@ class BudgetApiService {
         throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
 
-      const jsonResponse = await response.json();
-      
-      // Ensure response has the expected structure { success: boolean, data: any }
-      // This matches the pattern used by the main api.ts service
-      if (jsonResponse && jsonResponse.hasOwnProperty('success')) {
-        return jsonResponse;
-      } else {
-        // Wrap raw response in standard format for compatibility
-        return {
-          success: true,
-          data: jsonResponse
-        };
-      }
+      return await response.json();
     } catch (error) {
       console.error('❌ Budget API Error:', {
         error: error.message,
