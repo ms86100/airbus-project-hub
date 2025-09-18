@@ -1849,6 +1849,16 @@ export type Database = {
         Args: { _email: string }
         Returns: string
       }
+      get_project_budget_spending: {
+        Args: { project_id_param: string }
+        Returns: {
+          category_count: number
+          project_id: string
+          spending_entries_count: number
+          total_allocated: number
+          total_spent: number
+        }[]
+      }
       get_user_department: {
         Args: { _user_id: string }
         Returns: string
