@@ -26,6 +26,15 @@ class ApiClient {
       this.baseUrl = 'https://knivoexfpvqohsvpsziq.supabase.co/functions/v1';
       this.isLocalBackend = false;
     }
+
+    // Debug logging for API configuration
+    console.log('🔧 API Client Configuration:', {
+      baseUrl: this.baseUrl,
+      isLocalBackend: this.isLocalBackend,
+      hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
+      apiUrl: apiUrl,
+      onLocalhost
+    });
   }
 
   private isLocalBackend: boolean;
@@ -84,6 +93,11 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    console.log('🚀 Making API request:', {
+      endpoint,
+      baseUrl: this.baseUrl,
+      isLocalBackend: this.isLocalBackend
+    });
     const token = await this.getAuthToken();
 
       const doFetch = async (authToken?: string) => {
@@ -127,11 +141,20 @@ class ApiClient {
         }
       }
 
-      
+      console.log('📥 API Response:', {
+        status: response.status,
+        url: response.url,
+        result,
+        success: result?.success
+      });
       
       // Return the RAW response - don't sanitize errors
       if (!result || !result.success) {
-        
+        console.error('❌ API Request failed:', {
+          endpoint,
+          status: response.status,
+          result
+        });
       }
       
       return result ?? { success: false, error: 'Empty response', code: 'EMPTY_RESPONSE' };
